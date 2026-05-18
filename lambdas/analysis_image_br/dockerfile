@@ -1,0 +1,15 @@
+FROM public.ecr.aws/sam/build-python3.13
+
+RUN pip install requests numpy pandas scipy bed_reader>=1.0.6 scikit-learn scikit-allel
+RUN cd /opt && \
+    git clone --depth 1 https://github.com/Rosemeis/emu.git && \
+    cd emu && \
+    pip install .
+
+COPY plink ${LAMBDA_TASK_ROOT}
+COPY br_wrapper.py ${LAMBDA_TASK_ROOT}
+COPY load_pgs.py ${LAMBDA_TASK_ROOT}
+COPY lambda_function.py ${LAMBDA_TASK_ROOT}
+
+ENTRYPOINT ["/var/lang/bin/python3", "-m", "awslambdaric"]
+CMD ["lambda_function.lambda_handler"]

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>DELPHI</title>
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<link rel="stylesheet" type="text/css" href="/css/main.css">
+</head>
+<body>
+<div class="wrap genome-browser" data-module="browser">
+	<header class="top-bar">
+		<div class="top-bar-left">
+			<div class="logo" data-icon="0">DELPHI</div><div class="mode"></div>
+			<input type="text" class="region-query" data-input="region" placeholder="chr1:1000000-2000000" value="chr1:1000000-2000000">
+			<a data-icon="S" data-action="search-annotation" title="Go to region or search gene"></a>
+		</div>
+		<div class="view-finder-container">
+			<div class="view-finder" data-module="track" data-type="viewfinder" data-source="gencode19_genes" aria-label="View finder"></div>
+		</div>
+	</header>
+	<main class="viewport">
+		<div class="tracks-container annotation-tracks-container">
+		</div>
+		<div class="tracks-controls">
+			<div class="sep sort-container">
+				<a data-icon="O" data-action="toggle-sort"></a>
+				<select data-control="sort" class="sort-selector">
+					<option value="time">Time</option>
+					<option value="distance">Distance from Africa</option>
+					<option value="chelsa_pc1">Temperature (CHELSA)</option>
+					<option value="chelsa_pc2">Precipitation (CHELSA)</option>
+					<option value="Latitude">Latitude</option>
+					<option value="Longitude">Longitude</option>
+					<option value="ag_extensive_agriculture">Neolithic (AG)</option>
+					<option value="ag_urbanization">Urbanization (AG)</option>
+					<option value="signal">Signal</option>
+				</select>
+				<select data-control="sort" class="sort-selector-pairwise">
+					<option value="time">Temporal distance</option>
+					<option value="distance">Waypoint distance</option>
+					<option value="genetic_distance">Genetic distance (PCA)</option>
+					<option value="chelsa_pc1">Temperature (CHELSA)</option>
+					<option value="chelsa_pc2">Precipitation (CHELSA)</option>
+					<option value="signal">Signal</option>
+				</select>
+			</div>
+			<label data-icon="a">Measure</label>
+			<select data-control="measure" class="measure-selector">
+				<option value="heterozygosity" selected>Heterozygosity</option>
+				<option value="fst">FST</option>
+				<option value="tajimasd">Tajima's D</option>
+				<option value="fulif">Fu & Li's F</option>
+			</select>
+			<span data-module="library"><a data-icon="P" data-action="open-populations">Select populations</a><a data-icon="u" data-action="open-annotations">Annotations</a></span>
+			<div class="fright">
+				<div class="sep">
+					<label data-icon="W">Window size</label>
+					<select data-control="window" class="window-selector">
+						<option value="10000">10 kb</option>
+						<option value="100000">100 kb</option>
+						<option value="1000000">1 Mb</option>
+					</select>
+				</div>
+				<div class="sep"><a data-action="display" data-icon="a">Display style</a></div>
+				<div class="sep"><a data-action="toggle-guides" data-icon="a" title="Show vertical guide lines across tracks">Guides</a></div>
+				<label>Track size</label><a data-icon="+" data-action="increase-track-size"></a><a data-icon="m" data-action="decrease-track-size"></a>
+			</div>
+		</div>
+		<div class="tracks-container signal-tracks-container">
+			<div class="empty-state" data-action="open-populations">Select populations to display data</div>
+		</div>
+		<template id="signal-track-template">
+			<div class="track-left-margin">
+				<div class="track-move"></div>
+				<div class="track-buttons">
+					<a data-action="individuals" data-icon="I" title="Show individuals in data"></a>
+					<a data-action="pin" data-icon="p" title="Pin track (always show above data tracks)"></a>
+					<a data-action="remove" data-icon="x" title="Remove track from display"></a>
+				</div>
+				<div class="track-metadata"><div class="track-label"></div><div class="track-type"></div><div class="track-value"></div></div>
+			</div>
+			<div class="track-plot-area"></div>
+			<div class="track-tooltip"></div>
+			<div class="track-loading">Loading data...</div>
+		</template>
+		<template id="annotation-track-template">
+			<div class="track-left-margin">
+				<div class="track-move"></div>
+				<div class="track-buttons">
+					<a data-action="annotation-display" data-icon="s" title="Toggle annotation display style"></a>
+					<a data-action="search-annotation" data-icon="S" title="Search in annotation"></a>
+					<a data-action="remove" data-icon="x" title="Remove annotation from display"></a>
+				</div>
+				<div class="track-metadata">
+					<div class="track-label"></div>
+					<div class="track-type"></div>
+					<div class="track-value"></div>
+				</div>
+			</div>
+			<div class="track-plot-area"></div>
+			<div class="track-tooltip"></div>
+		</template>
+	</main>
+	<!-- Footer -->
+	<footer class="footer">
+		<span>DELPHI</span> | <a href="/tutorial.html" target="_blank">Tutorial</a> | <a href="/COPYING.txt" target="_blank">License</a>
+	</footer>
+</div>
+<div class="loading-overlay">Loading...</div>
+<script type="module" src="/init.js"></script>
+</body>
+</html>
