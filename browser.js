@@ -15,6 +15,22 @@ const syncSortDropdown = (is_pairwise, current_sort) => {
 	}
 };
 
+const DEFAULTS = {
+	chr: 'chr1',
+	start: 1000000,
+	end: 2000000,
+	viewfinder_start: 500000,
+	viewfinder_end: 2500000,
+	zoom_level: 15,
+	mode: 'gnomad',
+	measure: 'heterozygosity',
+	sort: 'date',
+	sort_dir: 'asc',
+	window_size: 10000,
+	show_guides: false,
+	populations: [],
+	annotations: ['gencode19_genes']
+};
 
 const hooks = [
   	['[data-module="browser"]', 'refresh', async e => {
@@ -189,29 +205,22 @@ const hooks = [
 		document.querySelector('[data-action="toggle-guides"]').classList.toggle('active', show_guides);
 		e.target.closest('[data-module="browser"]').dispatchEvent(new Event('refresh'));
 	}],
+	['[data-action="reset-defaults"]', 'click', e => {
+		getOptions(Object.entries(DEFAULTS));
+		document.querySelector('[data-control="measure"]').value = DEFAULTS.measure;
+		document.querySelector('[data-control="window"]').value = DEFAULTS.window_size;
+		syncSortDropdown(DEFAULTS.measure === 'fst', DEFAULTS.sort);
+		document.querySelector('[data-action="toggle-guides"]').classList.toggle('active', DEFAULTS.show_guides);
+		updateRegionInput(DEFAULTS.chr, DEFAULTS.start, DEFAULTS.end);
+		e.target.closest('[data-module="browser"]').dispatchEvent(new Event('update'));
+	}],
 	['[data-module="browser"]', 'upload-annotation', e => {
 		addAnnotation(e.target);
 	}]
 ];
 
 export const init = async (container) => {
-	const defaults = {
-		chr: 'chr1',
-        start: 1000000,
-        end: 2000000,
-        viewfinder_start: 500000,
-        viewfinder_end: 2500000,
-        zoom_level: 15,
-		mode: 'gnomad',
-        measure: 'heterozygosity',
-		sort: 'date',
-		sort_dir: 'asc',
-        window_size: 10000,
-		show_guides: false,
-        populations: [],
-        annotations: ['gencode19_genes']
-    };
-  	const options = getOptions(undefined, defaults);
+	const options = getOptions(undefined, DEFAULTS);
 	document.querySelector('[data-control="measure"]').value = options.measure;
 	document.querySelector('[data-control="window"]').value = options.window_size;
 	const is_pairwise = options.measure === 'fst';
