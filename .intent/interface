@@ -1,0 +1,252 @@
+Interface Intent: Genome Browser UI
+Purpose
+Define the visual structure, layout, and interaction patterns for the web-based genome browser interface that enables exploration of ancient and modern human DNA with population genetic measures.
+
+File Scope
+genome_browser.html – DOM structure and semantic markup
+genome_browser.css – Visual styling, layout, responsiveness, and theme
+
+
+Layout Structure
+Top Navigation Bar (30px height, 25% width)
+
+Fixed horizontal bar containing:
+Browser logo (left-aligned)
+Action buttons: population selection, query input, settings
+Scrolls with page content
+Positioned at top-left of viewport
+Annotation Track: anno_mini (30px height, 75% width)
+
+Complements top bar to fill remaining width
+Shows simplified chromosome-wide view:
+Simplified gene blocks (no exon detail)
+Coordinate labels at top, scaled to zoom level
+Adaptive tick marks (bp/kb/Mb based on zoom)
+Contains semi-transparent focal window (50% opacity fixed)
+Scrolls with page content
+Annotation Track: anno_full (below anno_mini)
+
+Shows detailed genomic region:
+Full gene structures with exons, introns, strand direction
+Gene names when space permits
+Coordinate ruler at bottom with base-pair resolution at high zoom (<10kb)
+Center position synchronized with focal window center in anno_mini
+Focal Window Behavior
+Visual Properties
+
+Semi-transparent overlay (50% opacity, fixed)
+Resizable by dragging edges
+Visual handles appear on mouseover of edges
+No size constraints (can be any % of anno_mini width)
+Interaction Methods
+
+Reposition: Click anywhere on anno_mini outside focal window → window jumps to click position
+Resize: Drag edges when handles visible
+Define new region: Click + drag on anno_mini to draw new focal window
+Synchronization
+
+Focal window position/size always reflects anno_full viewport
+Dragging anno_full view → focal window auto-slides in anno_mini
+Window boundaries define the genomic region displayed in anno_full
+Zoom Interactions
+Universal Zoom Behavior
+
+All annotation tracks render together synchronously (anno_mini + anno_full + all population tracks)
+Mouse wheel scroll: 2x zoom factor per tick
+Double-click: zoom 2x centered on click position
+Zoom buttons: standard zoom in/out controls
+Coordinate Scale Adaptation
+
+anno_mini: Coordinate labels scale dynamically (show Mb at chromosome scale, kb at gene scale)
+anno_full: Always shows highest resolution appropriate for zoom level
+At <10kb span: display base-pair resolution coordinates
+Pan Interactions
+Dragging on anno_mini
+
+Moves the focal window along the chromosome
+Does NOT pan the entire chromosome view
+anno_full updates to show region defined by new focal window position
+Dragging on anno_full
+
+Pans the detailed genomic view left/right
+Focal window in anno_mini auto-slides to match
+When dragged to edge, focal window continues sliding
+Click Navigation
+
+Click outside focal window on anno_mini: focal window jumps to clicked position
+Detailed view (anno_full) re-centers on new focal position
+Technical Requirements
+State Synchronization
+
+Single source of truth: genomic coordinates {chr, start, end}
+anno_mini focal window derives position from {start, end} relative to chromosome length
+All tracks (anno_mini, anno_full, population tracks) subscribe to same state
+Any zoom/pan action updates central state → triggers re-render of all tracks
+Rendering Rules
+
+anno_mini: Simplified gene blocks only (rectangles, no exon subdivision)
+anno_full: Full gene detail (exons as thick bars, introns as thin lines with strand arrows)
+Both tracks maintain consistent color coding (strand + vs -)
+Coordinate labels auto-format based on scale (bp, kb, Mb)
+
+
+
+C. Population Tracks Section
+
+Section Header (above all tracks):
+- Measure selector: Dropdown for choosing genetic measure (FST, heterozygosity, Tajima's D)
+- Window size selector: Dropdown (per-SNP, 100kb, 500kb, 1Mb, 5Mb)
+- Sort by selector: Dropdown for explanatory variables (age, latitude, longitude, distance from Africa, climate PC1/PC2)
+- Export button: Downloads visible data as CSV
+
+Track Layout:
+- One track per selected population
+- Height: 80px per track (configurable)
+- Left margin: Population name/code (e.g., "CEU", "YRI")
+- Right margin: Shared Y-axis with measure title and tick labels
+- Main area: Line plot aligned with genomic coordinates from ruler above
+- Color: Unique per population (from predefined palette)
+- Ordering: Sorted by selected explanatory variable
+
+Shared Y-Axis:
+- Tick marks and labels shared across all tracks
+- Range: Auto-scaled to genome coordinates and annotation tracks
+
+Track Interaction:
+- Hover shows tooltip with exact value, position, population name
+- Drag-and-drop track reordering by population name
+- Synchronized pan/zoom with ruler and annotations
+- No per-track status indicators
+
+3. Population Selection Modal
+Overlay dialog triggered by population selector button.
+
+Structure:
+Search/filter bar at top
+Scrollable list of populations with checkboxes
+Selection counter: "X of 20 selected"
+Ancient DNA section (when applicable):
+Radio buttons: Genetic similarity / Geographic distance
+Slider or dropdown for threshold value
+Genetic similarity: 0-100% (5% steps)
+Geographic distance: 10-100,000 km (log scale)
+Time distribution chart: Shows sample availability across time
+Time range selector: Dual-handle slider for date range
+Action buttons: Apply, Cancel
+Behavior:
+
+Selections persist during session
+Apply closes modal and triggers data fetch
+Limit enforced: maximum 20 populations
+4. Loading/Status Indicator
+Position: Overlay or top bar
+States:
+Loading data
+Computing (with progress if available)
+Error message
+Job polling status (for async requests)
+
+Visual Design Requirements
+Color Palette
+Background: Light neutral (#f5f5f5)
+Panels: White (#ffffff)
+Borders: Subtle gray (#d0d0d0)
+Primary action: Blue (#2196F3)
+Population tracks: Distinct colors from qualitative palette (colorblind-safe)
+Annotations: Muted colors (genes: #7986CB, exons: #5C6BC0)
+
+Typography
+Headers: Sans-serif, 16-18px, medium weight
+Labels: 12-14px, regular weight
+Monospace: For coordinates and numeric values
+
+Spacing
+Control bar padding: 12px vertical, 16px horizontal
+Track margins: 4px between tracks
+Modal padding: 24px
+
+Responsive Breakpoints
+Desktop: ≥1024px (full layout)
+Tablet: 768-1023px (simplified controls)
+Mobile: <768px (stacked controls, modal fullscreen)
+Interaction Patterns
+
+Navigation
+Pan: Click-drag on ruler or tracks, arrow keys
+Zoom: Buttons, scroll wheel (with modifier key), pinch on touch
+Jump: Enter coordinates or gene name in query box
+
+Track Management
+Reorder: Drag track headers
+Highlight: Click to select/focus
+Export: Generates CSV of visible region data
+
+Modals
+Open: Button click, keyboard shortcut
+Close: Apply/Cancel button, Esc key, click outside
+Focus trap: Tab cycles within modal when open
+
+Accessibility
+Semantic HTML: Proper heading hierarchy, ARIA labels
+Keyboard navigation: All functions accessible without mouse
+Screen reader: Descriptive labels for all controls and data points
+Contrast: WCAG AA compliance minimum
+Focus indicators: Visible outlines on interactive elements
+Default State
+
+On initial load:
+Region: chr1:1,000,000-2,000,000
+Measure: FST (or first available)
+Window size: 1Mb
+Sort by: None (alphabetical by population)
+Populations: None selected (user must choose)
+Annotation track: Visible with genes/exons loaded
+
+Performance Considerations
+Lazy render: Only visible tracks and viewport region
+Debounce: Pan/zoom events throttled to 60fps
+Canvas rendering: For data tracks when point count >1000
+Progressive enhancement: Works without JavaScript for basic structure
+
+
+MVP Phase 1 - Interface Focus:
+
+Priority 1: Core Navigation
+- Region query input (chr:start-end format)
+- Zoom in/out controls
+- Pan functionality (click-drag)
+- Coordinate ruler with dynamic updates
+- Default region: chr1:1,000,000-2,000,000
+
+Priority 2: Annotation Display
+- GTF loading from S3
+- Gene bodies rendering
+- Exon/intron visual distinction
+- Gene labels at appropriate zoom
+
+Priority 3: Population Selection
+- Population selector modal with checkboxes
+- Limit: 20 populations maximum
+- Search/filter capability
+- Selection persistence during session
+- NO ancient DNA filtering in MVP
+
+Priority 4: Heterozygosity Visualization
+- Single measure selector (heterozygosity only for MVP)
+- Window size selector: per-SNP, 100kb, 500kb, 1Mb, 5Mb
+- Population tracks: one per selected population
+- Shared Y-axis on right with measure title
+- Track ordering by population name (alphabetical initially)
+- NO sorting by explanatory variables in MVP
+
+Priority 5: Track Interaction
+- Hover tooltips showing value, position, population
+- CSV export of visible data
+- Synchronized pan/zoom across all tracks
+
+Deferred to Later Phases:
+- FST and other pairwise measures
+- Tajima's D and additional population-level measures
+- Sorting by explanatory variables (age, lat, long, etc.)
+- Ancient DNA time/similarity filtering
+- Track drag-and-drop reordering
