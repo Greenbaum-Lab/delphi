@@ -62,3 +62,5 @@ export const generateZoomLevels = () => {
 
 export const ZOOM_LEVELS = generateZoomLevels();
 
+export const COLUMN_DESCRIPTIONS = fetch('/data/column_descriptions.json').then(response => response.json());
+
