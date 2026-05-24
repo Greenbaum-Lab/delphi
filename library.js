@@ -1,10 +1,11 @@
 import { addHooks, errorBox, getOptions } from '/apc/common.js';
 import { addBox } from '/apc/form.js';
 import { getIDBObject, listIDBTable } from '/apc/cache.js';
+import { COLUMN_DESCRIPTIONS } from '/common.js';
 import { getMetadata, listAnnotations, getAnnotationEntry } from '/assets.js';
 import { getPopsData, getPopData, addPopulation, deletePopulations } from '/browser/pops.js';
 
-const loadTable = (label, data, buttons = '', columns = [], categorical_columns = [], link_columns = [], select_rows = 'multiRow', selected_rows = {}) => new Promise(resolve => {
+const loadTable = async (label, data, buttons = '', columns = [], categorical_columns = [], link_columns = [], select_rows = 'multiRow', selected_rows = {}) => {
 	const form = addBox(document.querySelector('[data-module="browser"]'), `${label}`, '<div class="ag-grid-container"></div>', buttons);
 	if (!form)
 		return;
@@ -13,11 +14,14 @@ const loadTable = (label, data, buttons = '', columns = [], categorical_columns 
 	form.style.height = '80%';
 	form.style.maxHeight = '80%';
 
+	const column_descriptions = await COLUMN_DESCRIPTIONS;
+
 	const custom_column_defs = Object.fromEntries(
 		categorical_columns.map(col_label => ([
 			col_label,
 			{
 				field: col_label,
+				headerTooltip: column_descriptions[col_label],
 				filter: 'agTextColumnFilter',
 				cellRenderer: params => {
 					const link = document.createElement('a');
@@ -46,6 +50,7 @@ const loadTable = (label, data, buttons = '', columns = [], categorical_columns 
 			link_column.label,
 			{
 				field: link_column.label,
+				headerTooltip: column_descriptions[link_column.label],
 				filter: true,
 				cellRenderer: params => {
 					const a = document.createElement('a');
@@ -75,6 +80,7 @@ const loadTable = (label, data, buttons = '', columns = [], categorical_columns 
 			const first_sample_value = getFirstValue(rowData, label);
 			return {
 				field: label,
+				headerTooltip: column_descriptions[label],
 				sortable: true,
 				filter: true,
 				pinned: label === 'Poseidon_ID' ? 'left' : undefined,
@@ -96,6 +102,9 @@ const loadTable = (label, data, buttons = '', columns = [], categorical_columns 
 
 	const grid_elem = form.querySelector('.ag-grid-container');
 
+	let grid_ready_resolve;
+	const grid_ready_promise = new Promise(resolve => { grid_ready_resolve = resolve; });
+
 	const grid_options = {
 		animateRows: false,
 		suppressColumnMoveAnimation: true,
@@ -114,7 +123,7 @@ const loadTable = (label, data, buttons = '', columns = [], categorical_columns 
 					if (n.data.selected_first) n.setSelected(true);
 				});
 			}
-			resolve(grid_elem);
+			grid_ready_resolve(grid_elem);
 		},
 		onSelectionChanged: () => grid_elem.dispatchEvent(new CustomEvent('agselection', { bubbles: true })),
 		cellFlashDuration: 0,
@@ -126,7 +135,8 @@ const loadTable = (label, data, buttons = '', columns = [], categorical_columns 
 
 	const grid_api = agGrid.createGrid(grid_elem, grid_options);
 	grid_elem.api = grid_api;
-});
+	return grid_ready_promise;
+};
 
 const convertSimpleFilter = (field, condition) => {
 	switch (condition.type) {
