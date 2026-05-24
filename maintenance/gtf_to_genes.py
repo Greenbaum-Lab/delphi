@@ -31,10 +31,12 @@ def load_transcripts_and_exons(annotation_path):
 	transcripts_by_chromosome[chromosome][gene_id] = list of (start, end) for transcript features
 	exons_by_chromosome[chromosome][gene_id] = list of (start, end) for exon features
 	Also returns gene_names_by_id[gene_id] = gene_name mapping
+	Also returns gene_strands_by_id[gene_id] = strand character ('+' or '-')
 	'''
 	transcripts_by_chromosome = {}
 	exons_by_chromosome = {}
 	gene_names_by_id = {}
+	gene_strands_by_id = {}
 
 	if annotation_path.endswith('.gz'):
 		file_handle = gzip.open(annotation_path, 'rt')
@@ -52,6 +54,7 @@ def load_transcripts_and_exons(annotation_path):
 			feature_type = fields[2]
 			start = fields[3]
 			end = fields[4]
+			strand = fields[6]
 			attributes_field = fields[8]
 
 			attributes = parse_attributes(attributes_field)
@@ -74,6 +77,8 @@ def load_transcripts_and_exons(annotation_path):
 				if gene_id not in transcripts_by_chromosome[chromosome]:
 					transcripts_by_chromosome[chromosome][gene_id] = []
 				transcripts_by_chromosome[chromosome][gene_id].append((start_position, end_position))
+				if gene_id not in gene_strands_by_id:
+					gene_strands_by_id[gene_id] = strand
 
 			if feature_type == 'exon':
 				if chromosome not in exons_by_chromosome:
@@ -82,7 +87,7 @@ def load_transcripts_and_exons(annotation_path):
 					exons_by_chromosome[chromosome][gene_id] = []
 				exons_by_chromosome[chromosome][gene_id].append((start_position, end_position))
 
-	return transcripts_by_chromosome, exons_by_chromosome, gene_names_by_id
+	return transcripts_by_chromosome, exons_by_chromosome, gene_names_by_id, gene_strands_by_id
 
 
 def load_bed_regions(annotation_path):
@@ -119,9 +124,9 @@ def load_bed_regions(annotation_path):
 	return genes_by_chromosome
 
 
-def build_genes_by_chromosome(transcripts_by_chromosome, exons_by_chromosome, gene_names_by_id):
+def build_genes_by_chromosome(transcripts_by_chromosome, exons_by_chromosome, gene_names_by_id, gene_strands_by_id):
 	'''
-	Build gene objects per chromosome with name, start, end, exons, and introns.
+	Build gene objects per chromosome with name, start, end, strand, exons, and introns.
 	'''
 	genes_by_chromosome = {}
 	chromosomes = set(transcripts_by_chromosome.keys()) | set(exons_by_chromosome.keys())
@@ -161,6 +166,7 @@ def build_genes_by_chromosome(transcripts_by_chromosome, exons_by_chromosome, ge
 				'name': gene_name,
 				'start': gene_start,
 				'end': gene_end,
+				'strand': gene_strands_by_id.get(gene_id),
 				'exons': exon_pairs,
 				'introns': intron_pairs
 			}
@@ -245,8 +251,8 @@ def detect_format(annotation_path):
 def convert_annotation(annotation_path, window_size=100000, annotation_id='annotation'):
 	if detect_format(annotation_path) == 'bed':
 		return load_bed_regions(annotation_path)
-	transcripts_by_chromosome, exons_by_chromosome, gene_names_by_id = load_transcripts_and_exons(annotation_path)
-	genes_by_chromosome = build_genes_by_chromosome(transcripts_by_chromosome, exons_by_chromosome, gene_names_by_id)
+	transcripts_by_chromosome, exons_by_chromosome, gene_names_by_id, gene_strands_by_id = load_transcripts_and_exons(annotation_path)
+	genes_by_chromosome = build_genes_by_chromosome(transcripts_by_chromosome, exons_by_chromosome, gene_names_by_id, gene_strands_by_id)
 	return genes_by_chromosome
 
 
