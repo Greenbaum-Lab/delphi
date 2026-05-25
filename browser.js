@@ -110,6 +110,11 @@ const hooks = [
 		if (e.key === 'Enter')
 			updateRegionFromInput();
 	}],
+	['*', 'keydown', e => {
+		if (e.key !== 'Escape') return;
+		const popup = document.querySelector('.popup');
+		if (popup) popup.remove();
+	}],
 	['.measure-selector', 'change', e => {
 		const options = getOptions([['measure', e.target.value]]);
 		const browser = document.querySelector('[data-module="browser"]');
