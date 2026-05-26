@@ -218,6 +218,7 @@ const parseJSONL = (text) => {
 			chr: gene.chr,
 			gene: gene.name,
 			coordinates: { start: gene.start, end: gene.end },
+			strand: gene.strand,
 			exons: gene.exons || [],
 			introns: gene.introns || []
 		};
