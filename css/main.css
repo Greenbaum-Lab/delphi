@@ -390,6 +390,20 @@ input, select, textarea {
 	display: block;
 }
 
+[data-module="track"] .track-plot-area .hover-line {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	width: 1px;
+	background: rgba(0, 0, 0, 0.4);
+	pointer-events: none;
+	display: none;
+}
+
+[data-module="track"] .track-plot-area .hover-line.show {
+	display: block;
+}
+
 .drop-above {
 	margin-top: 20px;
 }
