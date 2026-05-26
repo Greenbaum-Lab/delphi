@@ -98,3 +98,28 @@ export const generateCoordinateTicks = (start, end, width, maxTicks = 8) => {
 export const drawGuides = (drawer, ticks, height) => {
 	ticks.forEach(tick => drawer.genomicLine(tick.pos, tick.pos, 0, height, [180, 180, 180], 0.3));
 };
+
+const ensureHoverLine = (plot_area) => {
+	let hover_line = plot_area.querySelector('.hover-line');
+	if (!hover_line) {
+		hover_line = document.createElement('div');
+		hover_line.className = 'hover-line';
+		plot_area.append(hover_line);
+	}
+	return hover_line;
+};
+
+export const showHoverLine = (client_x) => {
+	document.querySelectorAll('[data-module="browser"] [data-module="track"]:not([data-type="viewfinder"]) .track-plot-area')
+		.forEach(plot_area => {
+			const bounds = plot_area.getBoundingClientRect();
+			const hover_line = ensureHoverLine(plot_area);
+			hover_line.style.left = (client_x - bounds.left) + 'px';
+			hover_line.classList.add('show');
+		});
+};
+
+export const hideHoverLine = () => {
+	document.querySelectorAll('[data-module="browser"] .hover-line')
+		.forEach(hover_line => hover_line.classList.remove('show'));
+};
