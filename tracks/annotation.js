@@ -26,15 +26,15 @@ const drawStrandChevrons = (drawer, intron_start, intron_end, center_y, strand, 
 	const start_px = (intron_start - region_start) * pixels_per_base;
 	const end_px = (intron_end - region_start) * pixels_per_base;
 	const width_px = end_px - start_px;
-	if (width_px < CHEVRON_SPACING_PX) return;
-	const count = Math.floor(width_px / CHEVRON_SPACING_PX);
-	const tip_dx = strand === '-' ? -CHEVRON_HALF_SIZE_PX : CHEVRON_HALF_SIZE_PX;
+	if (width_px < STRAND_CHEVRON_SPACING_PX) return;
+	const count = Math.floor(width_px / STRAND_CHEVRON_SPACING_PX);
+	const tip_dx = strand === '-' ? -STRAND_CHEVRON_HALF_HEIGHT_PX : STRAND_CHEVRON_HALF_HEIGHT_PX;
 	for (let index = 1; index <= count; index++) {
 		const base_px = start_px + (width_px * index) / (count + 1);
 		drawer.polyline([
-			[base_px, center_y - CHEVRON_HALF_SIZE_PX],
+			[base_px, center_y - STRAND_CHEVRON_HALF_HEIGHT_PX],
 			[base_px + tip_dx, center_y],
-			[base_px, center_y + CHEVRON_HALF_SIZE_PX]
+			[base_px, center_y + STRAND_CHEVRON_HALF_HEIGHT_PX]
 		], INTRON_COLOR, 1, {'data-gene': gene_name});
 	}
 };
