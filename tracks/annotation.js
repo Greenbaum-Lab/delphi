@@ -211,8 +211,8 @@ const hooks = [
 	}],
 	['svg [data-gene]', 'mouseenter', showTooltip],
 	['svg [data-gene]', 'mouseleave', hideTooltip],
-	['.track-plot-area', 'mousemove', e => showHoverLine(e.clientX)],
-	['.track-plot-area', 'mouseleave', hideHoverLine],
+	['svg, svg *', 'mousemove', e => showHoverLine(e.clientX)],
+	['[data-module="track"]', 'mouseleave', hideHoverLine],
 	['[data-module="track"]', 'search', handleSearch],
 	['[data-action="remove"]', 'click', e => {
 		const track = e.target.closest('[data-module="track"]');
