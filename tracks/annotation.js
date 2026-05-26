@@ -15,7 +15,7 @@ const FOCAL_WINDOW_OPACITY = 0.5;
 const GENE_HEIGHT = 10;
 const GENE_VERTICAL_SPACING = 30;
 const GENE_TRACKS = 3;
-const STRAND_CHEVRON_SPACING_PX = 30;
+const STRAND_CHEVRON_SPACING_PX = 20;
 const STRAND_CHEVRON_HALF_HEIGHT_PX = 3;
 
 let highlighted_gene = null;
