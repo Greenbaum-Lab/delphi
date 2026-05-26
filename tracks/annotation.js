@@ -15,12 +15,34 @@ const FOCAL_WINDOW_OPACITY = 0.5;
 const GENE_HEIGHT = 10;
 const GENE_VERTICAL_SPACING = 30;
 const GENE_TRACKS = 3;
+const STRAND_CHEVRON_SPACING_PX = 30;
+const STRAND_CHEVRON_HALF_HEIGHT_PX = 3;
 
 let highlighted_gene = null;
+
+const drawStrandChevrons = (drawer, intron_start, intron_end, center_y, strand, gene_name) => {
+	const [region_start, region_end] = drawer.bounds[0];
+	const pixels_per_base = drawer.dims[0] / (region_end - region_start);
+	const start_px = (intron_start - region_start) * pixels_per_base;
+	const end_px = (intron_end - region_start) * pixels_per_base;
+	const width_px = end_px - start_px;
+	if (width_px < CHEVRON_SPACING_PX) return;
+	const count = Math.floor(width_px / CHEVRON_SPACING_PX);
+	const tip_dx = strand === '-' ? -CHEVRON_HALF_SIZE_PX : CHEVRON_HALF_SIZE_PX;
+	for (let index = 1; index <= count; index++) {
+		const base_px = start_px + (width_px * index) / (count + 1);
+		drawer.polyline([
+			[base_px, center_y - CHEVRON_HALF_SIZE_PX],
+			[base_px + tip_dx, center_y],
+			[base_px, center_y + CHEVRON_HALF_SIZE_PX]
+		], INTRON_COLOR, 1, {'data-gene': gene_name});
+	}
+};
 
 const drawDetailedGene = (drawer, gene, y, gene_name) => {
 	const exons = gene.exons || [];
 	const introns = gene.introns || [];
+	const strand = gene.strand;
 	
 	if (exons.length === 0) {
 		const geneStart = gene.coordinates.start;
@@ -35,6 +57,9 @@ const drawDetailedGene = (drawer, gene, y, gene_name) => {
 		const intronStart = intron[0];
 		const intronEnd = intron[1];
 		drawer.genomicRect(intronStart, intronEnd - intronStart, centerY-1, 2, INTRON_COLOR, 1, {'data-gene': gene_name});
+		if (strand === '+' || strand === '-') {
+			drawStrandChevrons(drawer, intronStart, intronEnd, centerY, strand, gene_name);
+		}
 	});
 	
 	exons.forEach(exon => {
