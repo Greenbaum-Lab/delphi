@@ -4,7 +4,7 @@ import { createSVG } from '/apc/plot/static.js';
 import { getTracks, loadGeneMap, getAnnotationEntry } from '/assets.js';
 import { CHR_LENGTHS } from '/common.js';
 import { formatRegionString } from '/browser/region.js';
-import { updateRegionInput, generateCoordinateTicks, drawGuides } from '/browser/helpers.js';
+import { updateRegionInput, generateCoordinateTicks, drawGuides, showHoverLine, hideHoverLine } from '/browser/helpers.js';
 
 const GENE_COLOR = [121, 134, 203];
 const INTRON_COLOR = [120, 120, 120];
@@ -211,6 +211,8 @@ const hooks = [
 	}],
 	['svg [data-gene]', 'mouseenter', showTooltip],
 	['svg [data-gene]', 'mouseleave', hideTooltip],
+	['.track-plot-area', 'mousemove', e => showHoverLine(e.clientX)],
+	['.track-plot-area', 'mouseleave', hideHoverLine],
 	['[data-module="track"]', 'search', handleSearch],
 	['[data-action="remove"]', 'click', e => {
 		const track = e.target.closest('[data-module="track"]');
