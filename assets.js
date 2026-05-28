@@ -466,7 +466,9 @@ export const getSignalTrack = async ({ chr, start, end, measure, populations, wi
 		const population_labels = Object.keys(populations);
 		const tracks = {};
 		for (const population of population_labels) {
-			const track = await getGnomadTrack({ chr, start, end, population, window_size, measure });
+			const pop_data = await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_POPULATIONS_TABLE, population);
+			const gnomad_label = pop_data.aadr_population.replace(/\.(DG)$/, '');
+			const track = await getGnomadTrack({ chr, start, end, population: gnomad_label, window_size, measure });
 			tracks[population] = track;
 		}
 		return tracks;
