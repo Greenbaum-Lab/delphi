@@ -26,16 +26,16 @@ export const addPopulation = async (label, dataset, group_name = '', sample_ids 
 	const samples = await getMetadata().then(samples => samples.filter(sample => (sample_ids.length === 0 || sample_ids.includes(sample.Poseidon_ID)) && (group_name === '' || group_name === sample.Group_Name)));
 	const population = {
 		label,
-		time: Math.round(nanmean(getCol(samples, 'date'))),
+		time: Math.round(nanmean(getCol(samples, 'Date'))),
 		distance: african_populations.includes(label) ? 0 : Math.round(waypointDistance(computeCentroid(samples, ['Latitude', 'Longitude']))),
-		chelsa_pc1: round(nanmean(getCol(samples, 'chelsa_pc1')), 3),
-		chelsa_pc2: round(nanmean(getCol(samples, 'chelsa_pc2')), 3),
-		ukb_pc1: round(nanmean(getCol(samples, 'ukb_pc1')), 3),
-		ukb_pc2: round(nanmean(getCol(samples, 'ukb_pc2')), 3),
+		chelsa_pc1: round(nanmean(getCol(samples, 'Temperature_index')), 3),
+		chelsa_pc2: round(nanmean(getCol(samples, 'Precipitation_index')), 3),
+		ukb_pc1: round(nanmean(getCol(samples, 'Genetic_distance_PC1')), 3),
+		ukb_pc2: round(nanmean(getCol(samples, 'Genetic_distance_PC2')), 3),
 		Latitude: round(nanmean(getCol(samples, 'Latitude')), 2),
 		Longitude: round(nanmean(getCol(samples, 'Longitude')), 2),
-		ag_extensive_agriculture: nanmedian(getCol(samples, 'ag_extensive_agriculture')),
-		ag_urbanization: nanmedian(getCol(samples, 'ag_urbanization')),
+		ag_extensive_agriculture: nanmedian(getCol(samples, 'Agriculture_extensiveness')),
+		ag_urbanization: nanmedian(getCol(samples, 'Urbanization_onset')),
 		Dataset: dataset,
 		aadr_population: group_name,
 		subset: getCol(samples, 'Poseidon_ID')
@@ -45,13 +45,13 @@ export const addPopulation = async (label, dataset, group_name = '', sample_ids 
 
 export const pairwiseSort = (pop1, pop2, measure) => {
 	switch(measure) {
-		case 'distance':
+		case 'Distance from Africa':
 			return Math.round(waypointDistance(pop1, pop2));
 		case 'genetic_distance':
 			return round(euclideanDistance([pop1.ukb_pc1, pop1.ukb_pc2], [pop2.ukb_pc1, pop2.ukb_pc2]), 2);
-		case 'time':
-		case 'chelsa_pc1':
-		case 'chelsa_pc2':
+		case 'Time':
+		case 'Temperature_index':
+		case 'Precipitation_index':
 			return round(Math.abs(pop1[measure] - pop2[measure]), 2);
 	}
 };
