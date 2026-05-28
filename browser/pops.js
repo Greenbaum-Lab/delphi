@@ -29,13 +29,13 @@ export const addPopulation = async (label, dataset, group_name = '', sample_ids 
 		time: Math.round(nanmean(getCol(samples, 'Date'))),
 		distance: african_populations.includes(label) ? 0 : Math.round(waypointDistance(computeCentroid(samples, ['Latitude', 'Longitude']))),
 		Temperature_index: round(nanmean(getCol(samples, 'Temperature_index')), 3),
-		chelsa_pc2: round(nanmean(getCol(samples, 'Precipitation_index')), 3),
-		ukb_pc1: round(nanmean(getCol(samples, 'Genetic_distance_PC1')), 3),
-		ukb_pc2: round(nanmean(getCol(samples, 'Genetic_distance_PC2')), 3),
+		Precipitation_index: round(nanmean(getCol(samples, 'Precipitation_index')), 3),
+		Genetic_distance_PC1: round(nanmean(getCol(samples, 'Genetic_distance_PC1')), 3),
+		Genetic_distance_PC2: round(nanmean(getCol(samples, 'Genetic_distance_PC2')), 3),
 		Latitude: round(nanmean(getCol(samples, 'Latitude')), 2),
 		Longitude: round(nanmean(getCol(samples, 'Longitude')), 2),
-		ag_extensive_agriculture: nanmedian(getCol(samples, 'Agriculture_extensiveness')),
-		ag_urbanization: nanmedian(getCol(samples, 'Urbanization_onset')),
+		Agriculture_extensiveness: nanmedian(getCol(samples, 'Agriculture_extensiveness')),
+		Urbanization_onset: nanmedian(getCol(samples, 'Urbanization_onset')),
 		Dataset: dataset,
 		aadr_population: group_name,
 		subset: getCol(samples, 'Poseidon_ID')
@@ -48,7 +48,7 @@ export const pairwiseSort = (pop1, pop2, measure) => {
 		case 'Distance from Africa':
 			return Math.round(waypointDistance(pop1, pop2));
 		case 'genetic_distance':
-			return round(euclideanDistance([pop1.ukb_pc1, pop1.ukb_pc2], [pop2.ukb_pc1, pop2.ukb_pc2]), 2);
+			return round(euclideanDistance([pop1.Genetic_distance_PC1, pop1.Genetic_distance_PC2], [pop2.Genetic_distance_PC1, pop2.Genetic_distance_PC2]), 2);
 		case 'Time':
 		case 'Temperature_index':
 		case 'Precipitation_index':
