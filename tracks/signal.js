@@ -6,8 +6,8 @@ import { getPopulationSamples, getSignalTrack } from '/assets.js';
 import { getPopData, pairwiseSort } from '/browser/pops.js';
 import { generateCoordinateTicks, drawGuides } from '/browser/helpers.js';
 
-const sort_labels = {time: 'Time', distance: 'Distance from Africa', chelsa_pc1: 'Temperature (CHELSA)', chelsa_pc2: 'Precipitation (CHELSA)', ag_extensive_agriculture: 'Neolithic (AG)', ag_urbanization: 'Urbanization (AG)', signal: 'Signal'};
-const sort_units = {time: ' years', distance: 'km', Longitude: '°', 'Latitude': '°', ag_extensive_agriculture: 'BP', ag_urbanization: 'BP'}
+const sort_labels = {time: 'Time', distance: 'Distance from Africa', Temperature_index: 'Temperature (CHELSA)', Precipitation_index: 'Precipitation (CHELSA)', Agriculture_extensiveness: 'Neolithic (AG)', Urbanization_onset: 'Urbanization (AG)', signal: 'Signal'};
+const sort_units = {time: ' years', distance: 'km', Longitude: '°', 'Latitude': '°', Agriculture_extensiveness: 'BP', Urbanization_onset: 'BP'}
 const PAIRWISE_MEASURES = ['fst'];
 
 const computePairwiseValues = (measure, raw_data_1, raw_data_2) => {
