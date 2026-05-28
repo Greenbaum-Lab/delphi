@@ -28,7 +28,7 @@ export const addPopulation = async (label, dataset, group_name = '', sample_ids 
 		label,
 		time: Math.round(nanmean(getCol(samples, 'Date'))),
 		distance: african_populations.includes(label) ? 0 : Math.round(waypointDistance(computeCentroid(samples, ['Latitude', 'Longitude']))),
-		chelsa_pc1: round(nanmean(getCol(samples, 'Temperature_index')), 3),
+		Temperature_index: round(nanmean(getCol(samples, 'Temperature_index')), 3),
 		chelsa_pc2: round(nanmean(getCol(samples, 'Precipitation_index')), 3),
 		ukb_pc1: round(nanmean(getCol(samples, 'Genetic_distance_PC1')), 3),
 		ukb_pc2: round(nanmean(getCol(samples, 'Genetic_distance_PC2')), 3),
