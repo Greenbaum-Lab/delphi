@@ -37,6 +37,7 @@ export const addPopulation = async (label, dataset, group_name = '', sample_ids 
 		ag_extensive_agriculture: nanmedian(getCol(samples, 'ag_extensive_agriculture')),
 		ag_urbanization: nanmedian(getCol(samples, 'ag_urbanization')),
 		Dataset: dataset,
+		aadr_population: group_name,
 		subset: getCol(samples, 'Poseidon_ID')
 	};
 	return getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_POPULATIONS_TABLE, label, population);
