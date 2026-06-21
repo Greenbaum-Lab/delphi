@@ -161,7 +161,7 @@ export const initPopCache = async () => {
 	const existing_pops = await getPops();
 	for (const population of population_map) {
 		if (!existing_pops.includes(population.population))
-			await addPopulation(population.population, population.dataset, population.aadr_population, population.sample_ids || []);
+			await addPopulation(population.population, population.dataset, population.aadr_population);
 	}
 };
 
