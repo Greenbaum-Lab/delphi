@@ -33,8 +33,6 @@ const DEFAULTS = {
 	y_limits: {}
 };
 
-// Default y-axis bounds per measure. A user override in options.y_limits (keyed
-// by measure) takes precedence; an empty string means auto-fit to the data.
 const defaultBounds = (measure) => {
 	if (measure === 'fst') return '0,1';
 	if (measure === 'heterozygosity') return '0,0.5';
@@ -46,8 +44,6 @@ const boundsFor = (measure) => {
 	return override ? override.join(',') : defaultBounds(measure);
 };
 
-// Push the current measure's y-axis bounds onto every signal track and redraw,
-// without rebuilding the tracks (mirrors the display-style handler).
 const applyYLimits = () => {
 	const bounds = boundsFor(getOptions().measure);
 	document.querySelectorAll('.signal-tracks-container [data-module="track"][data-type="signal"]').forEach(track => {
@@ -56,7 +52,6 @@ const applyYLimits = () => {
 	});
 };
 
-// Reflect the stored y-axis override for the current measure in the input fields.
 const syncYLimitInputs = () => {
 	const options = getOptions();
 	const override = (options.y_limits || {})[options.measure];
