@@ -277,6 +277,20 @@ input, select, textarea {
 	border-radius: 2px;
 }
 
+.tracks-controls .y-limit {
+	width: 52px;
+	background: #fff;
+	border: 1px solid #ccc;
+	padding: 3px 5px;
+	border-radius: 2px;
+	margin-right: 4px;
+	font-size: 14px;
+}
+
+.y-axis-control.invalid .y-limit {
+	border-color: #d33;
+}
+
 .sort-container .sort-selector-pairwise {
 	display: none;
 }

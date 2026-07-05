@@ -29,7 +29,39 @@ const DEFAULTS = {
 	window_size: 10000,
 	show_guides: false,
 	populations: [],
-	annotations: ['gencode19_genes']
+	annotations: ['gencode19_genes'],
+	y_limits: {}
+};
+
+// Default y-axis bounds per measure. A user override in options.y_limits (keyed
+// by measure) takes precedence; an empty string means auto-fit to the data.
+const defaultBounds = (measure) => {
+	if (measure === 'fst') return '0,1';
+	if (measure === 'heterozygosity') return '0,0.5';
+	return '';
+};
+
+const boundsFor = (measure) => {
+	const override = (getOptions().y_limits || {})[measure];
+	return override ? override.join(',') : defaultBounds(measure);
+};
+
+// Push the current measure's y-axis bounds onto every signal track and redraw,
+// without rebuilding the tracks (mirrors the display-style handler).
+const applyYLimits = () => {
+	const bounds = boundsFor(getOptions().measure);
+	document.querySelectorAll('.signal-tracks-container [data-module="track"][data-type="signal"]').forEach(track => {
+		track.dataset.bounds = bounds;
+		track.dispatchEvent(new Event('refresh'));
+	});
+};
+
+// Reflect the stored y-axis override for the current measure in the input fields.
+const syncYLimitInputs = () => {
+	const options = getOptions();
+	const override = (options.y_limits || {})[options.measure];
+	document.querySelector('[data-control="ymin"]').value = override ? override[0] : '';
+	document.querySelector('[data-control="ymax"]').value = override ? override[1] : '';
 };
 
 const hooks = [
@@ -85,13 +117,13 @@ const hooks = [
 				}
 			}
 			const sorted_pairs = pair_metadata.sort((pair1, pair2) => options.sort_dir === 'desc' ? pair2.sort_value - pair1.sort_value : pair1.sort_value - pair2.sort_value);
-			await Promise.all(sorted_pairs.map(pair => addModule(container, 'track', {type: 'signal', population: pair.pair, style: 'binned', bounds: '0,1'})));
+			await Promise.all(sorted_pairs.map(pair => addModule(container, 'track', {type: 'signal', population: pair.pair, style: 'binned', bounds: boundsFor(options.measure)})));
 			syncSortDropdown(true, options.sort);
 		} else {
 			document.querySelector('.tracks-controls').classList.remove('pairwise');
 			syncSortDropdown(false, options.sort);
 			const sorted_populations = populations_metadata.sort((pop1, pop2) => options.sort_dir === 'desc' ? pop2[options.sort] - pop1[options.sort] : pop1[options.sort] - pop2[options.sort]);
-			await Promise.all(sorted_populations.map(pop => addModule(container, 'track', {type: 'signal', population: pop.label, style: 'binned', bounds: options.measure === 'heterozygosity' ? '0,0.5' : ''})));
+			await Promise.all(sorted_populations.map(pop => addModule(container, 'track', {type: 'signal', population: pop.label, style: 'binned', bounds: boundsFor(options.measure)})));
 		}
 		document.querySelector('[data-module="browser"]').dispatchEvent(new Event('refresh'));
     }],
@@ -117,6 +149,8 @@ const hooks = [
 	}],
 	['.measure-selector', 'change', e => {
 		const options = getOptions([['measure', e.target.value]]);
+		document.querySelector('.y-axis-control').classList.remove('invalid');
+		syncYLimitInputs();
 		const browser = document.querySelector('[data-module="browser"]');
 		browser.dispatchEvent(new Event('update'));
 	}],
@@ -204,6 +238,38 @@ const hooks = [
 		const next_style = display_types[(display_types.indexOf(current_display) + 1) % display_types.length];
 		document.querySelectorAll('.signal-tracks-container [data-module="track"]').forEach(track => { track.dataset.style = next_style; track.dispatchEvent(new Event('refresh')) });	
 	}],
+	['[data-control="ymin"], [data-control="ymax"]', 'change', e => {
+		const options = getOptions();
+		if (!options.y_limits) options.y_limits = {};
+		const min_input = document.querySelector('[data-control="ymin"]').value.trim();
+		const max_input = document.querySelector('[data-control="ymax"]').value.trim();
+		// Both blank clears the override and returns the current measure to auto-fit.
+		if (min_input === '' && max_input === '') {
+			delete options.y_limits[options.measure];
+			getOptions([['y_limits', options.y_limits]]);
+			applyYLimits();
+			return;
+		}
+		const min = parseFloat(min_input);
+		const max = parseFloat(max_input);
+		if (isNaN(min) || isNaN(max) || min >= max) {
+			e.target.closest('.y-axis-control').classList.add('invalid');
+			return;
+		}
+		e.target.closest('.y-axis-control').classList.remove('invalid');
+		options.y_limits[options.measure] = [min, max];
+		getOptions([['y_limits', options.y_limits]]);
+		applyYLimits();
+	}],
+	['[data-action="reset-yaxis"]', 'click', e => {
+		const options = getOptions();
+		if (!options.y_limits) options.y_limits = {};
+		delete options.y_limits[options.measure];
+		getOptions([['y_limits', options.y_limits]]);
+		document.querySelector('.y-axis-control').classList.remove('invalid');
+		syncYLimitInputs();
+		applyYLimits();
+	}],
 	['[data-action="toggle-guides"]', 'click', e => {
 		const show_guides = !getOptions().show_guides;
 		getOptions([['show_guides', show_guides]]);
@@ -215,6 +281,8 @@ const hooks = [
 		document.querySelector('[data-control="measure"]').value = DEFAULTS.measure;
 		document.querySelector('[data-control="window"]').value = DEFAULTS.window_size;
 		syncSortDropdown(DEFAULTS.measure === 'fst', DEFAULTS.sort);
+		document.querySelector('.y-axis-control').classList.remove('invalid');
+		syncYLimitInputs();
 		document.querySelector('[data-action="toggle-guides"]').classList.toggle('active', DEFAULTS.show_guides);
 		updateRegionInput(DEFAULTS.chr, DEFAULTS.start, DEFAULTS.end);
 		e.target.closest('[data-module="browser"]').dispatchEvent(new Event('update'));
@@ -228,6 +296,7 @@ export const init = async (container) => {
 	const options = getOptions(undefined, DEFAULTS);
 	document.querySelector('[data-control="measure"]').value = options.measure;
 	document.querySelector('[data-control="window"]').value = options.window_size;
+	syncYLimitInputs();
 	const is_pairwise = options.measure === 'fst';
 	syncSortDropdown(is_pairwise, options.sort);
 	await initPopCache();
