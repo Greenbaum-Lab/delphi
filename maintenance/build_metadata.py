@@ -11,8 +11,9 @@ population list into the two deployable assets the app reads
 
 Stages, in order:
   1. add_regions            - tag each sample with a coarse Region
-  2. apply_name_corrections - rename known-bad Group_Name/aadr_population values
-                               to the intuitive names shown in the UI
+  2. snap_group_names_to_populations - fix Group_Name/aadr_population mismatches
+                               that differ only by a dataset suffix/prefix, without
+                               touching aadr_population (gnomAD lookups depend on it)
   3. simplify_metadata       - keep + rename fields to the app's schema
   4. validate_population_coverage - drop (with a warning) any population whose
                                aadr_population still has no matching Group_Name
@@ -167,48 +168,52 @@ def add_regions(records):
 
 
 # ---------------------------------------------------------------------------
-# stage 2: known name corrections
+# stage 2: snap sample Group_Name to the population's aadr_population
 #
-# modern_populations.json historically pointed aadr_population at the raw
-# AADR/HGDP group identifier (e.g. "BedouinA.DG") instead of an intuitive
-# name matching what's shown in the UI ("Bedouin"). browser/pops.js matches
-# samples to a population with an exact `aadr_population === Group_Name`
-# check, so any drift here means the population silently gets zero samples
-# ("no data loaded", no console error). This table renames both sides to
-# the same intuitive name so they always agree.
+# browser/pops.js matches samples to a population with an exact
+# `aadr_population === Group_Name` check, but the raw metadata's Group_Name
+# sometimes carries a different dataset suffix/prefix than aadr_population
+# (e.g. Group_Name "BedouinA" vs. aadr_population "BedouinA.DG"), so the
+# match silently returns zero samples ("no data loaded", no console error).
+#
+# aadr_population is also used, unmodified, to look up gnomAD .npy files
+# (assets.js strips only a trailing ".DG"), so it must never be rewritten --
+# only Group_Name is adjusted here, and only when normalizing both sides
+# (stripping dataset suffixes/prefixes the same way add_regions() already
+# does for region lookups) shows they refer to the same population. This
+# needs no population-specific table: it covers every case that differs by
+# a stripped suffix, and leaves anything else for validate_population_coverage
+# to flag.
 # ---------------------------------------------------------------------------
 
-GROUP_NAME_CORRECTIONS = {
-	'BedouinA.DG': 'Bedouin',
-	'Bergamo.DG': 'BergamoItalian',
-	'Italian_North.DG': 'Tuscan',
-	'BantuSA.DG': 'BantuSouthAfrica',
-	'Nasioi.DG': 'Bougainville',
-	'Ju_hoan_North.DG': 'San',
-	'Sindhi_Pakistan.DG': 'Sindhi',
-	'Piapoco.DG': 'Colombian',
-	'China_Lahu.DG': 'Lahu',
-}
+def snap_group_names_to_populations(metadata_records, population_entries):
+	normalized_to_aadr = {}
+	ambiguous = set()
+	for population in population_entries:
+		aadr_population = population.get('aadr_population')
+		normalized = normalize_group_name(aadr_population)
+		existing = normalized_to_aadr.get(normalized)
+		if existing is not None and existing != aadr_population:
+			ambiguous.add(normalized)
+			print(f'WARNING: "{existing}" and "{aadr_population}" both normalize to "{normalized}" -- skipping automatic Group_Name matching for this name')
+			continue
+		normalized_to_aadr[normalized] = aadr_population
 
-
-def apply_name_corrections(metadata_records, population_entries, corrections=GROUP_NAME_CORRECTIONS):
 	renamed_counts = defaultdict(int)
 	for sample in metadata_records:
-		old_name = sample.get('Group_Name')
-		if old_name in corrections:
-			sample['Group_Name'] = corrections[old_name]
-			renamed_counts[old_name] += 1
-	for old_name, count in renamed_counts.items():
-		print(f'WARNING: renamed Group_Name "{old_name}" -> "{corrections[old_name]}" for {count} samples')
+		group_name = sample.get('Group_Name')
+		normalized = normalize_group_name(group_name)
+		if normalized in ambiguous:
+			continue
+		target = normalized_to_aadr.get(normalized)
+		if target is not None and target != group_name:
+			sample['Group_Name'] = target
+			renamed_counts[(group_name, target)] += 1
 
-	for population in population_entries:
-		old_name = population.get('aadr_population')
-		if old_name in corrections:
-			new_name = corrections[old_name]
-			print(f'WARNING: renamed aadr_population "{old_name}" -> "{new_name}" for population "{population.get("population")}"')
-			population['aadr_population'] = new_name
+	for (old_name, new_name), count in renamed_counts.items():
+		print(f'WARNING: renamed Group_Name "{old_name}" -> "{new_name}" for {count} samples (normalized match)')
 
-	return metadata_records, population_entries
+	return metadata_records
 
 
 # ---------------------------------------------------------------------------
@@ -389,7 +394,7 @@ def build(metadata_path, populations_path, output_dir, min_group_size):
 	populations = load_json(populations_path)
 
 	metadata = add_regions(metadata)
-	metadata, populations = apply_name_corrections(metadata, populations)
+	metadata = snap_group_names_to_populations(metadata, populations)
 	metadata = simplify_metadata(metadata)
 	populations = validate_population_coverage(populations, metadata)
 
