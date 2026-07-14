@@ -21,12 +21,16 @@ Stages, in order:
                                relatives, Ignore_-tagged, or sequenced with a
                                different method are reported but left unmatched
                                and excluded, same as before this pipeline existed.
-  4. simplify_metadata        - keep + rename fields to the app's schema
-  5. validate_population_coverage - drop (with a warning) any population whose
+  4. apply_gnomad_filename_overrides - repoint aadr_population (and matching
+                               samples' Group_Name) for the handful of populations
+                               whose gnomAD .npy files use the UI label instead
+                               of the usual aadr_population-derived filename
+  5. simplify_metadata        - keep + rename fields to the app's schema
+  6. validate_population_coverage - drop (with a warning) any population whose
                                aadr_population still has no matching Group_Name
-  6. generate_adna_populations - bin aDNA samples into time/region populations
+  7. generate_adna_populations - bin aDNA samples into time/region populations
                                (runs last, appended to the modern population list)
-  7. validate_population_coverage again, over the full merged list, before writing output
+  8. validate_population_coverage again, over the full merged list, before writing output
 """
 import argparse
 import difflib
@@ -246,6 +250,50 @@ def snap_group_names_to_populations(metadata_records, population_entries):
 		print(f'WARNING: excluded {count} samples with Group_Name "{old_name}" (flagged variant of "{new_name}" -- outlier, relative, Ignore_-tagged, or different genotyping method) -- left unmatched to any population')
 
 	return metadata_records
+
+
+# ---------------------------------------------------------------------------
+# stage 2b: repoint aadr_population for populations whose gnomAD files were
+# generated under a different naming convention
+#
+# assets.js builds the gnomAD .npy URL from aadr_population alone (stripping
+# a trailing ".DG"), with no fallback, and we're deliberately not changing
+# that client code or renaming files in S3. Confirmed against the bucket
+# that these 9 populations' gnomAD files are named "gnomad_pop_{label}_{chr}.npy"
+# instead of the usual "{aadr_population}_{chr}.npy" -- so aadr_population is
+# repointed to that exact string, and every sample previously matched to the
+# old aadr_population has its Group_Name updated to match, keeping sample
+# matching and the gnomAD filename in sync from a single field, exactly as
+# assets.js and browser/pops.js already expect.
+# ---------------------------------------------------------------------------
+
+GNOMAD_FILENAME_OVERRIDES = {
+	'Bedouin': 'gnomad_pop_Bedouin',
+	'BergamoItalian': 'gnomad_pop_BergamoItalian',
+	'Tuscan': 'gnomad_pop_Tuscan',
+	'BantuSouthAfrica': 'gnomad_pop_BantuSouthAfrica',
+	'Bougainville': 'gnomad_pop_Bougainville',
+	'San': 'gnomad_pop_San',
+	'Sindhi': 'gnomad_pop_Sindhi',
+	'Colombian': 'gnomad_pop_Colombian',
+	'Lahu': 'gnomad_pop_Lahu',
+}
+
+
+def apply_gnomad_filename_overrides(metadata_records, population_entries, overrides=GNOMAD_FILENAME_OVERRIDES):
+	for population in population_entries:
+		new_aadr_population = overrides.get(population.get('population'))
+		if new_aadr_population is None:
+			continue
+		old_aadr_population = population['aadr_population']
+		renamed_count = 0
+		for sample in metadata_records:
+			if sample.get('Group_Name') == old_aadr_population:
+				sample['Group_Name'] = new_aadr_population
+				renamed_count += 1
+		print(f'INFO: population "{population["population"]}" gnomAD files use a different naming convention -- repointed aadr_population "{old_aadr_population}" -> "{new_aadr_population}" and updated Group_Name for {renamed_count} samples')
+		population['aadr_population'] = new_aadr_population
+	return metadata_records, population_entries
 
 
 # ---------------------------------------------------------------------------
@@ -480,6 +528,7 @@ def build(metadata_path, populations_path, output_dir, min_group_size):
 
 	metadata = add_regions(metadata)
 	metadata = snap_group_names_to_populations(metadata, populations)
+	metadata, populations = apply_gnomad_filename_overrides(metadata, populations)
 	metadata = simplify_metadata(metadata)
 	populations = validate_population_coverage(populations, metadata)
 
