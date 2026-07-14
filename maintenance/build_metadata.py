@@ -270,16 +270,16 @@ def snap_group_names_to_populations(metadata_records, population_entries):
 GNOMAD_FILENAME_OVERRIDES = {
 	'Bedouin': 'gnomad_pop_Bedouin',
 	'BergamoItalian': 'gnomad_pop_BergamoItalian',
-	'Tuscan': 'gnomad_pop_Tuscan',
+	#'Tuscan': 'gnomad_pop_Tuscan',
 	'BantuSouthAfrica': 'gnomad_pop_BantuSouthAfrica',
 	'Bougainville': 'gnomad_pop_Bougainville',
-	'San': 'gnomad_pop_San',
+	#'San': 'gnomad_pop_San',
 	'Sindhi': 'gnomad_pop_Sindhi',
 	'Colombian': 'gnomad_pop_Colombian',
 	'Lahu': 'gnomad_pop_Lahu',
-	'Maya': 'gnomad_pop_Maya',
+	#'Maya': 'gnomad_pop_Maya',
 	'Mongolian': 'gnomad_pop_Mongolian',
-	'Uygur': 'gnomad_pop_Uygur',
+	'Uygur': 'Uygur',
 
 }
 
