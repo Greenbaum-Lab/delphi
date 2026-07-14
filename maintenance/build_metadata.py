@@ -277,6 +277,10 @@ GNOMAD_FILENAME_OVERRIDES = {
 	'Sindhi': 'gnomad_pop_Sindhi',
 	'Colombian': 'gnomad_pop_Colombian',
 	'Lahu': 'gnomad_pop_Lahu',
+	'Maya': 'gnomad_pop_Maya',
+	'Mongolian': 'gnomad_pop_Mongolian',
+	'Uygur': 'gnomad_pop_Uygur',
+
 }
 
 
@@ -362,7 +366,7 @@ POPULATION_DISPLAY_NAMES = {
 	'GBR.DG': 'British',
 	'FIN.DG': 'Finnish',
 	'IBS.DG': 'Iberian',
-	'TSI.DG': 'Toscani',
+	'TSI.DG': 'Tuscan-1KGP',
 	'CEU.DG': 'Utah European',
 	'CLM.DG': 'Colombian-1KGP',
 	'MXL.DG': 'Mexican',
