@@ -1,0 +1,143 @@
+import json
+from collections import defaultdict
+
+
+def get_european_region(latitude, longitude):
+	if 36 <= latitude < 47 and 8 <= longitude <= 31:
+		return 'South East EUR'
+	if 42 <= latitude < 49 and 20 <= longitude <= 31:
+		return 'South East EUR'
+	if 55 <= latitude <= 72 and 4 <= longitude <= 32:
+		return 'Central North EUR'
+	if 47 <= latitude < 55 and 5 <= longitude <= 25:
+		return 'Central North EUR'
+	if longitude < 5:
+		return 'West EUR'
+	return 'South East EUR'
+
+
+def get_sample_region(sample):
+	region = sample['Region']
+	if region != 'Europe':
+		return region.replace('_', ' ')
+	latitude = sample['Latitude']
+	longitude = sample['Longitude']
+	if latitude is None or longitude is None:
+		return None
+	return get_european_region(latitude, longitude)
+
+
+def get_time_window(date):
+	window_start = int(date // 1000)
+	window_end = window_start + 1
+	return window_start, window_end
+
+
+def get_group_name(region, date):
+	window_start, window_end = get_time_window(date)
+	return f'{region} {window_start}-{window_end} kya'
+
+
+def get_aadr_population_name(group_name):
+	safe_group_name = group_name.replace(' ', '_')
+	safe_group_name = safe_group_name.replace('/', '_')
+	safe_group_name = safe_group_name.replace('-', '_')
+	return f'aDNA_{safe_group_name}'
+
+
+def group_samples(samples):
+	sample_groups = defaultdict(list)
+	for sample in samples:
+		date = sample['Date']
+		if date is None or date == 0:
+			continue
+		region = get_sample_region(sample)
+		if region is None:
+			continue
+		group_name = get_group_name(region, date)
+		sample_groups[group_name].append(sample['Poseidon_ID'])
+	return sample_groups
+
+
+def keep_large_groups(sample_groups):
+	return {
+		group_name: sample_ids
+		for group_name, sample_ids in sample_groups.items()
+		if len(sample_ids) >= 15
+	}
+
+
+def convert_groups_to_populations(sample_groups):
+	population_entries = []
+	for group_name in sorted(sample_groups):
+		population_entries.append({
+			'population': f'aDNA {group_name}',
+			'aadr_population': get_aadr_population_name(group_name),
+			'dataset': 'AADR'
+		})
+	return population_entries
+
+
+def simplify_modern_populations(modern_populations):
+	return [
+		{
+			'population': population['population'],
+			'aadr_population': population['aadr_population'],
+			'dataset': population['dataset']
+		}
+		for population in modern_populations
+	]
+
+
+def get_sample_group_names(sample_groups):
+	sample_group_names = {}
+	for group_name, sample_ids in sample_groups.items():
+		aadr_population = get_aadr_population_name(group_name)
+		for sample_id in sample_ids:
+			sample_group_names[sample_id] = aadr_population
+	return sample_group_names
+
+
+def update_group_names(samples, sample_group_names):
+	updated_samples = []
+	for sample in samples:
+		updated_sample = sample.copy()
+		sample_id = sample['Poseidon_ID']
+		if sample_id in sample_group_names:
+			updated_sample['Group_Name'] = sample_group_names[sample_id]
+		updated_samples.append(updated_sample)
+	return updated_samples
+
+
+def load_json(file_path):
+	with open(file_path, 'r') as input_file:
+		return json.load(input_file)
+
+
+def save_json(data, file_path):
+	with open(file_path, 'w') as output_file:
+		json.dump(data, output_file, indent=2)
+
+
+def main():
+	json_file_path = r'/home/lab2/Downloads/annotation_hg19/Poseidon_AADR_v62_metadata.json'
+	adna_pops_file_path = 'adna_pops.json'
+	modern_populations_input_file_path = 'modern_populations.json'
+	modern_populations_output_file_path = 'modern_populations_adna.json'
+	metadata_output_file_path = r'/home/lab2/Downloads/annotation_hg19/Poseidon_AADR_v62_metadata_groupname.json'
+	samples = load_json(json_file_path)
+	sample_groups = group_samples(samples)
+	large_sample_groups = keep_large_groups(sample_groups)
+	modern_populations = load_json(modern_populations_input_file_path)
+	modern_population_entries = simplify_modern_populations(modern_populations)
+	adna_population_entries = convert_groups_to_populations(large_sample_groups)
+	sample_group_names = get_sample_group_names(large_sample_groups)
+	updated_samples = update_group_names(samples, sample_group_names)
+	save_json(large_sample_groups, adna_pops_file_path)
+	save_json(modern_population_entries + adna_population_entries, modern_populations_output_file_path)
+	save_json(updated_samples, metadata_output_file_path)
+	print(f'Number of groups: {len(large_sample_groups)}')
+
+
+if __name__ == '__main__':
+	main()
