@@ -108,7 +108,7 @@ REGION_BY_COUNTRY_ISO = {
 	'SG': 'East Asia', 'TH': 'East Asia', 'TL': 'East Asia', 'VN': 'East Asia',
 	'AU': 'Oceania', 'FJ': 'Oceania', 'KI': 'Oceania', 'MH': 'Oceania', 'FM': 'Oceania',
 	'NR': 'Oceania', 'NZ': 'Oceania', 'PW': 'Oceania', 'PG': 'Oceania', 'WS': 'Oceania',
-	'SB': 'Oceania', 'TO': 'Oceania', 'TV': 'Oceania',
+	'SB': 'Oceania', 'TO': 'Oceania', 'TV': 'Oceania', 'VU': 'Oceania',
 	'AR': 'America', 'BO': 'America', 'BR': 'America', 'CA': 'America', 'CL': 'America',
 	'CO': 'America', 'CR': 'America', 'CU': 'America', 'DO': 'America', 'EC': 'America',
 	'SV': 'America', 'GT': 'America', 'GY': 'America', 'HT': 'America', 'HN': 'America',
@@ -162,8 +162,16 @@ def add_regions(records):
 				'Country_ISO': country_iso,
 			})
 	if missing:
-		missing_str = '\n'.join(map(str, missing[:100]))
-		raise ValueError(f'Missing region mapping for {len(missing)} samples. First unresolved records:\n{missing_str}')
+		unmapped_country_iso = sorted({m['Country_ISO'] for m in missing if m['Country_ISO']})
+		unmapped_groups = sorted({normalize_group_name(m['Group_Name']) for m in missing if m['Group_Name']})
+		summary_lines = [f'Missing region mapping for {len(missing)} samples.']
+		if unmapped_country_iso:
+			summary_lines.append(f'Unmapped Country_ISO codes ({len(unmapped_country_iso)}), add these to REGION_BY_COUNTRY_ISO: {unmapped_country_iso}')
+		if unmapped_groups:
+			summary_lines.append(f'Unmapped normalized Group_Names ({len(unmapped_groups)}), add these to REGION_BY_GROUP if Country_ISO above is not enough: {unmapped_groups}')
+		example_str = '\n'.join(map(str, missing[:20]))
+		summary_lines.append(f'First {min(20, len(missing))} unresolved records:\n{example_str}')
+		raise ValueError('\n'.join(summary_lines))
 	return records
 
 
