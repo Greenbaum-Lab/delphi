@@ -49,7 +49,7 @@ export const pairwiseSort = (pop1, pop2, measure) => {
 			return Math.round(waypointDistance(pop1, pop2));
 		case 'genetic_distance':
 			return round(euclideanDistance([pop1.Genetic_distance_PC1, pop1.Genetic_distance_PC2], [pop2.Genetic_distance_PC1, pop2.Genetic_distance_PC2]), 2);
-		case 'Time':
+		case 'time':
 		case 'Temperature_index':
 		case 'Precipitation_index':
 			return round(Math.abs(pop1[measure] - pop2[measure]), 2);
