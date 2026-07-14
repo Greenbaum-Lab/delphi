@@ -148,25 +148,21 @@ const findMissingBins = (required_bins, cached_bins) => {
 	return required_bins.filter(bin => !cached_starts.has(bin.start));
 };
 
-const getGnomadChromosome = async (population, chr, window_size, fallback_label) => {
-	const cache_key = `${population}_${chr}_${window_size}`;
+const getGnomadChromosome = async (population_candidates, chr, window_size) => {
+	const cache_key = `${population_candidates[0]}_${chr}_${window_size}`;
 	if (gnomadMemoryCache.has(cache_key)) {
 		return gnomadMemoryCache.get(cache_key);
 	}
-	const idb_key = [population, chr, window_size];
+	const idb_key = [population_candidates[0], chr, window_size];
 	const cached = await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_GNOMAD_TABLE, idb_key);
 	if (cached && Array.isArray(cached)) {
 		gnomadMemoryCache.set(cache_key, cached);
 		return cached;
 	}
-	const url = `${CONFIG.S3_BASE_URL}/gnomad/${window_size}/${population}_${chr}.npy`;
-	let response = await fetch(url);
-	if (!response.ok && fallback_label && fallback_label !== population) {
-		// Some populations' gnomAD files were generated under the UI display
-		// label (with a "gnomad_pop_" prefix) instead of the aadr_population-
-		// derived name used above -- fall back to that convention.
-		const fallback_url = `${CONFIG.S3_BASE_URL}/gnomad/${window_size}/gnomad_pop_${fallback_label}_${chr}.npy`;
-		response = await fetch(fallback_url);
+	let response;
+	for (const candidate of population_candidates) {
+		response = await fetch(`${CONFIG.S3_BASE_URL}/gnomad/${window_size}/${candidate}_${chr}.npy`);
+		if (response.ok) break;
 	}
 	if (!response.ok) {
 		throw new Error(`Failed to fetch gnomAD data: ${response.status}`);
@@ -178,8 +174,8 @@ const getGnomadChromosome = async (population, chr, window_size, fallback_label)
 	return parsed_data;
 };
 
-const getGnomadTrack = async ({ chr, start, end, population, window_size, measure, fallback_label }) => {
-	const full_data = await getGnomadChromosome(population, chr, window_size, fallback_label);
+const getGnomadTrack = async ({ chr, start, end, population_candidates, window_size, measure }) => {
+	const full_data = await getGnomadChromosome(population_candidates, chr, window_size);
 	const start_index = Math.floor(start / window_size);
 	const end_index = Math.ceil(end / window_size);
 	const sliced_data = full_data.slice(start_index, end_index);
@@ -475,7 +471,10 @@ export const getSignalTrack = async ({ chr, start, end, measure, populations, wi
 		for (const population of population_labels) {
 			const pop_data = await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_POPULATIONS_TABLE, population);
 			const gnomad_label = pop_data.aadr_population.replace(/\.(DG)$/, '');
-			const track = await getGnomadTrack({ chr, start, end, population: gnomad_label, window_size, measure, fallback_label: population });
+			// gnomAD files are named after either aadr_population or the display
+			// label depending on when/how they were generated -- try both.
+			const population_candidates = [gnomad_label, `gnomad_pop_${population}`];
+			const track = await getGnomadTrack({ chr, start, end, population_candidates, window_size, measure });
 			tracks[population] = track;
 		}
 		return tracks;
