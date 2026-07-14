@@ -10,16 +10,23 @@ population list into the two deployable assets the app reads
         --output-dir ./build
 
 Stages, in order:
-  1. add_regions            - tag each sample with a coarse Region
-  2. snap_group_names_to_populations - fix Group_Name/aadr_population mismatches
-                               that differ only by a dataset suffix/prefix, without
-                               touching aadr_population (gnomAD lookups depend on it)
-  3. simplify_metadata       - keep + rename fields to the app's schema
-  4. validate_population_coverage - drop (with a warning) any population whose
+  1. apply_population_display_names - give 1KGP acronym populations a readable
+                               "population" label (purely cosmetic, aadr_population
+                               untouched)
+  2. add_regions              - tag each sample with a coarse Region
+  3. snap_group_names_to_populations - fix a Group_Name that's simply missing its
+                               dataset suffix (e.g. "BedouinA" -> "BedouinA.DG"),
+                               without touching aadr_population (gnomAD lookups
+                               depend on it). Samples flagged as outliers, known
+                               relatives, Ignore_-tagged, or sequenced with a
+                               different method are reported but left unmatched
+                               and excluded, same as before this pipeline existed.
+  4. simplify_metadata        - keep + rename fields to the app's schema
+  5. validate_population_coverage - drop (with a warning) any population whose
                                aadr_population still has no matching Group_Name
-  5. generate_adna_populations - bin aDNA samples into time/region populations
+  6. generate_adna_populations - bin aDNA samples into time/region populations
                                (runs last, appended to the modern population list)
-  6. validate_population_coverage again, over the full merged list, before writing output
+  7. validate_population_coverage again, over the full merged list, before writing output
 """
 import argparse
 import difflib
@@ -186,13 +193,21 @@ def add_regions(records):
 #
 # aadr_population is also used, unmodified, to look up gnomAD .npy files
 # (assets.js strips only a trailing ".DG"), so it must never be rewritten --
-# only Group_Name is adjusted here, and only when normalizing both sides
-# (stripping dataset suffixes/prefixes the same way add_regions() already
-# does for region lookups) shows they refer to the same population. This
-# needs no population-specific table: it covers every case that differs by
-# a stripped suffix, and leaves anything else for validate_population_coverage
-# to flag.
+# only Group_Name is adjusted here, and only for a *plain* mismatch: Group_Name
+# is missing its dataset-type suffix entirely (e.g. "BedouinA" -> "BedouinA.DG"),
+# with no other differences. normalize_group_name() also strips AADR curation
+# flags -- outlier suffixes (_o, _o1, _o2, _o3, _lc), "Ignore_" prefixes,
+# "(relative)"/"(discovery)" annotations, and an alternate genotyping method
+# (.SG shotgun vs. .DG diploid) -- which mark an individual as a flagged
+# variant of a population (a known relative, a QC outlier, or processed with
+# a different pipeline), not simply the same data missing a tag. Those are
+# intentionally *not* renamed, so they stay excluded from every population's
+# sample set exactly like before, and are only reported as a warning.
 # ---------------------------------------------------------------------------
+
+def is_plain_suffix_mismatch(group_name, aadr_population):
+	return '.' not in group_name and aadr_population.startswith(f'{group_name}.')
+
 
 def snap_group_names_to_populations(metadata_records, population_entries):
 	normalized_to_aadr = {}
@@ -208,18 +223,27 @@ def snap_group_names_to_populations(metadata_records, population_entries):
 		normalized_to_aadr[normalized] = aadr_population
 
 	renamed_counts = defaultdict(int)
+	excluded_counts = defaultdict(int)
 	for sample in metadata_records:
 		group_name = sample.get('Group_Name')
+		if group_name is None:
+			continue
 		normalized = normalize_group_name(group_name)
 		if normalized in ambiguous:
 			continue
 		target = normalized_to_aadr.get(normalized)
-		if target is not None and target != group_name:
+		if target is None or target == group_name:
+			continue
+		if is_plain_suffix_mismatch(group_name, target):
 			sample['Group_Name'] = target
 			renamed_counts[(group_name, target)] += 1
+		else:
+			excluded_counts[(group_name, target)] += 1
 
 	for (old_name, new_name), count in renamed_counts.items():
 		print(f'WARNING: renamed Group_Name "{old_name}" -> "{new_name}" for {count} samples (normalized match)')
+	for (old_name, new_name), count in excluded_counts.items():
+		print(f'WARNING: excluded {count} samples with Group_Name "{old_name}" (flagged variant of "{new_name}" -- outlier, relative, Ignore_-tagged, or different genotyping method) -- left unmatched to any population')
 
 	return metadata_records
 
@@ -256,6 +280,57 @@ def simplify_metadata(records, fields=FIELDS_TO_KEEP, rename_map=RENAME_MAP):
 		renamed = {rename_map.get(key, key): value for key, value in filtered.items()}
 		simplified.append(renamed)
 	return simplified
+
+
+# ---------------------------------------------------------------------------
+# stage 3b: use informative display names for 1000 Genomes populations
+#
+# 1KGP entries in modern_populations.json are keyed by aadr_population (e.g.
+# "CDX.DG"), and historically the "population" display label -- the name
+# shown in the UI, and the storage key browser/pops.js caches the population
+# under -- was left as that same acronym instead of a readable name. This
+# only rewrites "population"; aadr_population/Group_Name (sample matching)
+# and the gnomAD lookup in assets.js are untouched, so it's purely cosmetic.
+# ---------------------------------------------------------------------------
+
+POPULATION_DISPLAY_NAMES = {
+	'CDX.DG': 'Dai-1KGP',
+	'CHB.DG': 'Beijing Han',
+	'JPT.DG': 'Japanese-1KGP',
+	'KHV.DG': 'Kinh',
+	'CHS.DG': 'Southern Han',
+	'BEB.DG': 'Bengali',
+	'GIH.DG': 'Gujarati',
+	'ITU.DG': 'Telugu',
+	'PJL.DG': 'Punjabi',
+	'STU.DG': 'Sri Lankan',
+	'ASW.DG': 'African-American',
+	'ACB.DG': 'African-Caribbean',
+	'ESN.DG': 'Esan',
+	'GWD.DG': 'Gambian',
+	'LWK.DG': 'Luhya',
+	'MSL.DG': 'Mende',
+	'YRI.DG': 'Yoruba-1KGP',
+	'GBR.DG': 'British',
+	'FIN.DG': 'Finnish',
+	'IBS.DG': 'Iberian',
+	'TSI.DG': 'Toscani',
+	'CEU.DG': 'Utah European',
+	'CLM.DG': 'Colombian-1KGP',
+	'MXL.DG': 'Mexican',
+	'PEL.DG': 'Peruvian',
+	'PUR.DG': 'Puerto Rican',
+}
+
+
+def apply_population_display_names(population_entries, display_names=POPULATION_DISPLAY_NAMES):
+	for population in population_entries:
+		aadr_population = population.get('aadr_population')
+		display_name = display_names.get(aadr_population)
+		if display_name is not None and population.get('population') != display_name:
+			print(f'INFO: renamed population display name "{population.get("population")}" -> "{display_name}" ({aadr_population})')
+			population['population'] = display_name
+	return population_entries
 
 
 # ---------------------------------------------------------------------------
@@ -400,6 +475,8 @@ def generate_adna_populations(metadata_records, population_entries, min_group_si
 def build(metadata_path, populations_path, output_dir, min_group_size):
 	metadata = load_json(metadata_path)
 	populations = load_json(populations_path)
+
+	populations = apply_population_display_names(populations)
 
 	metadata = add_regions(metadata)
 	metadata = snap_group_names_to_populations(metadata, populations)
