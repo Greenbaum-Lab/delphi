@@ -5,8 +5,13 @@ import { COLUMN_DESCRIPTIONS } from '/common.js';
 import { getMetadata, listAnnotations, getAnnotationEntry } from '/assets.js';
 import { getPopsData, getPopData, addPopulation, deletePopulations } from '/browser/pops.js';
 
-const loadTable = async (label, data, buttons = '', columns = [], categorical_columns = [], link_columns = [], select_rows = 'multiRow', selected_rows = {}) => {
-	const form = addBox(document.querySelector('[data-module="browser"]'), `${label}`, '<div class="ag-grid-container"></div>', buttons);
+const formatRowCount = (count, noun) => {
+	const label = count === 1 ? noun.replace(/s$/, '') : noun;
+	return `${count} ${label}`;
+};
+
+const loadTable = async (label, data, buttons = '', columns = [], categorical_columns = [], link_columns = [], select_rows = 'multiRow', selected_rows = {}, row_noun = 'rows') => {
+	const form = addBox(document.querySelector('[data-module="browser"]'), `${label}`, '<div class="ag-grid-container"></div>', `<span class="row-count"></span>${buttons}`);
 	if (!form)
 		return;
 	form.classList.add('aggrid');
@@ -101,6 +106,7 @@ const loadTable = async (label, data, buttons = '', columns = [], categorical_co
 	}
 
 	const grid_elem = form.querySelector('.ag-grid-container');
+	const row_count_elem = form.querySelector('.row-count');
 
 	let grid_ready_resolve;
 	const grid_ready_promise = new Promise(resolve => { grid_ready_resolve = resolve; });
@@ -126,6 +132,7 @@ const loadTable = async (label, data, buttons = '', columns = [], categorical_co
 			grid_ready_resolve(grid_elem);
 		},
 		onSelectionChanged: () => grid_elem.dispatchEvent(new CustomEvent('agselection', { bubbles: true })),
+		onModelUpdated: params => { row_count_elem.textContent = formatRowCount(params.api.getDisplayedRowCount(), row_noun); },
 		cellFlashDuration: 0,
 		cellFadeDuration: 0,
 		columnDefs: column_defs,
@@ -223,7 +230,7 @@ const showTable = async (table_name, options={}) => {
 				const samples = await getMetadata().then(samples => options.populations ? samples.filter(sample => sample_ids.includes(sample.Poseidon_ID)) : samples);
 				const columns = Object.keys(samples[0]);
 				const label = options.populations ? 'Population samples' : 'Select samples to create population';
-				return loadTable(label, samples, options.populations ? '' : `<input type="text" name="population_label" placeholder="New population label"> <a data-action="select" data-select-col="Poseidon_ID" data-subfunction="add-population" class="button disabled" data-subfunction="add-population">Create population</a>`, columns);
+				return loadTable(label, samples, options.populations ? '' : `<input type="text" name="population_label" placeholder="New population label"> <a data-action="select" data-select-col="Poseidon_ID" data-subfunction="add-population" class="button disabled" data-subfunction="add-population">Create population</a>`, columns, [], [], 'multiRow', {}, 'samples');
 			} catch (e) {
 				console.log(e);
 				return errorBox('No samples found', 'Try refreshing your browser', document.querySelector('[data-module="browser"]'));
@@ -233,7 +240,7 @@ const showTable = async (table_name, options={}) => {
 			try {
 				const populations_table = await getPopsData();
 				const columns = Object.keys(populations_table[0]);
-				return loadTable('Populations', populations_table, '<a data-action="select" data-select-col="label" data-subfunction="update-populations" class="button fright">Add</a><a data-action="new-population" class="button">Create new populations from aDNA</a><a data-action="select" data-select-col="label" data-subfunction="remove-population" class="button disabled">Remove population</a>', columns, [], [], 'multiRow', {label: getOptions().populations});
+				return loadTable('Populations', populations_table, '<a data-action="select" data-select-col="label" data-subfunction="update-populations" class="button fright">Add</a><a data-action="new-population" class="button">Create new populations from aDNA</a><a data-action="select" data-select-col="label" data-subfunction="remove-population" class="button disabled">Remove population</a>', columns, [], [], 'multiRow', {label: getOptions().populations}, 'populations');
 			} catch (e) {
 				console.log(e);
 				return errorBox('No populations defined', 'Click "Generate new populations"', document.querySelector('[data-module="browser"]'));
@@ -243,7 +250,7 @@ const showTable = async (table_name, options={}) => {
 			try {
 				const annotation_keys = await listAnnotations();
 				const annotations = await Promise.all(annotation_keys.map(getAnnotationEntry));
-				return loadTable('Annotations', annotations, '<a data-action="select" data-select-col="label" data-subfunction="update-annotations" class="button fright">Update annotations</a><a data-action="upload-annotation" class="button">Upload from computer</a>', ['label', 'source', 'type'], ['source', 'type'], [], 'multiRow', {label: getOptions().annotations});
+				return loadTable('Annotations', annotations, '<a data-action="select" data-select-col="label" data-subfunction="update-annotations" class="button fright">Update annotations</a><a data-action="upload-annotation" class="button">Upload from computer</a>', ['label', 'source', 'type'], ['source', 'type'], [], 'multiRow', {label: getOptions().annotations}, 'annotations');
 			} catch (e) {
 				console.log(e);
 				return errorBox('No annotations available', '', document.querySelector('[data-module="browser"]'));

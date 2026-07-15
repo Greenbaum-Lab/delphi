@@ -658,6 +658,11 @@ body.loading .loading-overlay {
 .form-footer {
 	padding: 7px;
 }
+.form-footer .row-count {
+	color: #666;
+	font-size: 12px;
+	margin-right: 7px;
+}
 .form-footer .button:not(.fright) {
 	margin-right: 7px;
 }
