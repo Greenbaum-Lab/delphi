@@ -259,10 +259,6 @@ const processBatch = async () => {
 	lambdaBatchTimer = null;
 	if (batch.length === 0) return;
 	const { chr, measure } = batch[0];
-	// One request per refresh: every batched population is fetched over the union
-	// of their individually-missing ranges, so a single Lambda invocation covers
-	// them all. The union is window-aligned already (bounds come from bin edges),
-	// so calculateBins over it lines up positionally with each returned track.
 	const union_start = Math.min(...batch.map(request => request.start));
 	const union_end = Math.max(...batch.map(request => request.end));
 	const all_populations = {};
@@ -300,10 +296,6 @@ const processBatch = async () => {
 
 const queueLambdaRequest = (chr, start, end, measure, populations) => {
 	return new Promise((resolve, reject) => {
-		// Requests only need to share a chromosome to batch: processBatch fetches
-		// the union of their ranges in one call. Differing start/end no longer
-		// splits the batch (that was collapsing a refresh into one Lambda per
-		// population). A genuine chromosome switch still flushes the pending batch.
 		const can_batch = lambdaBatchQueue.length === 0 || lambdaBatchQueue[0].chr === chr;
 
 		if (!can_batch) {
@@ -412,18 +404,12 @@ export const getLambdaTrack = async ({ chr, start, end, measure, populations }) 
 			const has_visible_missing = missing_bins.some(bin => bin.end > start && bin.start < end);
 			const should_fetch = has_visible_missing || missing_bins.length >= CONFIG.MIN_FETCH_WINDOWS;
 			if (should_fetch) {
-				// One request per population spanning its whole missing range (holes
-				// included). Fragmenting into consecutive groups used to emit several
-				// Lambda calls per population; the union fetch overwrites any cached
-				// bins in the span with identical values, so a single request is safe.
 				const missing_start = missing_bins[0].start;
 				const missing_end = missing_bins[missing_bins.length - 1].end;
 				const inflight_key = `${chr}:${population_label}`;
 				const inflight = inflightLambdaFetches.get(inflight_key);
 				let fetch_promise;
 				if (inflight && inflight.start <= missing_start && inflight.end >= missing_end) {
-					// A fetch already in flight covers this range (e.g. a rapid repeat
-					// refresh of the same region) - await it instead of issuing another.
 					fetch_promise = inflight.promise;
 				} else {
 					const entry = { start: missing_start, end: missing_end };
