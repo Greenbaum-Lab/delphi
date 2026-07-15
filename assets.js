@@ -1,16 +1,13 @@
 import { hashKey, cacheString, getCachedString } from '/apc/cache.js';
 import { getIDBObject, queryIDBRange, listIDBTable, deleteIDBObject } from '/apc/cache.js';
 import { getOptions } from '/apc/common.js';
-import { createLFUCache } from '/lfu.js';
 
 export const CONFIG = {
 	S3_BASE_URL: '/data',
 	LAMBDA_ENDPOINT: 'https://d.modelrxiv.org/adna/browser',
-	LAMBDA_BATCH_DELAY_MS: 50,
+	LAMBDA_BATCH_DELAY_MS: 75,
 	BED: 'poseidon/Poseidon_AADR_v62/Poseidon_AADR_v62',
 	INDEX_PATH: 'index.json',
-	CACHE_SIZE_LIMIT: 1024 * 1024 * 1024,
-	ESTIMATED_TRACK_SIZE: 1024 * 1024,
 	LAMBDA_BUFFER_BASES: 1000000,
 	LAMBDA_WINDOW_SIZE: 10000,
 	MIN_FETCH_WINDOWS: 20,
@@ -28,13 +25,13 @@ const MEASURE_INDEX = {
 	'fulif': 2
 };
 
-const memoryCache = createLFUCache(CONFIG.CACHE_SIZE_LIMIT, CONFIG.ESTIMATED_TRACK_SIZE);
 let metadataCache = null;
 const annotationCaches = new Map();
 const geneNameMaps = new Map();
 
 const lambdaBatchQueue = [];
 const gnomadMemoryCache = new Map();
+const inflightLambdaFetches = new Map();
 let lambdaBatchTimer = null;
 
 const initializeAnnotationsTable = async () => {
@@ -190,22 +187,6 @@ const getGnomadTrack = async ({ chr, start, end, population, window_size, measur
 	};
 };
 
-const groupConsecutiveBins = (bins) => {
-	if (bins.length === 0) return [];
-	const groups = [];
-	let current_group = [bins[0]];
-	for (let i = 1; i < bins.length; i++) {
-		if (bins[i].start === current_group[current_group.length - 1].end) {
-			current_group.push(bins[i]);
-		} else {
-			groups.push(current_group);
-			current_group = [bins[i]];
-		}
-	}
-	groups.push(current_group);
-	return groups;
-};
-
 const parseJSONL = (text) => {
 	const lines = text.trim().split('\n');
 	const genes = [];
@@ -277,7 +258,13 @@ const processBatch = async () => {
 	const batch = lambdaBatchQueue.splice(0);
 	lambdaBatchTimer = null;
 	if (batch.length === 0) return;
-	const { chr, start, end, measure } = batch[0];
+	const { chr, measure } = batch[0];
+	// One request per refresh: every batched population is fetched over the union
+	// of their individually-missing ranges, so a single Lambda invocation covers
+	// them all. The union is window-aligned already (bounds come from bin edges),
+	// so calculateBins over it lines up positionally with each returned track.
+	const union_start = Math.min(...batch.map(request => request.start));
+	const union_end = Math.max(...batch.map(request => request.end));
 	const all_populations = {};
 	for (const request of batch) {
 		Object.assign(all_populations, request.populations);
@@ -287,8 +274,9 @@ const processBatch = async () => {
 			label,
 			samples
 		}));
-		const tracks = await fetchFromLambda(chr, start, end, measure, population_samples);
-		const bins = calculateBins(start, end, CONFIG.LAMBDA_WINDOW_SIZE);
+		console.log(`[lambda] invoke ${chr}:${union_start}-${union_end} populations=${population_samples.length} batched_requests=${batch.length}`);
+		const tracks = await fetchFromLambda(chr, union_start, union_end, measure, population_samples);
+		const bins = calculateBins(union_start, union_end, CONFIG.LAMBDA_WINDOW_SIZE);
 		const store_promises = [];
 		for (const track of tracks) {
 			const population_label = track.population;
@@ -312,12 +300,11 @@ const processBatch = async () => {
 
 const queueLambdaRequest = (chr, start, end, measure, populations) => {
 	return new Promise((resolve, reject) => {
-		const can_batch = lambdaBatchQueue.length === 0 || (
-			lambdaBatchQueue[0].chr === chr &&
-			lambdaBatchQueue[0].start === start &&
-			lambdaBatchQueue[0].end === end &&
-			lambdaBatchQueue[0].measure === 'pop'
-		);
+		// Requests only need to share a chromosome to batch: processBatch fetches
+		// the union of their ranges in one call. Differing start/end no longer
+		// splits the batch (that was collapsing a refresh into one Lambda per
+		// population). A genuine chromosome switch still flushes the pending batch.
+		const can_batch = lambdaBatchQueue.length === 0 || lambdaBatchQueue[0].chr === chr;
 
 		if (!can_batch) {
 			clearTimeout(lambdaBatchTimer);
@@ -425,16 +412,30 @@ export const getLambdaTrack = async ({ chr, start, end, measure, populations }) 
 			const has_visible_missing = missing_bins.some(bin => bin.end > start && bin.start < end);
 			const should_fetch = has_visible_missing || missing_bins.length >= CONFIG.MIN_FETCH_WINDOWS;
 			if (should_fetch) {
-				const bin_groups = groupConsecutiveBins(missing_bins);
-				const fetch_promises = [];
-				for (const group of bin_groups) {
-					const group_start = group[0].start;
-					const group_end = group[group.length - 1].end;
-					fetch_promises.push(
-						queueLambdaRequest(chr, group_start, group_end, measure, { [population_label]: populations[population_label] })
-					);
+				// One request per population spanning its whole missing range (holes
+				// included). Fragmenting into consecutive groups used to emit several
+				// Lambda calls per population; the union fetch overwrites any cached
+				// bins in the span with identical values, so a single request is safe.
+				const missing_start = missing_bins[0].start;
+				const missing_end = missing_bins[missing_bins.length - 1].end;
+				const inflight_key = `${chr}:${population_label}`;
+				const inflight = inflightLambdaFetches.get(inflight_key);
+				let fetch_promise;
+				if (inflight && inflight.start <= missing_start && inflight.end >= missing_end) {
+					// A fetch already in flight covers this range (e.g. a rapid repeat
+					// refresh of the same region) - await it instead of issuing another.
+					fetch_promise = inflight.promise;
+				} else {
+					const entry = { start: missing_start, end: missing_end };
+					entry.promise = queueLambdaRequest(chr, missing_start, missing_end, measure, { [population_label]: populations[population_label] })
+						.finally(() => {
+							if (inflightLambdaFetches.get(inflight_key) === entry)
+								inflightLambdaFetches.delete(inflight_key);
+						});
+					inflightLambdaFetches.set(inflight_key, entry);
+					fetch_promise = entry.promise;
 				}
-				await Promise.all(fetch_promises);
+				await fetch_promise;
 			}
 		}
 		const visible_bins = calculateBins(start, end, CONFIG.LAMBDA_WINDOW_SIZE);
