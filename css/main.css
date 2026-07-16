@@ -237,7 +237,7 @@ input, select, textarea {
 	gap: 8px;
 	margin-bottom: 12px;
 	padding: 6px 8px;
-	background: var(--bg-panel);
+	background: var(--bg);
 	border: 1px solid var(--border);
 	border-radius: 6px;
 	font-size: 13px;
@@ -252,7 +252,6 @@ input, select, textarea {
 	display: flex;
 	align-items: center;
 	gap: 4px;
-	background: var(--bg-subtle);
 	border: 1px solid var(--border);
 	border-radius: 6px;
 	padding: 3px 6px;
@@ -309,7 +308,6 @@ input, select, textarea {
 }
 
 .icon-btn:hover {
-	background: var(--bg-panel);
 	border-color: var(--border-strong);
 	color: var(--text);
 }
@@ -340,12 +338,12 @@ input, select, textarea {
 	cursor: default;
 }
 
-.tracks-controls [title]:not([title=""]) {
+.tracks-controls [data-tooltip] {
 	position: relative;
 }
 
-.tracks-controls [title]:not([title=""])::after {
-	content: attr(title);
+.tracks-controls [data-tooltip]::after {
+	content: attr(data-tooltip);
 	position: absolute;
 	bottom: calc(100% + 7px);
 	left: 50%;
@@ -363,8 +361,8 @@ input, select, textarea {
 	z-index: 60;
 }
 
-.tracks-controls [title]:hover::after,
-.tracks-controls [title]:focus-visible::after {
+.tracks-controls [data-tooltip]:hover::after,
+.tracks-controls [data-tooltip]:focus-visible::after {
 	opacity: 1;
 	transform: translateX(-50%) translateY(0);
 }
