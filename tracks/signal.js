@@ -100,20 +100,30 @@ const drawGridlines = (drawer, min_value, max_value) => {
 	});
 };
 
+const drawTickLabel = (drawer, str, x, y) => {
+	const text = drawer.text(str, x, y, {
+		fill: getVar('--svg-text-color-inverse'),
+		'font-size': getVar('--svg-font-small'),
+		'font-family': getVar('--font'),
+		'font-weight': 600
+	});
+	const bbox = text.getBBox();
+	const padding = [4, 2];
+	const bg = drawer.rect(
+		bbox.x - padding[0], bbox.y - padding[1],
+		bbox.width + 2 * padding[0], bbox.height + 2 * padding[1],
+		hexToRgb(getVar('--bg-track')), 0.85
+	);
+	bg.setAttribute('rx', 3);
+	drawer.elem.insertBefore(bg, text);
+};
+
 const drawTicks = (drawer, min_value, max_value) => {
 	const h = drawer.dims[1];
 	const rounded_min = parseFloat(min_value.toPrecision(4));
 	const rounded_max = parseFloat(max_value.toPrecision(4));
-	drawer.text(String(rounded_max), 5, 12, {
-		fill: getVar('--svg-text-color'),
-		'font-size': '9px',
-		'font-family': getVar('--font')
-	});
-	drawer.text(String(rounded_min), 5, h - 6, {
-		fill: getVar('--svg-text-color'),
-		'font-size': '9px',
-		'font-family': getVar('--font')
-	});
+	drawTickLabel(drawer, String(rounded_max), 5, 12);
+	drawTickLabel(drawer, String(rounded_min), 5, h - 6);
 };
 
 const drawSignal = (svg, data, data_start, data_end, plot_style, bounds) => {
@@ -133,7 +143,6 @@ const drawSignal = (svg, data, data_start, data_end, plot_style, bounds) => {
 	
 	if (!data || data.length === 0) return;
 
-	drawTicks(drawer, min_value, max_value);
 	drawGridlines(drawer, min_value, max_value);
 	if (options.show_guides) {
 		const ticks = generateCoordinateTicks(options.start, options.end, drawer.dims[0], 8);
@@ -172,6 +181,8 @@ const drawSignal = (svg, data, data_start, data_end, plot_style, bounds) => {
 		if (isNaN(bin.value) || bin.value === null)
 			drawer.genomicRect(bin.start, bin.end - bin.start, 0, h, mask_color, 0.5);
 	});
+
+	drawTicks(drawer, min_value, max_value);
 };
 
 const showTooltip = (e) => {

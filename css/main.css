@@ -168,6 +168,18 @@ input, select, textarea {
 	border-radius: 4px;
 	margin-bottom: 12px;
 	position: relative;
+	box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+	transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+[data-module="track"]:not(.view-finder):hover,
+[data-module="track"]:not(.view-finder):focus-within {
+	border-color: var(--border-strong);
+	box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+[data-module="track"]:not(.view-finder).dragging {
+	box-shadow: 0 8px 20px rgba(0,0,0,0.18);
 }
 
 .annotation-tracks-container [data-module="track"] {
@@ -640,7 +652,7 @@ body.loading .loading-overlay {
 
 .coord-label {
 	fill: var(--svg-text-color);
-	font-size: 9px;
+	font-size: var(--svg-font-small);
 	font-family: var(--font);
 }
 
