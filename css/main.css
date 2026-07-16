@@ -182,8 +182,10 @@ input, select, textarea {
 }
 
 .logo {
-	color: var(--text);
+	color: var(--accent);
 	font-size: 18px;
+	font-weight: 700;
+	letter-spacing: 0.06em;
 }
 .logo::before {
 	font-size: 24px;
