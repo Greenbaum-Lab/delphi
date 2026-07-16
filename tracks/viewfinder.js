@@ -18,7 +18,7 @@ const cssVars = getComputedStyle(document.documentElement);
 const getVar = (name) => cssVars.getPropertyValue(name).trim();
 
 const GENE_COLOR = hexToRgb(getVar('--data-1'));
-const FOCAL_WINDOW_COLOR = hexToRgb(getVar('--accent'));
+const FOCAL_WINDOW_COLOR = hexToRgb(getVar('--data-1'));
 const FOCAL_WINDOW_OPACITY = 0.5;
 
 const drawFocalWindow = (svg, start, end) => {
