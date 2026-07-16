@@ -256,15 +256,6 @@ const hooks = [
 		getOptions([['y_limits', options.y_limits]]);
 		applyYLimits();
 	}],
-	['[data-action="reset-yaxis"]', 'click', e => {
-		const options = getOptions();
-		if (!options.y_limits) options.y_limits = {};
-		delete options.y_limits[options.measure];
-		getOptions([['y_limits', options.y_limits]]);
-		document.querySelector('.y-axis-control').classList.remove('invalid');
-		syncYLimitInputs();
-		applyYLimits();
-	}],
 	['[data-action="toggle-guides"]', 'click', e => {
 		const show_guides = !getOptions().show_guides;
 		getOptions([['show_guides', show_guides]]);
@@ -284,6 +275,28 @@ const hooks = [
 	}],
 	['[data-module="browser"]', 'upload-annotation', e => {
 		addAnnotation(e.target);
+	}],
+	['[data-action="toggle-more-menu"]', 'click', e => {
+		const menu = e.target.closest('.more-menu');
+		const panel = menu.querySelector('[data-more-panel]');
+		const opening = panel.hasAttribute('hidden');
+		panel.toggleAttribute('hidden', !opening);
+		menu.querySelector('.more-toggle').setAttribute('aria-expanded', String(opening));
+	}],
+	['*', 'click', e => {
+		const menu = document.querySelector('.more-menu');
+		if (!menu || menu.contains(e.target)) return;
+		const panel = menu.querySelector('[data-more-panel]');
+		if (!panel || panel.hasAttribute('hidden')) return;
+		panel.setAttribute('hidden', '');
+		menu.querySelector('.more-toggle').setAttribute('aria-expanded', 'false');
+	}],
+	['*', 'keydown', e => {
+		if (e.key !== 'Escape') return;
+		const panel = document.querySelector('[data-more-panel]:not([hidden])');
+		if (!panel) return;
+		panel.setAttribute('hidden', '');
+		document.querySelector('.more-toggle').setAttribute('aria-expanded', 'false');
 	}]
 ];
 
