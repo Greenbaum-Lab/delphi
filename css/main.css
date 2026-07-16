@@ -238,7 +238,6 @@ input, select, textarea {
 	margin-bottom: 12px;
 	padding: 6px 8px;
 	background: var(--bg);
-	border: 1px solid var(--border);
 	border-radius: 6px;
 	font-size: 13px;
 	color: var(--text-dim);
@@ -252,6 +251,7 @@ input, select, textarea {
 	display: flex;
 	align-items: center;
 	gap: 4px;
+	border: 1px solid var(--border);
 	border-radius: 6px;
 	padding: 3px 6px;
 }
@@ -318,6 +318,21 @@ input, select, textarea {
 	color: #fff;
 }
 
+.icon-btn-populations,
+.icon-btn-annotations,
+.more-toggle {
+	width: 36px;
+	height: 34px;
+	border-color: currentColor;
+}
+
+.icon-btn-populations svg,
+.icon-btn-annotations svg,
+.more-toggle svg {
+	width: 20px;
+	height: 20px;
+}
+
 .icon-btn-populations {
 	color: var(--data-1);
 }
@@ -343,11 +358,11 @@ input, select, textarea {
 	cursor: default;
 }
 
-.tracks-controls [data-tooltip] {
+[data-tooltip] {
 	position: relative;
 }
 
-.tracks-controls [data-tooltip]::after {
+[data-tooltip]::after {
 	content: attr(data-tooltip);
 	position: absolute;
 	bottom: calc(100% + 7px);
@@ -355,11 +370,11 @@ input, select, textarea {
 	transform: translateX(-50%) translateY(2px);
 	background: var(--text);
 	color: var(--bg-panel);
-	font-size: 11px;
+	font-size: 12.5px;
 	font-weight: 500;
 	text-shadow: none;
 	white-space: nowrap;
-	padding: 4px 7px;
+	padding: 5px 8px;
 	border-radius: 4px;
 	opacity: 0;
 	pointer-events: none;
@@ -367,8 +382,8 @@ input, select, textarea {
 	z-index: 60;
 }
 
-.tracks-controls [data-tooltip]:hover::after,
-.tracks-controls [data-tooltip]:focus-visible::after {
+[data-tooltip]:hover::after,
+[data-tooltip]:focus-visible::after {
 	opacity: 1;
 	transform: translateX(-50%) translateY(0);
 }
