@@ -2,14 +2,17 @@ import { addHooks, getOptions } from '/apc/common.js';
 import { svg_draw } from '/apc/graphics/core.js';
 import { createSVG } from '/apc/plot/static.js';
 import { getTracks, loadGeneMap, getAnnotationEntry } from '/assets.js';
-import { CHR_LENGTHS } from '/common.js';
+import { CHR_LENGTHS, hexToRgb } from '/common.js';
 import { formatRegionString } from '/browser/region.js';
 import { updateRegionInput, generateCoordinateTicks, drawGuides, showHoverLine, hideHoverLine } from '/browser/helpers.js';
 
-const GENE_COLOR = [121, 134, 203];
+const cssVars = getComputedStyle(document.documentElement);
+const getVar = (name) => cssVars.getPropertyValue(name).trim();
+
+const GENE_COLOR = hexToRgb(getVar('--data-1'));
 const INTRON_COLOR = [120, 120, 120];
-const HIGHLIGHT_COLOR = [229, 57, 53];
-const FOCAL_WINDOW_COLOR = [58, 134, 255];
+const HIGHLIGHT_COLOR = hexToRgb(getVar('--accent2'));
+const FOCAL_WINDOW_COLOR = hexToRgb(getVar('--accent'));
 const FOCAL_WINDOW_OPACITY = 0.5;
 
 const GENE_HEIGHT = 10;

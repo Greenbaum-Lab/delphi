@@ -2,7 +2,7 @@ import { addHooks, getOptions } from '/apc/common.js';
 import { svg_draw } from '/apc/graphics/core.js';
 import { createSVG } from '/apc/plot/static.js';
 import { getTracks } from '/assets.js';
-import { CHR_LENGTHS } from '/common.js';
+import { CHR_LENGTHS, hexToRgb } from '/common.js';
 import { computePointerZoom } from '/browser/zoom.js';
 import { computeViewfinderBounds, formatRegionString } from '/browser/region.js';
 import { updateRegionInput, generateCoordinateTicks } from '/browser/helpers.js';
@@ -17,8 +17,8 @@ import {
 const cssVars = getComputedStyle(document.documentElement);
 const getVar = (name) => cssVars.getPropertyValue(name).trim();
 
-const GENE_COLOR = [121, 134, 203];
-const FOCAL_WINDOW_COLOR = [58, 134, 255];
+const GENE_COLOR = hexToRgb(getVar('--data-1'));
+const FOCAL_WINDOW_COLOR = hexToRgb(getVar('--accent'));
 const FOCAL_WINDOW_OPACITY = 0.5;
 
 const drawFocalWindow = (svg, start, end) => {

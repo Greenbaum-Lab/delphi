@@ -5,11 +5,11 @@
 	--border: #d0d0d0;
 	--accent: #d78121;
 	--accent2: #f44336;
+	--data-1: #5C6BC0;
+	--data-2: #26A69A;
 	--text: #000000;
 	--text-dim: #757575;
 	--font: 'Open Sans', system-ui, sans-serif;
-	--gene-color-pos: #7986CB;
-	--gene-color-neg: #5C6BC0;
 	--ruler-height: 20px;
 	--annotation-track-height: 100px;
 	--track-height: 100px;
