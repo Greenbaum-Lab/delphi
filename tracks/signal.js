@@ -1,10 +1,14 @@
 import { addHooks, getOptions, shortNotation, mean, round } from '/apc/common.js';
 import { createSVG } from '/apc/plot/static.js';
-import { svg_draw, color_cycle } from '/apc/graphics/core.js';
-import { getAxisLabel } from '/common.js';
+import { svg_draw } from '/apc/graphics/core.js';
+import { getAxisLabel, hexToRgb } from '/common.js';
 import { getPopulationSamples, getSignalTrack } from '/assets.js';
 import { getPopData, pairwiseSort } from '/browser/pops.js';
 import { generateCoordinateTicks, drawGuides } from '/browser/helpers.js';
+
+const cssVars = getComputedStyle(document.documentElement);
+const getVar = (name) => cssVars.getPropertyValue(name).trim();
+const SIGNAL_COLOR = hexToRgb(getVar('--data-2'));
 
 const sort_labels = {time: 'Time', Latitude: 'Latitude', Longitude: 'Longitude', Distance_from_Africa: 'Distance from Africa', Temperature_index: 'Temperature', Precipitation_index: 'Precipitation', Urbanization_onset: 'Urbanization', Agriculture_extensiveness: 'Neolithic', signal: 'Signal'};
 const sort_units = {time: ' years', Latitude: '°', Longitude: '°', Distance_from_Africa: 'km', Urbanization_onset: 'BP', Agriculture_extensiveness: 'BP'}
@@ -101,14 +105,14 @@ const drawTicks = (drawer, min_value, max_value) => {
 	const rounded_min = parseFloat(min_value.toPrecision(4));
 	const rounded_max = parseFloat(max_value.toPrecision(4));
 	drawer.text(String(rounded_max), 5, 12, {
-		fill: '#757575',
+		fill: getVar('--svg-text-color'),
 		'font-size': '9px',
-		'font-family': 'Open Sans, system-ui, sans-serif'
+		'font-family': getVar('--font')
 	});
 	drawer.text(String(rounded_min), 5, h - 6, {
-		fill: '#757575',
+		fill: getVar('--svg-text-color'),
 		'font-size': '9px',
-		'font-family': 'Open Sans, system-ui, sans-serif'
+		'font-family': getVar('--font')
 	});
 };
 
@@ -140,13 +144,13 @@ const drawSignal = (svg, data, data_start, data_end, plot_style, bounds) => {
 		case 'line':
 			const x_coords = data.map(d => (d.start + d.end) / 2);
 			const y_coords = data.map(d => d.value);
-			drawer.plot(x_coords, y_coords, [options.start, options.end], [min_value, max_value], color_cycle[0], 0.8);
+			drawer.plot(x_coords, y_coords, [options.start, options.end], [min_value, max_value], SIGNAL_COLOR, 0.8);
 			break;
 		case 'scatter':
 			data.forEach(bin => {
 				if (!isNaN(bin.value) && bin.value !== null) {
 					const x = (bin.start + bin.end) / 2;
-					drawer.point([x, bin.value], color_cycle[0], 3, 0.6);
+					drawer.point([x, bin.value], SIGNAL_COLOR, 3, 0.6);
 				}
 			});
 			break;
@@ -158,7 +162,7 @@ const drawSignal = (svg, data, data_start, data_end, plot_style, bounds) => {
 					const value_y = h * (1 - ((bin.value - min_value) / value_span));
 					const bar_y = Math.min(zero_y, value_y);
 					const bar_height = Math.abs(value_y - zero_y);
-					drawer.genomicRect(bin.start, bin.end - bin.start, bar_y, bar_height, color_cycle[0], 1, {'data-value': bin.value});
+					drawer.genomicRect(bin.start, bin.end - bin.start, bar_y, bar_height, SIGNAL_COLOR, 1, {'data-value': bin.value});
 				}
 			});
 	}

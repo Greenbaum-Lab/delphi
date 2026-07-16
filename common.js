@@ -1,4 +1,6 @@
 
+export const hexToRgb = hex => hex.replace('#', '').match(/.{2}/g).map(h => parseInt(h, 16));
+
 export const formatSpan = (span) => {
 	if (span < 1000) return `${span} bp`;
 	if (span < 1_000_000) return `${(span / 1000).toFixed(0)} kb`;
