@@ -22,8 +22,9 @@
 		<div class="tracks-container annotation-tracks-container">
 		</div>
 		<div class="tracks-controls">
-			<div class="sep sort-container">
-				<a data-icon="O" data-action="toggle-sort"></a>
+			<div class="control-group sort-container">
+				<a data-icon="O" data-action="toggle-sort" class="icon-btn" title="Sort direction"></a>
+				<svg class="group-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h12M3 18h6"/></svg>
 				<select data-control="sort" class="sort-selector">
 					<option value="time">Time</option>
 					<option value="Distance_from_Africa">Distance from Africa</option>
@@ -44,33 +45,77 @@
 					<option value="signal">Signal</option>
 				</select>
 			</div>
-			<label data-icon="a">Measure</label>
-			<select data-control="measure" class="measure-selector">
-				<option value="heterozygosity" selected>Heterozygosity</option>
-				<option value="fst">FST</option>
-				<option value="tajimasd">Tajima's D</option>
-				<option value="fulif">Fu & Li's F</option>
-			</select>
-			<span data-module="library"><a data-icon="P" data-action="open-populations">Select populations</a><a data-icon="u" data-action="open-annotations">Annotations</a></span>
-			<div class="fright">
-				<div class="sep">
-					<label data-icon="W">Window size</label>
-					<select data-control="window" class="window-selector">
-						<option value="10000">10 kb</option>
-						<option value="100000">100 kb</option>
-						<option value="1000000">1 Mb</option>
-					</select>
+
+			<div class="control-group">
+				<svg class="group-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M4 12h3M17 12h3M12 4v3M12 17v3"/></svg>
+				<select data-control="measure" class="measure-selector" title="Measure">
+					<option value="heterozygosity" selected>Heterozygosity</option>
+					<option value="fst">FST</option>
+					<option value="tajimasd">Tajima's D</option>
+					<option value="fulif">Fu &amp; Li's F</option>
+				</select>
+			</div>
+
+			<div class="control-group" data-module="library">
+				<a class="icon-btn icon-btn-populations" data-action="open-populations" title="Select populations">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.8 13.3c2.4.5 4.2 2.3 4.2 4.7"/></svg>
+				</a>
+				<a class="icon-btn icon-btn-annotations" data-action="open-annotations" title="Annotations">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.82 0l4.6-4.6a2 2 0 0 0 0-2.82Z"/><circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+				</a>
+			</div>
+
+			<div class="controls-spacer"></div>
+
+			<div class="more-menu">
+				<a class="icon-btn more-toggle" data-action="toggle-more-menu" title="More display options" aria-haspopup="true" aria-expanded="false">
+					<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="4" height="10"/><rect x="10" y="5" width="4" height="15"/><rect x="16" y="13" width="4" height="7"/></svg>
+				</a>
+				<div class="more-panel" data-more-panel hidden>
+					<div class="more-row">
+						<label data-icon="W">Window size</label>
+						<select data-control="window" class="window-selector">
+							<option value="10000">10 kb</option>
+							<option value="100000">100 kb</option>
+							<option value="1000000">1 Mb</option>
+						</select>
+					</div>
+					<div class="more-row">
+						<span class="more-label">Display style</span>
+						<a data-action="display" data-icon="a" class="icon-btn" title="Cycle bar / line / scatter display"></a>
+					</div>
+					<div class="more-divider"></div>
+					<div class="more-row y-axis-control">
+						<span class="more-label" title="Set the y-axis range for all signal tracks">Y-axis range</span>
+						<input type="number" step="any" data-control="ymin" class="y-limit" placeholder="min" title="Y-axis minimum (leave blank to auto-fit)">
+						<input type="number" step="any" data-control="ymax" class="y-limit" placeholder="max" title="Y-axis maximum (leave blank to auto-fit)">
+					</div>
+					<div class="more-row">
+						<span class="more-label">Guides</span>
+						<a data-action="toggle-guides" class="icon-btn icon-btn-pending" title="Show vertical guide lines across tracks (icon placeholder)">
+							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v16M16 4v16" stroke-dasharray="2.5 2.5"/></svg>
+						</a>
+					</div>
+					<div class="more-row">
+						<span class="more-label">Track size</span>
+						<a data-icon="m" data-action="decrease-track-size" class="icon-btn" title="Decrease track size"></a>
+						<a data-icon="+" data-action="increase-track-size" class="icon-btn" title="Increase track size"></a>
+					</div>
+					<div class="more-divider"></div>
+					<div class="more-row">
+						<span class="more-label">Export data</span>
+						<a class="icon-btn icon-btn-pending icon-btn-placeholder" aria-disabled="true" title="Export as CSV — coming soon">
+							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
+						</a>
+					</div>
+					<div class="more-divider"></div>
+					<div class="more-row">
+						<span class="more-label">Reset</span>
+						<a data-action="reset-defaults" class="icon-btn icon-btn-pending" title="Reset all controls to defaults (icon placeholder)">
+							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14l-5-5 5-5"/><path d="M4 9h9a7 7 0 0 1 0 14H8"/></svg>
+						</a>
+					</div>
 				</div>
-				<div class="sep"><a data-action="display" data-icon="a">Display style</a></div>
-				<div class="sep y-axis-control">
-					<label data-icon="a" title="Set the y-axis range for all signal tracks">Y-axis</label>
-					<input type="number" step="any" data-control="ymin" class="y-limit" placeholder="min" title="Y-axis minimum (leave blank to auto-fit)">
-					<input type="number" step="any" data-control="ymax" class="y-limit" placeholder="max" title="Y-axis maximum (leave blank to auto-fit)">
-					<a data-action="reset-yaxis" data-icon="R" title="Auto (fit y-axis to data)"></a>
-				</div>
-				<div class="sep"><a data-action="toggle-guides" data-icon="a" title="Show vertical guide lines across tracks">Guides</a></div>
-				<div class="sep"><label>Track size</label><a data-icon="+" data-action="increase-track-size"></a><a data-icon="m" data-action="decrease-track-size"></a></div>
-				<a data-action="reset-defaults" data-icon="R" title="Reset"></a>
 			</div>
 		</div>
 		<div class="tracks-container signal-tracks-container">
