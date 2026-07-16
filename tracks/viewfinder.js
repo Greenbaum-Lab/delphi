@@ -78,15 +78,15 @@ const drawAnnotation = (svg, annotation_data) => {
 
 	drawer.text(`hg19:${chr}`, 3, coordY, {
 		fill: getVar('--svg-text-color'),
-		'font-size': '9px',
+		'font-size': getVar('--svg-font-medium'),
 		'font-family': getVar('--font'),
 		'text-anchor': 'start'
-	});	
+	});
 
 	ticks.forEach(tick => {
 		drawer.text(tick.label, tick.x, coordY, {
 			fill: getVar('--svg-text-color'),
-			'font-size': '9px',
+			'font-size': getVar('--svg-font-medium'),
 			'font-family': getVar('--font'),
 			'text-anchor': 'middle'
 		});
