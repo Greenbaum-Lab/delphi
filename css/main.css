@@ -247,6 +247,10 @@ input, select, textarea {
 	flex: 1 1 auto;
 }
 
+.controls-spacer-fixed {
+	flex: 0 0 10%;
+}
+
 .control-group {
 	display: flex;
 	align-items: center;
@@ -254,6 +258,19 @@ input, select, textarea {
 	border: 1px solid var(--border);
 	border-radius: 6px;
 	padding: 3px 6px;
+}
+
+.control-group-populations {
+	border-color: var(--data-1);
+}
+
+.control-group-annotations {
+	border-color: var(--data-2);
+}
+
+.tooltip-wrap {
+	display: inline-flex;
+	align-items: center;
 }
 
 .control-group .group-icon {
@@ -323,7 +340,6 @@ input, select, textarea {
 .more-toggle {
 	width: 36px;
 	height: 34px;
-	border-color: currentColor;
 }
 
 .icon-btn-populations svg,
@@ -343,6 +359,7 @@ input, select, textarea {
 
 .more-toggle {
 	color: var(--accent);
+	border-color: currentColor;
 }
 
 .icon-btn-placeholder {
