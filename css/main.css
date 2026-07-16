@@ -252,7 +252,6 @@ input, select, textarea {
 	display: flex;
 	align-items: center;
 	gap: 4px;
-	border: 1px solid var(--border);
 	border-radius: 6px;
 	padding: 3px 6px;
 }
@@ -319,8 +318,14 @@ input, select, textarea {
 	color: #fff;
 }
 
-.icon-btn-populations,
-.icon-btn-annotations,
+.icon-btn-populations {
+	color: var(--data-1);
+}
+
+.icon-btn-annotations {
+	color: var(--data-2);
+}
+
 .more-toggle {
 	color: var(--accent);
 }
@@ -352,6 +357,7 @@ input, select, textarea {
 	color: var(--bg-panel);
 	font-size: 11px;
 	font-weight: 500;
+	text-shadow: none;
 	white-space: nowrap;
 	padding: 4px 7px;
 	border-radius: 4px;
