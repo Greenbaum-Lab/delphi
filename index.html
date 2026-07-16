@@ -33,7 +33,7 @@
 		</div>
 		<div class="tracks-controls">
 			<div class="control-group sort-container">
-				<a data-icon="O" data-action="toggle-sort" class="icon-btn" title="Sort direction"></a>
+				<a data-icon="O" data-action="toggle-sort" class="icon-btn" data-tooltip="Sort direction" aria-label="Sort direction"></a>
 				<svg class="group-icon" aria-hidden="true"><use href="#icon-sort"></use></svg>
 				<select data-control="sort" class="sort-selector">
 					<option value="time">Time</option>
@@ -58,7 +58,7 @@
 
 			<div class="control-group">
 				<svg class="group-icon" aria-hidden="true"><use href="#icon-measure"></use></svg>
-				<select data-control="measure" class="measure-selector" title="Measure">
+				<select data-control="measure" class="measure-selector">
 					<option value="heterozygosity" selected>Heterozygosity</option>
 					<option value="fst">FST</option>
 					<option value="tajimasd">Tajima's D</option>
@@ -67,10 +67,13 @@
 			</div>
 
 			<div class="control-group" data-module="library">
-				<a class="icon-btn icon-btn-populations" data-action="open-populations" title="Select populations">
+				<a class="icon-btn icon-btn-populations" data-action="open-populations" data-tooltip="Select populations" aria-label="Select populations">
 					<svg aria-hidden="true"><use href="#icon-populations"></use></svg>
 				</a>
-				<a class="icon-btn icon-btn-annotations" data-action="open-annotations" title="Annotations">
+			</div>
+
+			<div class="control-group">
+				<a class="icon-btn icon-btn-annotations" data-action="open-annotations" data-tooltip="Add annotations" aria-label="Add annotations">
 					<svg aria-hidden="true"><use href="#icon-annotations"></use></svg>
 				</a>
 			</div>
@@ -78,12 +81,12 @@
 			<div class="controls-spacer"></div>
 
 			<div class="more-menu">
-				<a class="icon-btn more-toggle" data-action="toggle-more-menu" title="More display options" aria-haspopup="true" aria-expanded="false">
+				<a class="icon-btn more-toggle" data-action="toggle-more-menu" data-tooltip="More display options" aria-label="More display options" aria-haspopup="true" aria-expanded="false">
 					<svg aria-hidden="true"><use href="#icon-more"></use></svg>
 				</a>
 				<div class="more-panel" data-more-panel hidden>
 					<div class="more-row">
-						<label data-icon="W" class="more-label">Window size</label>
+						<label class="more-label">Window size</label>
 						<select data-control="window" class="window-selector">
 							<option value="10000">10 kb</option>
 							<option value="100000">100 kb</option>
@@ -92,36 +95,36 @@
 					</div>
 					<div class="more-row">
 						<span class="more-label">Display style</span>
-						<a data-action="display" data-icon="a" class="icon-btn" title="Cycle bar / line / scatter display"></a>
+						<a data-action="display" data-icon="a" class="icon-btn" data-tooltip="Cycle bar / line / scatter display" aria-label="Cycle display style"></a>
 					</div>
 					<div class="more-divider"></div>
 					<div class="more-row y-axis-control">
-						<span class="more-label" title="Set the y-axis range for all signal tracks">Y-axis range</span>
-						<input type="number" step="any" data-control="ymin" class="y-limit" placeholder="min" title="Y-axis minimum (leave blank to auto-fit)">
-						<input type="number" step="any" data-control="ymax" class="y-limit" placeholder="max" title="Y-axis maximum (leave blank to auto-fit)">
+						<span class="more-label" data-tooltip="Set the y-axis range for all signal tracks">Y-axis</span>
+						<input type="number" step="any" data-control="ymin" class="y-limit" placeholder="min" data-tooltip="Y-axis minimum (leave blank to auto-fit)" aria-label="Y-axis minimum">
+						<input type="number" step="any" data-control="ymax" class="y-limit" placeholder="max" data-tooltip="Y-axis maximum (leave blank to auto-fit)" aria-label="Y-axis maximum">
 					</div>
 					<div class="more-row">
 						<span class="more-label">Guides</span>
-						<a data-action="toggle-guides" class="icon-btn" title="Show vertical guide lines across tracks (icon placeholder)">
+						<a data-action="toggle-guides" class="icon-btn" data-tooltip="Show vertical guide lines across tracks" aria-label="Toggle guides">
 							<svg aria-hidden="true"><use href="#icon-guides"></use></svg>
 						</a>
 					</div>
 					<div class="more-row">
 						<span class="more-label">Track size</span>
-						<a data-icon="m" data-action="decrease-track-size" class="icon-btn" title="Decrease track size"></a>
-						<a data-icon="+" data-action="increase-track-size" class="icon-btn" title="Increase track size"></a>
+						<a data-icon="m" data-action="decrease-track-size" class="icon-btn" data-tooltip="Decrease track size" aria-label="Decrease track size"></a>
+						<a data-icon="+" data-action="increase-track-size" class="icon-btn" data-tooltip="Increase track size" aria-label="Increase track size"></a>
 					</div>
 					<div class="more-divider"></div>
 					<div class="more-row">
 						<span class="more-label">Export data</span>
-						<a class="icon-btn icon-btn-placeholder" aria-disabled="true" title="Export as CSV (coming soon)">
+						<a class="icon-btn icon-btn-placeholder" aria-disabled="true" data-tooltip="Export as CSV (coming soon)" aria-label="Export as CSV (coming soon)">
 							<svg aria-hidden="true"><use href="#icon-export"></use></svg>
 						</a>
 					</div>
 					<div class="more-divider"></div>
 					<div class="more-row">
 						<span class="more-label">Reset</span>
-						<a data-action="reset-defaults" class="icon-btn" title="Reset all controls to defaults (icon placeholder)">
+						<a data-action="reset-defaults" class="icon-btn" data-tooltip="Reset all controls to defaults" aria-label="Reset all controls to defaults">
 							<svg aria-hidden="true"><use href="#icon-reset"></use></svg>
 						</a>
 					</div>
