@@ -22,7 +22,7 @@
 		<div class="top-bar-left">
 			<div class="logo" data-icon="0">DELPHI</div><div class="mode"></div>
 			<input type="text" class="region-query" data-input="region" placeholder="chr1:1000000-2000000" value="chr1:1000000-2000000">
-			<a data-icon="S" data-action="search-annotation" title="Go to region or search gene"></a>
+			<a data-icon="S" data-action="search-annotation" data-tooltip="Go to region or search gene" aria-label="Go to region or search gene"></a>
 		</div>
 		<div class="view-finder-container">
 			<div class="view-finder" data-module="track" data-type="viewfinder" data-source="gencode19_genes" aria-label="View finder"></div>
@@ -35,7 +35,7 @@
 			<div class="control-group sort-container">
 				<a data-icon="O" data-action="toggle-sort" class="icon-btn" data-tooltip="Sort direction" aria-label="Sort direction"></a>
 				<svg class="group-icon" aria-hidden="true"><use href="#icon-sort"></use></svg>
-				<select data-control="sort" class="sort-selector">
+				<select data-control="sort" class="sort-selector" data-tooltip="Order tracks by metadata">
 					<option value="time">Time</option>
 					<option value="Distance_from_Africa">Distance from Africa</option>
 					<option value="Latitude">Latitude</option>
@@ -46,7 +46,7 @@
 					<option value="Urbanization_onset">Urbanization onset</option>
 					<option value="signal">Signal</option>
 				</select>
-				<select data-control="sort" class="sort-selector-pairwise">
+				<select data-control="sort" class="sort-selector-pairwise" data-tooltip="Order tracks by metadata">
 					<option value="time">Temporal distance</option>
 					<option value="Distance_from_Africa">Waypoint distance</option>
 					<option value="genetic_distance">Genetic distance</option>
@@ -58,7 +58,7 @@
 
 			<div class="control-group">
 				<svg class="group-icon" aria-hidden="true"><use href="#icon-measure"></use></svg>
-				<select data-control="measure" class="measure-selector">
+				<select data-control="measure" class="measure-selector" data-tooltip="Select population genetics statistics">
 					<option value="heterozygosity" selected>Heterozygosity</option>
 					<option value="fst">FST</option>
 					<option value="tajimasd">Tajima's D</option>
@@ -140,9 +140,9 @@
 			<div class="track-left-margin">
 				<div class="track-move"></div>
 				<div class="track-buttons">
-					<a data-action="individuals" data-icon="I" title="Show individuals in data"></a>
-					<a data-action="pin" data-icon="p" title="Pin track (always show above data tracks)"></a>
-					<a data-action="remove" data-icon="x" title="Remove track from display"></a>
+					<a data-action="individuals" data-icon="I" data-tooltip="Show individuals in data" aria-label="Show individuals in data"></a>
+					<a data-action="pin" data-icon="p" data-tooltip="Pin track (always show above data tracks)" aria-label="Pin track"></a>
+					<a data-action="remove" data-icon="x" data-tooltip="Remove track from display" aria-label="Remove track from display"></a>
 				</div>
 				<div class="track-metadata"><div class="track-label"></div><div class="track-type"></div><div class="track-value"></div></div>
 			</div>
@@ -154,9 +154,9 @@
 			<div class="track-left-margin">
 				<div class="track-move"></div>
 				<div class="track-buttons">
-					<a data-action="annotation-display" data-icon="s" title="Toggle annotation display style"></a>
-					<a data-action="search-annotation" data-icon="S" title="Search in annotation"></a>
-					<a data-action="remove" data-icon="x" title="Remove annotation from display"></a>
+					<a data-action="annotation-display" data-icon="s" data-tooltip="Toggle annotation display style" aria-label="Toggle annotation display style"></a>
+					<a data-action="search-annotation" data-icon="S" data-tooltip="Search in annotation" aria-label="Search in annotation"></a>
+					<a data-action="remove" data-icon="x" data-tooltip="Remove annotation from display" aria-label="Remove annotation from display"></a>
 				</div>
 				<div class="track-metadata">
 					<div class="track-label"></div>
