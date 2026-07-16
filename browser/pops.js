@@ -1,5 +1,5 @@
 import { addModule, getOptions, mean, round } from '/apc/common.js';
-import { getIDBObject, listIDBTable } from '/apc/cache.js';
+import { getIDBObject, listIDBTable, deleteIDBObject } from '/apc/cache.js';
 import { CONFIG, getMetadata } from '/assets.js';
 
 const nanmean = arr => arr.length === 0 ? null : mean(arr.filter(v => v !== undefined && v !== null));
@@ -56,12 +56,16 @@ export const pairwiseSort = (pop1, pop2, measure) => {
 	}
 };
 
-export const deletePopulations = (populations) => {
+export const deletePopulations = async (populations) => {
+	const population_data = await Promise.all(populations.map(getPopData));
+	const removable = populations.filter((population, index) => population_data[index] && population_data[index].Dataset === 'User');
+	if (removable.length === 0)
+		return;
 	const selected_populations = getOptions().populations;
-	const updated_populations = selected_populations.filter(pop => !populations.includes(pop.replace(/^.*?\/([^\/]+)$/, '$1')));
+	const updated_populations = selected_populations.filter(pop => !removable.includes(pop.replace(/^.*?\/([^\/]+)$/, '$1')));
 	getOptions([['populations', updated_populations]]);
-	populations.forEach(population => deleteIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_POPULATIONS_TABLE, population));
-	if (selected_populations.length !== updated_populations)
+	removable.forEach(population => deleteIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_POPULATIONS_TABLE, population));
+	if (selected_populations.length !== updated_populations.length)
 		document.querySelector('[data-module="browser"]').dispatchEvent(new Event('update'));
 };
 
