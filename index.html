@@ -7,6 +7,16 @@
 	<link rel="stylesheet" type="text/css" href="/css/main.css">
 </head>
 <body>
+<svg aria-hidden="true" style="display:none">
+	<symbol id="icon-sort" viewBox="0 0 24 24"><path d="M3 6h18M3 12h12M3 18h6"/></symbol>
+	<symbol id="icon-measure" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M4 12h3M17 12h3M12 4v3M12 17v3"/></symbol>
+	<symbol id="icon-populations" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.8 13.3c2.4.5 4.2 2.3 4.2 4.7"/></symbol>
+	<symbol id="icon-annotations" viewBox="0 0 24 24"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.82 0l4.6-4.6a2 2 0 0 0 0-2.82Z"/><circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/></symbol>
+	<symbol id="icon-more" viewBox="0 0 24 24"><rect x="4" y="10" width="4" height="10"/><rect x="10" y="5" width="4" height="15"/><rect x="16" y="13" width="4" height="7"/></symbol>
+	<symbol id="icon-guides" viewBox="0 0 24 24"><path d="M8 4v16M16 4v16" stroke-dasharray="2.5 2.5"/></symbol>
+	<symbol id="icon-export" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></symbol>
+	<symbol id="icon-reset" viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h9a7 7 0 0 1 0 14H8"/></symbol>
+</svg>
 <div class="wrap genome-browser" data-module="browser">
 	<header class="top-bar">
 		<div class="top-bar-left">
@@ -24,7 +34,7 @@
 		<div class="tracks-controls">
 			<div class="control-group sort-container">
 				<a data-icon="O" data-action="toggle-sort" class="icon-btn" title="Sort direction"></a>
-				<svg class="group-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h12M3 18h6"/></svg>
+				<svg class="group-icon" aria-hidden="true"><use href="#icon-sort"></use></svg>
 				<select data-control="sort" class="sort-selector">
 					<option value="time">Time</option>
 					<option value="Distance_from_Africa">Distance from Africa</option>
@@ -47,7 +57,7 @@
 			</div>
 
 			<div class="control-group">
-				<svg class="group-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M4 12h3M17 12h3M12 4v3M12 17v3"/></svg>
+				<svg class="group-icon" aria-hidden="true"><use href="#icon-measure"></use></svg>
 				<select data-control="measure" class="measure-selector" title="Measure">
 					<option value="heterozygosity" selected>Heterozygosity</option>
 					<option value="fst">FST</option>
@@ -58,10 +68,10 @@
 
 			<div class="control-group" data-module="library">
 				<a class="icon-btn icon-btn-populations" data-action="open-populations" title="Select populations">
-					<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3.5 19c0-3 2.5-5.5 5.5-5.5s5.5 2.5 5.5 5.5"/><circle cx="17" cy="9" r="2.2"/><path d="M15.8 13.3c2.4.5 4.2 2.3 4.2 4.7"/></svg>
+					<svg aria-hidden="true"><use href="#icon-populations"></use></svg>
 				</a>
 				<a class="icon-btn icon-btn-annotations" data-action="open-annotations" title="Annotations">
-					<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20.59 13.41 11 3.83A2 2 0 0 0 9.59 3H4a1 1 0 0 0-1 1v5.59a2 2 0 0 0 .59 1.41l9.58 9.58a2 2 0 0 0 2.82 0l4.6-4.6a2 2 0 0 0 0-2.82Z"/><circle cx="7.5" cy="7.5" r="1.2" fill="currentColor" stroke="none"/></svg>
+					<svg aria-hidden="true"><use href="#icon-annotations"></use></svg>
 				</a>
 			</div>
 
@@ -69,11 +79,11 @@
 
 			<div class="more-menu">
 				<a class="icon-btn more-toggle" data-action="toggle-more-menu" title="More display options" aria-haspopup="true" aria-expanded="false">
-					<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="10" width="4" height="10"/><rect x="10" y="5" width="4" height="15"/><rect x="16" y="13" width="4" height="7"/></svg>
+					<svg aria-hidden="true"><use href="#icon-more"></use></svg>
 				</a>
 				<div class="more-panel" data-more-panel hidden>
 					<div class="more-row">
-						<label data-icon="W">Window size</label>
+						<label data-icon="W" class="more-label">Window size</label>
 						<select data-control="window" class="window-selector">
 							<option value="10000">10 kb</option>
 							<option value="100000">100 kb</option>
@@ -92,8 +102,8 @@
 					</div>
 					<div class="more-row">
 						<span class="more-label">Guides</span>
-						<a data-action="toggle-guides" class="icon-btn icon-btn-pending" title="Show vertical guide lines across tracks (icon placeholder)">
-							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4v16M16 4v16" stroke-dasharray="2.5 2.5"/></svg>
+						<a data-action="toggle-guides" class="icon-btn" title="Show vertical guide lines across tracks (icon placeholder)">
+							<svg aria-hidden="true"><use href="#icon-guides"></use></svg>
 						</a>
 					</div>
 					<div class="more-row">
@@ -104,15 +114,15 @@
 					<div class="more-divider"></div>
 					<div class="more-row">
 						<span class="more-label">Export data</span>
-						<a class="icon-btn icon-btn-pending icon-btn-placeholder" aria-disabled="true" title="Export as CSV — coming soon">
-							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></svg>
+						<a class="icon-btn icon-btn-placeholder" aria-disabled="true" title="Export as CSV (coming soon)">
+							<svg aria-hidden="true"><use href="#icon-export"></use></svg>
 						</a>
 					</div>
 					<div class="more-divider"></div>
 					<div class="more-row">
 						<span class="more-label">Reset</span>
-						<a data-action="reset-defaults" class="icon-btn icon-btn-pending" title="Reset all controls to defaults (icon placeholder)">
-							<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14l-5-5 5-5"/><path d="M4 9h9a7 7 0 0 1 0 14H8"/></svg>
+						<a data-action="reset-defaults" class="icon-btn" title="Reset all controls to defaults (icon placeholder)">
+							<svg aria-hidden="true"><use href="#icon-reset"></use></svg>
 						</a>
 					</div>
 				</div>

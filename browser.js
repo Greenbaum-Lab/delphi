@@ -92,7 +92,7 @@ const hooks = [
 		const existing_labels = existing_annotations.map(track => track.dataset.source);
 		await Promise.all(options.annotations.filter(label => !existing_labels.includes(label)).map(label => addModule(annotation_container, 'track', {type: 'annotation', source: label})));
 		const populations_metadata = await Promise.all(options.populations.map(getPopData));
-		options.mode = populations_metadata.filter(population => population.Dataset === 'User').length > 0 ? 'adna' : 'gnomad';
+		options.mode = populations_metadata.filter(population => population.Dataset === 'User' || population.Dataset === 'AADR').length > 0 ? 'adna' : 'gnomad';
 		document.querySelector('.mode').innerHTML = options.mode === 'adna' ? '<a class="adna" data-icon="t" title="Data will be generated on the file using AADR genotypes">aDNA</a>' : '<a data-icon="I" title="Data will be generated using genotypes from gnomAD v3.1.2">gnomAD</a>'; // Temporarily here
 		getOptions([['mode', options.mode]]);
 		if (options.populations.length > 0 && container.querySelector('.empty-state'))
@@ -277,11 +277,11 @@ const hooks = [
 		addAnnotation(e.target);
 	}],
 	['[data-action="toggle-more-menu"]', 'click', e => {
-		const toggle = e.target.closest('.more-menu').querySelector('.more-toggle');
-		const panel = e.target.closest('.more-menu').querySelector('[data-more-panel]');
+		const menu = e.target.closest('.more-menu');
+		const panel = menu.querySelector('[data-more-panel]');
 		const opening = panel.hasAttribute('hidden');
 		panel.toggleAttribute('hidden', !opening);
-		toggle.setAttribute('aria-expanded', String(opening));
+		menu.querySelector('.more-toggle').setAttribute('aria-expanded', String(opening));
 	}],
 	['*', 'click', e => {
 		const menu = document.querySelector('.more-menu');

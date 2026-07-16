@@ -326,33 +326,36 @@ const buildChromosomeCache = (genes) => {
 	return chr_cache;
 };
 
-const loadAnnotationData = async (track_id) => {
+const loadAnnotationData = (track_id) => {
 	if (annotationCaches.has(track_id)) {
 		return annotationCaches.get(track_id);
 	}
 
-	const track_meta = await getAnnotationEntry(track_id);
+	const load_promise = (async () => {
+		const track_meta = await getAnnotationEntry(track_id);
 
-	if (!track_meta) {
-		throw new Error(`Unknown track_id: ${track_id}`);
-	}
+		if (!track_meta) {
+			throw new Error(`Unknown track_id: ${track_id}`);
+		}
 
-	if (track_meta.type !== 'jsonl') {
-		throw new Error(`Unsupported track type: ${track_meta.type} for track ${track_id}`);
-	}
+		if (track_meta.type !== 'jsonl') {
+			throw new Error(`Unsupported track type: ${track_meta.type} for track ${track_id}`);
+		}
 
-	const text = await fetchJSONL(track_meta.source);
-	const { genes, name_map } = parseJSONL(text); 
+		const text = await fetchJSONL(track_meta.source);
+		const { genes, name_map } = parseJSONL(text);
 
-	geneNameMaps.set(track_id, name_map);
-	
-	const cache_entry = {
-		track_id,
-		by_chr: buildChromosomeCache(genes)
-	};
+		geneNameMaps.set(track_id, name_map);
 
-	annotationCaches.set(track_id, cache_entry);
-	return cache_entry;
+		return {
+			track_id,
+			by_chr: buildChromosomeCache(genes)
+		};
+	})();
+
+	annotationCaches.set(track_id, load_promise);
+	load_promise.catch(() => annotationCaches.delete(track_id));
+	return load_promise;
 };
 
 const loadTrackData = async ({ chr, track_ids }) => {

@@ -1,22 +1,25 @@
 :root {
-	--bg: #f5f5f5;
-	--bg-panel: #ffffff;
-	--bg-track: #ffffff;
-	--border: #d0d0d0;
-	--border-strong: #bbbbbb;
-	--chip-bg: #ececec;
-	--accent: #d78121;
-	--accent2: #f44336;
-	--text: #000000;
-	--text-dim: #757575;
+	--bg: #f6f1ea;
+	--bg-panel: #fffdfa;
+	--bg-subtle: #f1ece2;
+	--bg-track: #fffdfa;
+	--border: #e4dbcd;
+	--border-strong: #d8cdb8;
+	--accent: #c1732e;
+	--accent2: #a8433a;
+	--data-1: #35636b;
+	--data-2: #7a8b4c;
+	--tab-modern: #c7d3b3;
+	--tab-adna: #e6c79a;
+	--text: #211d17;
+	--text-dim: #8a7d6b;
+	--text-faint: #c9beac;
 	--font: 'Open Sans', system-ui, sans-serif;
-	--gene-color-pos: #7986CB;
-	--gene-color-neg: #5C6BC0;
 	--ruler-height: 20px;
 	--annotation-track-height: 100px;
 	--track-height: 100px;
-	--svg-text-color: #757575;
-	--svg-text-color-inverse: #000000;
+	--svg-text-color: #8a7d6b;
+	--svg-text-color-inverse: #211d17;
 	--svg-font-large: 12px;
 	--svg-font-medium: 10px;
 	--svg-font-small: 11px;
@@ -140,7 +143,7 @@ input, select, textarea {
 	padding: 0.3rem 0.4rem;
 	border: none;
 	font-size: 14px;
-	background: #eee;
+	background: var(--bg-subtle);
 	border-radius: 2px;
 }
 
@@ -165,6 +168,18 @@ input, select, textarea {
 	border-radius: 4px;
 	margin-bottom: 12px;
 	position: relative;
+	box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+	transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+[data-module="track"]:not(.view-finder):hover,
+[data-module="track"]:not(.view-finder):focus-within {
+	border-color: var(--border-strong);
+	box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+}
+
+[data-module="track"]:not(.view-finder).dragging {
+	box-shadow: 0 8px 20px rgba(0,0,0,0.18);
 }
 
 .annotation-tracks-container [data-module="track"] {
@@ -179,8 +194,7 @@ input, select, textarea {
 }
 
 .logo {
-	color: #000;
-	font-size: 18px;
+	color: var(--tex);
 }
 .logo::before {
 	font-size: 24px;
@@ -194,11 +208,11 @@ input, select, textarea {
     font-size: 14px;
     cursor: pointer;
     padding: 4px 5px 5px 5px;
-	background: #a8e590;
+	background: var(--tab-modern);
 }
 
 .mode a.adna {
-		background: #efbb81;
+		background: var(--tab-adna);
 }
 
 .mode a::before {
@@ -238,7 +252,7 @@ input, select, textarea {
 	display: flex;
 	align-items: center;
 	gap: 4px;
-	background: var(--chip-bg);
+	background: var(--bg-subtle);
 	border: 1px solid var(--border);
 	border-radius: 6px;
 	padding: 3px 6px;
@@ -260,6 +274,13 @@ input, select, textarea {
 	padding: 2px 3px;
 	font-weight: 600;
 	color: var(--text);
+}
+
+.tracks-controls [data-icon]:empty {
+	font-size: 18px;
+	line-height: 22px;
+	color: var(--accent);
+	text-shadow: 2px 2px var(--border-strong);
 }
 
 .icon-btn {
@@ -306,10 +327,6 @@ input, select, textarea {
 	color: var(--accent);
 }
 
-.icon-btn-pending {
-	color: var(--text-dim);
-}
-
 .icon-btn-placeholder {
 	border: 1px dashed var(--border-strong);
 }
@@ -321,13 +338,6 @@ input, select, textarea {
 
 .icon-btn[aria-disabled="true"] {
 	cursor: default;
-}
-
-.icon-btn[data-icon]:empty {
-	font-size: 18px;
-	line-height: 22px;
-	color: var(--accent);
-	text-shadow: 2px 2px #ccc;
 }
 
 .tracks-controls [title]:not([title=""]) {
@@ -392,8 +402,8 @@ input, select, textarea {
 
 .more-row select {
 	flex: 1;
-	background: #fff;
-	border: 1px solid #ccc;
+	background: var(--bg-panel);
+	border: 1px solid var(--border-strong);
 	padding: 3px 5px;
 	border-radius: 2px;
 }
@@ -404,11 +414,6 @@ input, select, textarea {
 	color: var(--text-dim);
 }
 
-.more-row label {
-	flex: 1;
-	margin-right: 5px;
-}
-
 .more-divider {
 	height: 1px;
 	background: var(--border);
@@ -417,15 +422,15 @@ input, select, textarea {
 
 .y-axis-control .y-limit {
 	width: 52px;
-	background: #fff;
-	border: 1px solid #ccc;
+	background: var(--bg-panel);
+	border: 1px solid var(--border-strong);
 	padding: 3px 5px;
 	border-radius: 2px;
 	font-size: 13px;
 }
 
 .y-axis-control.invalid .y-limit {
-	border-color: #d33;
+	border-color: var(--accent2);
 }
 
 .sort-container .sort-selector-pairwise {
@@ -444,7 +449,7 @@ input, select, textarea {
 	display: none;
 	position:fixed;
 	padding:4px 8px;
-	background:#333;
+	background:#3a352c;
 	color:#fff;
 	font-size:11px;
 	border-radius:3px;
@@ -481,7 +486,7 @@ input, select, textarea {
 }
 .track-move {
 	position: relative;
-	background: #ddd;
+	background: var(--border-strong);
 	height: 100%;
 	float: left;
 	width: 20px;
@@ -503,14 +508,17 @@ input, select, textarea {
 	display: flex;
 	align-items: center;
 }
+.track-label {
+	font-weight: 700;
+}
 .track-type {
-	color: #777;
+	color: var(--text-dim);
 }
 .track-buttons {
 	float: left;
 	height: 100%;
 	position: relative;
-	background: #eee;
+	background: var(--bg-subtle);
 	padding: 6px 8px;
 	font-size: 14px;
 	display: flex;
@@ -525,7 +533,7 @@ input, select, textarea {
 	content: '';
 	width: 3px;
 	height: 13px;
-	border: 1px solid #333;
+	border: 1px solid #3a352c;
 	border-width: 0 1px;
 }
 
@@ -770,7 +778,7 @@ body.loading .loading-overlay {
 
 .coord-label {
 	fill: var(--svg-text-color);
-	font-size: 9px;
+	font-size: var(--svg-font-small);
 	font-family: var(--font);
 }
 
@@ -782,7 +790,7 @@ body.loading .loading-overlay {
 	width: 70%;
 	max-height: 80%;
 	box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
-	background: #f5f5f5;
+	background: var(--bg);
 	border-radius: 3px;
 	font-size: 14px;
 	z-index: 1000;
@@ -796,7 +804,7 @@ body.loading .loading-overlay {
 	padding: 7px;
 }
 .form-footer .row-count {
-	color: #666;
+	color: var(--text-dim);
 	font-size: 12px;
 	margin-right: 7px;
 }
@@ -821,7 +829,7 @@ body.loading .loading-overlay {
 }
 .popup .content {
 	flex: 1;
-	background: #fff;
+	background: var(--bg-panel);
 	padding: 10px 15px;
 	min-height: 0;
 	overflow: auto;
@@ -839,7 +847,7 @@ body.loading .loading-overlay {
 }
 .popup [data-tab-content] {
 	flex: 4;
-	background: #fff;
+	background: var(--bg-panel);
 	padding: 10px 15px;
 	box-sizing: border-box;
 	overflow-y: auto;
@@ -849,7 +857,7 @@ body.loading .loading-overlay {
 	display: block;
 }
 .popup [data-tab].selected {
-	background: #fff;
+	background: var(--bg-panel);
 }
 .popup h3 {
 	padding: 10px 15px;

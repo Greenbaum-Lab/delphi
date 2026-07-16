@@ -69,10 +69,8 @@ export const updateRegionFromInput = () => {
 };
 
 export const formatCoordinate = (pos, span) => {
-	if (span < 10000) {
-		return `${Math.round(pos)} bp`;
-	} else if (span < 1000000) {
-		return `${shortNotation(pos / 1000)} kb`;
+	if (span < 1000000) {
+		return `${Math.round(pos).toLocaleString('en-US')} bp`;
 	} else {
 		return `${shortNotation(pos / 1000000)} Mb`;
 	}
