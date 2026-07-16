@@ -370,6 +370,9 @@ input, select, textarea {
 	display: flex;
 	align-items: center;
 }
+.track-label {
+	font-weight: 700;
+}
 .track-type {
 	color: var(--text-dim);
 }
