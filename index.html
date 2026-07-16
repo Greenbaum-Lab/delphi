@@ -35,44 +35,48 @@
 			<div class="control-group sort-container">
 				<a data-icon="O" data-action="toggle-sort" class="icon-btn" data-tooltip="Sort direction" aria-label="Sort direction"></a>
 				<svg class="group-icon" aria-hidden="true"><use href="#icon-sort"></use></svg>
-				<select data-control="sort" class="sort-selector" data-tooltip="Order tracks by metadata">
-					<option value="time">Time</option>
-					<option value="Distance_from_Africa">Distance from Africa</option>
-					<option value="Latitude">Latitude</option>
-					<option value="Longitude">Longitude</option>
-					<option value="Temperature_index">Temperature</option>
-					<option value="Precipitation_index">Precipitation</option>
-					<option value="Agriculture_extensiveness">Neolithic onset</option>
-					<option value="Urbanization_onset">Urbanization onset</option>
-					<option value="signal">Signal</option>
-				</select>
-				<select data-control="sort" class="sort-selector-pairwise" data-tooltip="Order tracks by metadata">
-					<option value="time">Temporal distance</option>
-					<option value="Distance_from_Africa">Waypoint distance</option>
-					<option value="genetic_distance">Genetic distance</option>
-					<option value="Temperature_index">Temperature</option>
-					<option value="Precipitation_index">Precipitation</option>
-					<option value="signal">Signal</option>
-				</select>
+				<span class="tooltip-wrap" data-tooltip="Order tracks by metadata">
+					<select data-control="sort" class="sort-selector">
+						<option value="time">Time</option>
+						<option value="Distance_from_Africa">Distance from Africa</option>
+						<option value="Latitude">Latitude</option>
+						<option value="Longitude">Longitude</option>
+						<option value="Temperature_index">Temperature</option>
+						<option value="Precipitation_index">Precipitation</option>
+						<option value="Agriculture_extensiveness">Neolithic onset</option>
+						<option value="Urbanization_onset">Urbanization onset</option>
+						<option value="signal">Signal</option>
+					</select>
+					<select data-control="sort" class="sort-selector-pairwise">
+						<option value="time">Temporal distance</option>
+						<option value="Distance_from_Africa">Waypoint distance</option>
+						<option value="genetic_distance">Genetic distance</option>
+						<option value="Temperature_index">Temperature</option>
+						<option value="Precipitation_index">Precipitation</option>
+						<option value="signal">Signal</option>
+					</select>
+				</span>
 			</div>
 
 			<div class="control-group">
 				<svg class="group-icon" aria-hidden="true"><use href="#icon-measure"></use></svg>
-				<select data-control="measure" class="measure-selector" data-tooltip="Select population genetics statistics">
-					<option value="heterozygosity" selected>Heterozygosity</option>
-					<option value="fst">FST</option>
-					<option value="tajimasd">Tajima's D</option>
-					<option value="fulif">Fu &amp; Li's F</option>
-				</select>
+				<span class="tooltip-wrap" data-tooltip="Select population genetics statistics">
+					<select data-control="measure" class="measure-selector">
+						<option value="heterozygosity" selected>Heterozygosity</option>
+						<option value="fst">FST</option>
+						<option value="tajimasd">Tajima's D</option>
+						<option value="fulif">Fu &amp; Li's F</option>
+					</select>
+				</span>
 			</div>
 
-			<div class="control-group" data-module="library">
+			<div class="control-group control-group-populations" data-module="library">
 				<a class="icon-btn icon-btn-populations" data-action="open-populations" data-tooltip="Select populations" aria-label="Select populations">
 					<svg aria-hidden="true"><use href="#icon-populations"></use></svg>
 				</a>
 			</div>
 
-			<div class="control-group">
+			<div class="control-group control-group-annotations">
 				<a class="icon-btn icon-btn-annotations" data-action="open-annotations" data-tooltip="Add annotations" aria-label="Add annotations">
 					<svg aria-hidden="true"><use href="#icon-annotations"></use></svg>
 				</a>
@@ -87,11 +91,13 @@
 				<div class="more-panel" data-more-panel hidden>
 					<div class="more-row">
 						<label class="more-label">Window size</label>
-						<select data-control="window" class="window-selector">
-							<option value="10000">10 kb</option>
-							<option value="100000">100 kb</option>
-							<option value="1000000">1 Mb</option>
-						</select>
+						<span class="tooltip-wrap" data-tooltip="Genomic window size for aggregating signal">
+							<select data-control="window" class="window-selector">
+								<option value="10000">10 kb</option>
+								<option value="100000">100 kb</option>
+								<option value="1000000">1 Mb</option>
+							</select>
+						</span>
 					</div>
 					<div class="more-row">
 						<span class="more-label">Display style</span>
@@ -99,9 +105,13 @@
 					</div>
 					<div class="more-divider"></div>
 					<div class="more-row y-axis-control">
-						<span class="more-label" data-tooltip="Set the y-axis range for all signal tracks">Y-axis</span>
-						<input type="number" step="any" data-control="ymin" class="y-limit" placeholder="min" data-tooltip="Y-axis minimum (leave blank to auto-fit)" aria-label="Y-axis minimum">
-						<input type="number" step="any" data-control="ymax" class="y-limit" placeholder="max" data-tooltip="Y-axis maximum (leave blank to auto-fit)" aria-label="Y-axis maximum">
+						<span class="more-label">Y-axis</span>
+						<span class="tooltip-wrap" data-tooltip="Y-axis minimum (leave blank to auto-fit)">
+							<input type="number" step="any" data-control="ymin" class="y-limit" placeholder="min" aria-label="Y-axis minimum">
+						</span>
+						<span class="tooltip-wrap" data-tooltip="Y-axis maximum (leave blank to auto-fit)">
+							<input type="number" step="any" data-control="ymax" class="y-limit" placeholder="max" aria-label="Y-axis maximum">
+						</span>
 					</div>
 					<div class="more-row">
 						<span class="more-label">Guides</span>
@@ -131,7 +141,7 @@
 				</div>
 			</div>
 
-			<div class="controls-spacer"></div>
+			<div class="controls-spacer controls-spacer-fixed"></div>
 		</div>
 		<div class="tracks-container signal-tracks-container">
 			<div class="empty-state" data-action="open-populations">Select populations to display data</div>
