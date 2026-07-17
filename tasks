@@ -5,10 +5,6 @@ data in s3://beta2.seqmash.com/data/
 modern_populations.json has 'population', 'aadr_population' 'dataset' fields. these are the populations in the pop table;
 Poseidon_AADR_v62_metadata.json has all sample metadta, 'Group_Name' match the  aadr_population field to assign samples to populations
 
--add options of export tabular data and png of tracks. from dora
+-add options of export tabular data. from dora
 
 -VERY SLOW REQUESTS AND MULTIPLE REQUESTS FOR THE SAME REGION. backend.
-
--fix bug: some population info is failing (bedouin, bergamoitalian) probably dur to name inconsistencies 
-
--fix bug: fst time ordering fails ans show undewfined years. distance from africa ordering fails as well showing undefined.
