@@ -48,7 +48,7 @@ export const CHR_LENGTHS = {
 
 // Move to default settings in localStorage
 
-export const MIN_SPAN = 40;
+export const MIN_SPAN = 10_240;
 export const MAX_SPAN = 83_886_080;
 export const CHR_LABEL_WIDTH = 40;
 
