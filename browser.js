@@ -59,6 +59,77 @@ const syncYLimitInputs = () => {
 	document.querySelector('[data-control="ymax"]').value = override ? override[1] : '';
 };
 
+// Rebuilding the track list is asynchronous (it awaits population/annotation
+// loads). If two 'update' events overlap, each snapshots its own population set
+// and whichever stale rebuild finishes last wins the DOM, resurrecting tracks a
+// later removal already dropped. Serialize rebuilds and coalesce any requested
+// while one is running into a single trailing run so the final DOM always
+// reflects the latest options.
+let rebuildInProgress = false;
+let rebuildQueued = false;
+
+const rebuildTracks = async (browser) => {
+	const container = browser.querySelector('.signal-tracks-container');
+	const tracks = Array.from(container.querySelectorAll('[data-module="track"][data-type="signal"]'));
+	const options = getOptions();
+	const annotation_container = browser.querySelector('.annotation-tracks-container');
+	const existing_annotations = Array.from(annotation_container.querySelectorAll('[data-module="track"][data-type="annotation"]'));
+	existing_annotations.filter(track => !options.annotations.includes(track.dataset.source)).forEach(track => track.remove());
+	const existing_labels = existing_annotations.map(track => track.dataset.source);
+	await Promise.all(options.annotations.filter(label => !existing_labels.includes(label)).map(label =>
+		addModule(annotation_container, 'track', {type: 'annotation', source: label}).catch(error => {
+			console.error(`Failed to load annotation "${label}":`, error);
+			errorBox('Failed to load annotation', `Could not load annotation track "${label}": ${error.message}`, annotation_container);
+		})
+	));
+	const populations_metadata = await Promise.all(options.populations.map(getPopData));
+	options.mode = populations_metadata.filter(population => population.Dataset === 'User' || population.Dataset === 'AADR').length > 0 ? 'adna' : 'gnomad';
+	document.querySelector('.mode').innerHTML = options.mode === 'adna' ? '<a class="adna" data-icon="t" title="Data will be generated on the file using AADR genotypes">aDNA</a>' : '<a data-icon="I" title="Data will be generated using genotypes from gnomAD v3.1.2">gnomAD</a>'; // Temporarily here
+	getOptions([['mode', options.mode]]);
+	if (options.populations.length > 0 && container.querySelector('.empty-state'))
+		container.querySelector('.empty-state').remove();
+	tracks.forEach(track => track.remove());
+	if (options.measure === 'fst') {
+		document.querySelector('.tracks-controls').classList.add('pairwise');
+		const pairs = [];
+		const pair_metadata = [];
+		for (let i = 0; i < populations_metadata.length; i++) {
+			for (let j = i + 1; j < populations_metadata.length; j++) {
+				pairs.push(`${populations_metadata[i].label};${populations_metadata[j].label}`);
+				pair_metadata.push({
+					pair: `${populations_metadata[i].label};${populations_metadata[j].label}`,
+					sort_value: pairwiseSort(populations_metadata[i], populations_metadata[j], options.sort)
+				});
+			}
+		}
+		const sorted_pairs = pair_metadata.sort((pair1, pair2) => options.sort_dir === 'desc' ? pair2.sort_value - pair1.sort_value : pair1.sort_value - pair2.sort_value);
+		await Promise.all(sorted_pairs.map(pair => addModule(container, 'track', {type: 'signal', population: pair.pair, style: 'binned', bounds: boundsFor(options.measure)})));
+		syncSortDropdown(true, options.sort);
+	} else {
+		document.querySelector('.tracks-controls').classList.remove('pairwise');
+		syncSortDropdown(false, options.sort);
+		const sorted_populations = populations_metadata.sort((pop1, pop2) => options.sort_dir === 'desc' ? pop2[options.sort] - pop1[options.sort] : pop1[options.sort] - pop2[options.sort]);
+		await Promise.all(sorted_populations.map(pop => addModule(container, 'track', {type: 'signal', population: pop.label, style: 'binned', bounds: boundsFor(options.measure)})));
+	}
+	browser.dispatchEvent(new Event('refresh'));
+};
+
+const requestRebuild = async (browser) => {
+	if (rebuildInProgress) {
+		rebuildQueued = true;
+		return;
+	}
+	rebuildInProgress = true;
+	try {
+		do {
+			rebuildQueued = false;
+			await rebuildTracks(browser);
+		} while (rebuildQueued);
+	} finally {
+		rebuildInProgress = false;
+	}
+};
+
 const hooks = [
   	['[data-module="browser"]', 'refresh', async e => {
 		const options = getOptions();
@@ -82,51 +153,7 @@ const hooks = [
 			}
 		}
     }],
-	['[data-module="browser"]', 'update', async e => {
-		const container = e.target.querySelector('.signal-tracks-container');
-		const tracks = Array.from(container.querySelectorAll('[data-module="track"][data-type="signal"]'));
-		const options = getOptions();
-		const annotation_container = e.target.querySelector('.annotation-tracks-container');
-		const existing_annotations = Array.from(annotation_container.querySelectorAll('[data-module="track"][data-type="annotation"]'));
-		existing_annotations.filter(track => !options.annotations.includes(track.dataset.source)).forEach(track => track.remove());
-		const existing_labels = existing_annotations.map(track => track.dataset.source);
-		await Promise.all(options.annotations.filter(label => !existing_labels.includes(label)).map(label =>
-			addModule(annotation_container, 'track', {type: 'annotation', source: label}).catch(error => {
-				console.error(`Failed to load annotation "${label}":`, error);
-				errorBox('Failed to load annotation', `Could not load annotation track "${label}": ${error.message}`, annotation_container);
-			})
-		));
-		const populations_metadata = await Promise.all(options.populations.map(getPopData));
-		options.mode = populations_metadata.filter(population => population.Dataset === 'User' || population.Dataset === 'AADR').length > 0 ? 'adna' : 'gnomad';
-		document.querySelector('.mode').innerHTML = options.mode === 'adna' ? '<a class="adna" data-icon="t" title="Data will be generated on the file using AADR genotypes">aDNA</a>' : '<a data-icon="I" title="Data will be generated using genotypes from gnomAD v3.1.2">gnomAD</a>'; // Temporarily here
-		getOptions([['mode', options.mode]]);
-		if (options.populations.length > 0 && container.querySelector('.empty-state'))
-			container.querySelector('.empty-state').remove();
-		tracks.forEach(track => track.remove());
-		if (options.measure === 'fst') {
-			document.querySelector('.tracks-controls').classList.add('pairwise');
-			const pairs = [];
-			const pair_metadata = [];
-			for (let i = 0; i < populations_metadata.length; i++) {
-				for (let j = i + 1; j < populations_metadata.length; j++) {
-					pairs.push(`${populations_metadata[i].label};${populations_metadata[j].label}`);
-					pair_metadata.push({
-						pair: `${populations_metadata[i].label};${populations_metadata[j].label}`,
-						sort_value: pairwiseSort(populations_metadata[i], populations_metadata[j], options.sort)
-					});
-				}
-			}
-			const sorted_pairs = pair_metadata.sort((pair1, pair2) => options.sort_dir === 'desc' ? pair2.sort_value - pair1.sort_value : pair1.sort_value - pair2.sort_value);
-			await Promise.all(sorted_pairs.map(pair => addModule(container, 'track', {type: 'signal', population: pair.pair, style: 'binned', bounds: boundsFor(options.measure)})));
-			syncSortDropdown(true, options.sort);
-		} else {
-			document.querySelector('.tracks-controls').classList.remove('pairwise');
-			syncSortDropdown(false, options.sort);
-			const sorted_populations = populations_metadata.sort((pop1, pop2) => options.sort_dir === 'desc' ? pop2[options.sort] - pop1[options.sort] : pop1[options.sort] - pop2[options.sort]);
-			await Promise.all(sorted_populations.map(pop => addModule(container, 'track', {type: 'signal', population: pop.label, style: 'binned', bounds: boundsFor(options.measure)})));
-		}
-		document.querySelector('[data-module="browser"]').dispatchEvent(new Event('refresh'));
-    }],
+	['[data-module="browser"]', 'update', e => requestRebuild(e.target)],
 	['[data-action="search-annotation"]', 'click', e => {
 		updateRegionFromInput();
 	}],
