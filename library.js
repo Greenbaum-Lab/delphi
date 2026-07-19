@@ -251,7 +251,7 @@ const showTable = async (table_name, options={}) => {
 			try {
 				const annotation_keys = await listAnnotations();
 				const annotations = await Promise.all(annotation_keys.map(getAnnotationEntry));
-				return loadTable('Annotations', annotations, '<a data-action="select" data-select-col="label" data-subfunction="update-annotations" class="button fright">Update annotations</a><a data-action="upload-annotation" class="button">Upload from computer</a>', ['label', 'source', 'type'], ['source', 'type'], [], 'multiRow', {label: getOptions().annotations}, 'annotations');
+				return loadTable('Annotations', annotations, '<a data-action="select" data-select-col="label" data-subfunction="update-annotations" class="button fright">Add annotations</a><a data-action="upload-annotation" class="button">Upload from computer</a>', ['label', 'source', 'type'], ['source', 'type'], [], 'multiRow', {label: getOptions().annotations}, 'annotations');
 			} catch (e) {
 				console.log(e);
 				return errorBox('No annotations available', '', document.querySelector('[data-module="browser"]'));
