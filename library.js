@@ -202,6 +202,7 @@ const mapSelectFunction = async (container, type, accession_ids) => {
 			if (!label || accession_ids.length < 2 || accession_ids.length > 5000)
 				return false;
 			await addPopulation(label, 'User', '', accession_ids);
+			document.querySelector('[data-module="browser"]').dispatchEvent(new Event('populations-changed'));
 			return true;
 		}
 		case 'update-populations': {
@@ -259,6 +260,14 @@ const showTable = async (table_name, options={}) => {
 	}
 };
 
+const refreshTable = async (table_name, label) => {
+	const popup = document.querySelector('[data-module="browser"]').querySelector(`.popup[data-title="${label}"]`);
+	if (!popup)
+		return;
+	popup.remove();
+	await showTable(table_name);
+};
+
 const hooks = [
 	['[data-action="open-populations"]', 'click', e => {
 		showTable('populations');
@@ -272,6 +281,8 @@ const hooks = [
 	['[data-action="upload-annotation"]', 'click', e => {
 		document.querySelector('[data-module="browser"]').dispatchEvent(new Event('upload-annotation'));
 	}],
+	['[data-module="browser"]', 'populations-changed', () => refreshTable('populations', 'Populations')],
+	['[data-module="browser"]', 'annotations-changed', () => refreshTable('annotations', 'Annotations')],
 	['[data-action="individuals"]', 'click', async e => {
 		const track = e.target.closest('[data-module="track"]');
 		const populations = track.dataset.population.split(';');
