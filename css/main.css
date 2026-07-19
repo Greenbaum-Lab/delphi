@@ -858,6 +858,10 @@ body.loading .loading-overlay {
 	width: 50%;
 	left: 25%;
 }
+.popup.narrow:not(.moveable) {
+	top: 50%;
+	transform: translateY(-50%);
+}
 .popup .cols {
 	flex: 1;
 	display: flex;
