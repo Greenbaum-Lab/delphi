@@ -1,6 +1,6 @@
 import { cacheString } from '/apc/cache.js';
-import { registerAnnotation } from '/assets.js';
-import { getOptions } from '/apc/common.js';
+import { registerAnnotation, getAnnotationEntry } from '/assets.js';
+import { getOptions, errorBox } from '/apc/common.js';
 
 const CONFIG = {
 	USER_ANNOTATION_PATH_PREFIX: '/data/user/'
@@ -31,10 +31,13 @@ const normalizeChr = (chr) => {
 	}
 	const lower = chr.toLowerCase();
 	if (lower.startsWith('chr')) {
-		return 'chr' + chr.slice(3);
+		const suffix = chr.slice(3);
+		const upper_suffix = suffix.toUpperCase();
+		return 'chr' + (/^[0-9]+$/.test(suffix) ? suffix : (upper_suffix === 'MT' ? 'M' : upper_suffix));
 	}
 	if (/^([0-9]+|[XYM]|MT)$/i.test(chr)) {
-		return 'chr' + (chr.toUpperCase() === 'MT' ? 'M' : chr);
+		const upper = chr.toUpperCase();
+		return 'chr' + (upper === 'MT' ? 'M' : upper);
 	}
 	throw new Error('Unrecognized chromosome format: "' + chr + '". Expected formats: 1, chr1, or NC_000001.11.');
 };
@@ -76,6 +79,7 @@ const parseAnnotationFile = (text, format) => {
 
 	const genes = new Map();
 	const exons_by_gene = new Map();
+	const exon_meta_by_gene = new Map();
 
 	const lines = text.split('\n');
 	for (const line of lines) {
@@ -88,6 +92,8 @@ const parseAnnotationFile = (text, format) => {
 		const feature_type = fields[2].toLowerCase();
 		const start = parseInt(fields[3], 10);
 		const end = parseInt(fields[4], 10);
+		if (isNaN(start) || isNaN(end)) continue;
+		const strand = fields[6] === '+' || fields[6] === '-' ? fields[6] : undefined;
 		const attrs = parse_attrs(fields[8]);
 
 		if (feature_type === 'gene' || feature_type === 'transcript' || feature_type === 'mrna') {
@@ -99,7 +105,8 @@ const parseAnnotationFile = (text, format) => {
 					chr,
 					name: attrs['gene_name'] || attrs['Name'] || gene_id,
 					start,
-					end
+					end,
+					strand
 				});
 			} else {
 				const existing = genes.get(gene_id);
@@ -114,6 +121,7 @@ const parseAnnotationFile = (text, format) => {
 
 			if (!exons_by_gene.has(parent)) {
 				exons_by_gene.set(parent, []);
+				exon_meta_by_gene.set(parent, { chr, strand });
 			}
 			exons_by_gene.get(parent).push([start, end]);
 		}
@@ -121,12 +129,15 @@ const parseAnnotationFile = (text, format) => {
 
 	for (const [gene_id, exon_list] of exons_by_gene) {
 		if (!genes.has(gene_id)) {
-			const first_exon = exon_list[0];
+			const meta = exon_meta_by_gene.get(gene_id);
+			const starts = exon_list.map(exon => exon[0]);
+			const ends = exon_list.map(exon => exon[1]);
 			genes.set(gene_id, {
-				chr: null,
+				chr: meta.chr,
 				name: gene_id,
-				start: first_exon[0],
-				end: first_exon[1]
+				start: Math.min(...starts),
+				end: Math.max(...ends),
+				strand: meta.strand
 			});
 		}
 	}
@@ -147,12 +158,14 @@ const parseBEDFile = (text) => {
 		const end = parseInt(fields[2], 10);
 		if (isNaN(start) || isNaN(end)) continue;
 		const region_name = fields.length > 3 && fields[3].trim() ? fields[3] : '';
-		const region_id = region_name + '_' + start;
+		const strand = fields.length > 5 && (fields[5] === '+' || fields[5] === '-') ? fields[5] : undefined;
+		const region_id = chr + '_' + region_name + '_' + start;
 		genes.set(region_id, {
 			chr,
 			name: region_name,
 			start,
-			end
+			end,
+			strand
 		});
 		exons_by_gene.set(region_id, [[start, end]]);
 	}
@@ -184,7 +197,7 @@ const buildJSONL = (genes, exons_by_gene) => {
 		const sorted_exons = [...exons].sort((a, b) => a[0] - b[0]);
 		const introns = calculateIntrons(sorted_exons);
 
-		if (gene_data.chr === null && sorted_exons.length > 0) {
+		if (!gene_data.chr) {
 			continue;
 		}
 
@@ -193,6 +206,7 @@ const buildJSONL = (genes, exons_by_gene) => {
 			name: gene_data.name,
 			start: gene_data.start,
 			end: gene_data.end,
+			strand: gene_data.strand,
 			exons: sorted_exons,
 			introns
 		};
@@ -224,7 +238,17 @@ export const loadAnnotationFile = async (file) => {
 	const { genes, exons_by_gene } = format === 'bed' ? parseBEDFile(text) : parseAnnotationFile(text, format);
 	const jsonl_content = buildJSONL(genes, exons_by_gene);
 
-	const label = file.name.replace(/\.(gtf|gff3?|bed)(\.gz)?$/i, '');
+	let label = file.name.replace(/\.(gtf|gff3?|bed)(\.gz)?$/i, '');
+	const existing_entry = await getAnnotationEntry(label);
+	if (existing_entry && !existing_entry.user) {
+		let candidate = `${label}_upload`;
+		let suffix = 2;
+		while (await getAnnotationEntry(candidate)) {
+			candidate = `${label}_upload_${suffix}`;
+			suffix++;
+		}
+		label = candidate;
+	}
 	const cache_path = await storeAnnotationInCache(label, jsonl_content);
 
 	return {
@@ -267,6 +291,9 @@ export const addAnnotation = async (browser_element) => {
 		getOptions([['annotations', [...getOptions().annotations, annotation_entry.label]]]);
 		browser_element.dispatchEvent(new Event('update'));
 	} catch (error) {
-		console.error('Failed to add annotation:', error);
+		if (error.message !== 'No file selected') {
+			console.error('Failed to add annotation:', error);
+			errorBox('Failed to add annotation', error.message, browser_element);
+		}
 	}
 };
