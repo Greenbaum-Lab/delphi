@@ -21,7 +21,7 @@ const DEFAULTS = {
 	end: 2000000,
 	viewfinder_start: 500000,
 	viewfinder_end: 2500000,
-	zoom_level: 15,
+	zoom_level: 7,
 	mode: 'gnomad',
 	measure: 'heterozygosity',
 	sort: 'date',
