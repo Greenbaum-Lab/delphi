@@ -59,14 +59,10 @@ const syncYLimitInputs = () => {
 	document.querySelector('[data-control="ymax"]').value = override ? override[1] : '';
 };
 
-// Rebuilding the track list is asynchronous (it awaits population/annotation
-// loads). If two 'update' events overlap, each snapshots its own population set
-// and whichever stale rebuild finishes last wins the DOM, resurrecting tracks a
-// later removal already dropped. Serialize rebuilds and coalesce any requested
-// while one is running into a single trailing run so the final DOM always
-// reflects the latest options.
-let rebuildInProgress = false;
-let rebuildQueued = false;
+// Serialize async track rebuilds so overlapping 'update' events cannot race and
+// resurrect removed populations; coalesce concurrent requests into one trailing run.
+let rebuild_in_progress = false;
+let rebuild_queued = false;
 
 const rebuildTracks = async (browser) => {
 	const container = browser.querySelector('.signal-tracks-container');
@@ -115,18 +111,18 @@ const rebuildTracks = async (browser) => {
 };
 
 const requestRebuild = async (browser) => {
-	if (rebuildInProgress) {
-		rebuildQueued = true;
+	if (rebuild_in_progress) {
+		rebuild_queued = true;
 		return;
 	}
-	rebuildInProgress = true;
+	rebuild_in_progress = true;
 	try {
 		do {
-			rebuildQueued = false;
+			rebuild_queued = false;
 			await rebuildTracks(browser);
-		} while (rebuildQueued);
+		} while (rebuild_queued);
 	} finally {
-		rebuildInProgress = false;
+		rebuild_in_progress = false;
 	}
 };
 
