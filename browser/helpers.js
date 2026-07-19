@@ -1,7 +1,7 @@
 import { getOptions, shortNotation } from '/apc/common.js';
 import { CHR_LENGTHS } from '/common.js';
 import { computeZoomedBounds, findZoomLevelForSpan } from '/browser/zoom.js';
-import { computeViewfinderBounds, formatRegionString, parseRegion } from '/browser/region.js';
+import { computeViewfinderBounds, formatRegionString, parseRegion, clampSpanToMinimum } from '/browser/region.js';
 
 export const updateRegionInput = (chr, start, end) => {
 	const input = document.querySelector('.region-query');
@@ -54,17 +54,18 @@ export const updateRegionFromInput = () => {
 	const options = getOptions();
 	const assembly = options.assembly || 'hg38';
 	const chr_length = CHR_LENGTHS[assembly]?.[parsed.chr] || Infinity;
-	const span = parsed.end - parsed.start;
-	const level = findZoomLevelForSpan(span);
-	const viewfinder_bounds = computeViewfinderBounds(parsed.start, parsed.end, chr_length);
+	const { start, end } = clampSpanToMinimum(parsed.start, parsed.end, chr_length);
+	const level = findZoomLevelForSpan(end - start);
+	const viewfinder_bounds = computeViewfinderBounds(start, end, chr_length);
 	getOptions([
 		['chr', parsed.chr],
-		['start', parsed.start],
-		['end', parsed.end],
+		['start', start],
+		['end', end],
 		['zoom_level', level],
 		['viewfinder_start', viewfinder_bounds.viewfinder_start],
 		['viewfinder_end', viewfinder_bounds.viewfinder_end]
 	]);
+	updateRegionInput(parsed.chr, start, end);
 	dispatchBrowserRefresh();
 };
 
