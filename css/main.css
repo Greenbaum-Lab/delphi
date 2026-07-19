@@ -826,7 +826,7 @@ body.loading .loading-overlay {
 	width: 70%;
 	max-height: 80%;
 	box-shadow: 1px 1px 5px rgba(0, 0, 0, 0.2);
-	background: var(--bg);
+	background: var(--border);
 	border-radius: 3px;
 	font-size: 14px;
 	z-index: 1000;
