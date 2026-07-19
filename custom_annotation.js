@@ -290,6 +290,7 @@ export const addAnnotation = async (browser_element) => {
 		await registerAnnotation(annotation_entry);
 		getOptions([['annotations', [...getOptions().annotations, annotation_entry.label]]]);
 		browser_element.dispatchEvent(new Event('update'));
+		browser_element.dispatchEvent(new Event('annotations-changed'));
 	} catch (error) {
 		if (error.message !== 'No file selected') {
 			console.error('Failed to add annotation:', error);
