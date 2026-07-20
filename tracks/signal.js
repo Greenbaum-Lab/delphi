@@ -3,7 +3,7 @@ import { createSVG } from '/apc/plot/static.js';
 import { svg_draw } from '/apc/graphics/core.js';
 import { getAxisLabel, hexToRgb } from '/common.js';
 import { getPopulationSamples, getSignalTrack } from '/assets.js';
-import { getPopData, pairwiseSort } from '/browser/pops.js';
+import { getPopData, pairwiseSort, pairKey } from '/browser/pops.js';
 import { generateCoordinateTicks, drawGuides } from '/browser/helpers.js';
 
 const cssVars = getComputedStyle(document.documentElement);
@@ -257,8 +257,16 @@ const hooks = [
 		const track = e.target.closest('[data-module="track"]');
 		if (track.closest('.annotation-tracks-container'))
 			return track.remove();
-		const other_tracks = Array.from(track.closest('.tracks-container').querySelectorAll('[data-module="track"]')).filter(other_track => other_track !== track);
 		const track_populations = track.dataset.population.split(';');
+		if (track_populations.length > 1) {
+			const pair_key = pairKey(track_populations[0], track_populations[1]);
+			const hidden_pairs = options.hidden_pairs || [];
+			if (hidden_pairs.includes(pair_key))
+				return track.remove();
+			getOptions([['hidden_pairs', [...hidden_pairs, pair_key]]]);
+			return e.target.closest('[data-module="browser"]').dispatchEvent(new Event('update'));
+		}
+		const other_tracks = Array.from(track.closest('.tracks-container').querySelectorAll('[data-module="track"]')).filter(other_track => other_track !== track);
 		const all_track_populations = other_tracks.map(track => track.dataset.population.split(';')).flat();
 		const unique_populations = track_populations.filter(track_population => !all_track_populations.includes(track_population));
 		if (unique_populations.length === 0)
