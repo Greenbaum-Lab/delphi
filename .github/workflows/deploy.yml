@@ -1,0 +1,61 @@
+name: Deploy to S3
+
+# Uploads the DELPHI static site to the S3 bucket behind CloudFront on every
+# push to main, then invalidates the CloudFront cache so visitors get the new
+# files.
+#
+# The bucket also holds data files (served to the site under /data/, e.g.
+# index.json and Poseidon_AADR_v62_metadata.json). The sync deliberately does
+# NOT pass --delete, so it only adds/updates the site files and never removes
+# anything already in the bucket. Only paths that exist in this repo are
+# uploaded; the data files (and anything else not tracked here) are left alone.
+#
+# Requires an access key scoped to the bucket, stored as repository secrets:
+#   AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy
+  cancel-in-progress: true
+
+env:
+  AWS_REGION: us-east-1
+  BUCKET: beta2.seqmash.com
+  # TODO: replace with the CloudFront distribution ID (e.g. E12PBEGRQBGKC6).
+  # Cache invalidation will fail until this is set.
+  DISTRIBUTION: REPLACE_ME
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # No --delete: only add/update site files, never remove bucket data files.
+      - name: Sync site to S3
+        run: |
+          aws s3 sync . "s3://$BUCKET" \
+            --exclude ".git/*" \
+            --exclude ".github/*" \
+            --exclude "lambdas/*" \
+            --exclude "maintenance/*" \
+            --exclude ".intent/*" \
+            --exclude "tasks" \
+            --exclude ".gitignore"
+
+      - name: Invalidate CloudFront
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id "$DISTRIBUTION" \
+            --paths "/*"
