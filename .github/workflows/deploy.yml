@@ -23,7 +23,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  AWS_REGION: us-east-1
+  AWS_REGION: eu-west-1
   BUCKET: beta2.seqmash.com
   # TODO: replace with the CloudFront distribution ID (e.g. E12PBEGRQBGKC6).
   # Cache invalidation will fail until this is set.
