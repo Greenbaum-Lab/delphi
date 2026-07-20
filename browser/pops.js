@@ -43,6 +43,8 @@ export const addPopulation = async (label, dataset, group_name = '', sample_ids 
 	return getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_POPULATIONS_TABLE, label, population);
 };
 
+export const pairKey = (label_a, label_b) => [label_a, label_b].sort().join(';');
+
 export const pairwiseSort = (pop1, pop2, measure) => {
 	switch(measure) {
 		case 'Distance_from_Africa':
