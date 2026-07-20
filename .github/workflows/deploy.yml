@@ -25,9 +25,7 @@ concurrency:
 env:
   AWS_REGION: eu-west-1
   BUCKET: beta2.seqmash.com
-  # TODO: replace with the CloudFront distribution ID (e.g. E12PBEGRQBGKC6).
-  # Cache invalidation will fail until this is set.
-  DISTRIBUTION: REPLACE_ME
+  DISTRIBUTION: E29ZE1LEEEILX7
 
 jobs:
   deploy:
