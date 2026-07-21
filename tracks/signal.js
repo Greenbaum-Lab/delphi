@@ -261,10 +261,9 @@ const hooks = [
 		if (track_populations.length > 1) {
 			const pair_key = pairKey(track_populations[0], track_populations[1]);
 			const hidden_pairs = options.hidden_pairs || [];
-			if (hidden_pairs.includes(pair_key))
-				return track.remove();
-			getOptions([['hidden_pairs', [...hidden_pairs, pair_key]]]);
-			return e.target.closest('[data-module="browser"]').dispatchEvent(new Event('update'));
+			if (!hidden_pairs.includes(pair_key))
+				getOptions([['hidden_pairs', [...hidden_pairs, pair_key]]]);
+			return track.remove();
 		}
 		const other_tracks = Array.from(track.closest('.tracks-container').querySelectorAll('[data-module="track"]')).filter(other_track => other_track !== track);
 		const all_track_populations = other_tracks.map(track => track.dataset.population.split(';')).flat();
