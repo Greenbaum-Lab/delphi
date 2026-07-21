@@ -3,20 +3,14 @@
 **DNA Explorer for Locus-Based Population History Insights**
 
 ### [Open the browser → delphi.seqmash.com](https://delphi.seqmash.com/)
+### [Read the paper → paper title](https://delphi.seqmash.com/)
 
 ---
 
 DELPHI is an interactive genome browser for exploring population-genetic signals across modern and ancient human genomes. It hosts thousands of curated genomes, computes measures of diversity, differentiation, and selection directly across the populations you choose, and lets you read those signals against geographic, ecological, and cultural context — all in one place, without downloading data or writing a line of code.
 
-## Why DELPHI
 
-Ancient DNA has transformed the study of human history. For the first time, genetic diversity and the traces of selection can be measured directly at different points in time and across different regions, rather than inferred from present-day genomes alone. But turning that data into insight is still hard work: it demands specialized tools, large reference datasets, and population-genetic expertise, and interpreting the resulting signals against their historical context adds yet another layer of effort.
-
-Established genome browsers such as the UCSC Genome Browser, IGV, and JBrowse are excellent for visualizing variants and alignments sample by sample, but they are not organized around *population-level* structure. Getting population-level insight usually means downloading large callsets and running command-line tools like VCFtools or PLINK, then trying to interpret peaks of differentiation or regions of lost diversity in isolation. Existing population-genetic resources each cover only part of the problem — some show precomputed statistics for modern populations only, while ancient-DNA resources excel at maps and timelines but are not anchored to genomic coordinates.
-
-DELPHI closes that gap. It is, to our knowledge, the first genome browser dedicated to displaying population-genetic measures along the genome and linking them directly to both modern and ancient population panels. It is built to be inviting to open and quick to read, so that specialists and newcomers alike can test a hypothesis by simply looking at the data.
-
-## What you can do
+## What you can do in DELPHI
 
 - **Compare populations, not just samples.** Select from predefined modern and ancient population groups — ancient samples are binned into 1,000-year windows within geographic regions — or define your own custom groups from individual samples.
 - **Compute signals on demand.** View expected heterozygosity, pairwise F<sub>ST</sub>, Tajima's *D*, and Fu & Li's *F*\* along any region of the genome, computed directly across the populations you selected.
@@ -25,8 +19,6 @@ DELPHI closes that gap. It is, to our knowledge, the first genome browser dedica
 - **Navigate naturally.** Jump to a region by coordinate or gene name, pan and zoom smoothly, and adjust window size (10 kb, 100 kb, or 1 Mb), plot style, and track height interactively.
 
 Each population is paired with rich metadata — sample age, waypoint distance from an African origin, longitude and latitude, a climate index, the timing of Neolithic and urbanization transitions, and genetic distance from principal-component analysis — so patterns can be interpreted in context rather than in isolation.
-
-DELPHI is not meant to replace established genome browsers or command-line population-genetic tools. Rigorous inference still calls for full callsets and dedicated software. DELPHI complements those workflows by foregrounding population-level structure and lowering the barrier to inspecting a hypothesis across the genome.
 
 ## Architecture
 
@@ -44,8 +36,6 @@ To balance flexibility against latency, DELPHI uses two distinct compute paths, 
 
 **On demand, for ancient and custom analyses.** When you work with ancient genomes or assemble a custom combination of populations on the shared 1240K SNP panel, the statistics cannot be precomputed, because the populations themselves are defined at query time. Here the work is handled by serverless functions in the cloud. A function reads the genotype data directly from cloud storage using random access, retrieving only the sites it needs rather than downloading whole files, computes the requested statistic over the selected populations, and returns the result to the browser. The panel design means modern and ancient data share the same SNP sites, so the two can be analyzed together.
 
-Because the neutrality and differentiation statistics depend only on summaries such as allele frequencies, segregating sites, singletons, and pairwise diversity per site, the window-based computation is identical across the modern and ancient panels — the same formulas run whether the inputs arrive precomputed or are read from genotypes on the fly. This keeps results consistent across data sources while letting each source use the fastest path available to it.
-
 ## Data sources
 
 DELPHI integrates several curated genomic and metadata resources, all on the hg19 reference:
@@ -57,16 +47,7 @@ DELPHI integrates several curated genomic and metadata resources, all on the hg1
 - **UK Biobank** — genetic distances derived from principal-component analysis.
 - **GENCODE v19** — gene models and annotation tracks.
 
-## A note on responsible use
-
-DELPHI is an exploratory tool, and it puts the analytical controls — and the responsibility that comes with them — in the user's hands. You decide which samples form a population and how large each group is, and the reliability of a track follows directly from those choices. Thin groups, high-missingness bins, or samples combined across unrelated ancestries will produce statistics that look precise but carry little meaning. Statistics on the 1240K panel also inherit its ascertainment: because its sites were drawn largely from present-day common variation, frequency-spectrum measures are biased, and Tajima's *D* in particular tends to read artificially positive for ancient bins. This does not obscure comparisons made across populations and positions on the same panel, but it is worth keeping in mind when reading absolute values.
 
 ## Citation
 
 Peled, O., Hadari, G., Harris, K. D., & Greenbaum, G. *DELPHI: a genome browser for ancient and modern population-genetic exploration.*
-
-Developed at the Department of Ecology, Evolution and Behavior, The Hebrew University of Jerusalem.
-
-## License
-
-Released under the Creative Commons Attribution 4.0 International (CC BY 4.0) license. See [`COPYING.txt`](COPYING.txt) for the full text.
