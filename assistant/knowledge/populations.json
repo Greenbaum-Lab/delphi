@@ -1,27 +1,53 @@
 {
-  "_note": "Group names -> exact catalog labels for select_populations. Only labels marked verified are confirmed to exist in the app; 'regions_pending' await reconciliation with the live modern_populations.json catalog. Do NOT invent labels -- if a needed group is not here, ask the user.",
-  "groups": {
-    "African": {
-      "ancestry": "African",
-      "dataset": "modern",
-      "verified": true,
-      "labels": ["YRI", "LWK", "ESN", "GWD", "MSL", "Yoruba", "Mandenka", "Mbuti", "San", "Biaka", "BantuKenya", "BantuSouthAfrica"]
-    },
-    "African diaspora": {
-      "ancestry": "African (admixed/diaspora)",
-      "dataset": "modern",
-      "verified": true,
-      "labels": ["ACB", "ASW"]
-    }
+  "_note": "Do NOT hardcode region groups and do not invent labels. To resolve a population request, FILTER the population catalog injected at runtime and output its exact `population` display labels. This file is only vocabulary for that filter; every region is treated the same. If a filter is ambiguous or matches nothing, ask.",
+  "dataset_era": {"HGDP": "modern", "1KGP": "modern", "AADR": "ancient"},
+  "regions": ["Africa", "Europe", "Middle East", "Central/South Asia", "East Asia", "Oceania", "America"],
+  "region_terms": {
+    "african": "Africa",
+    "sub-saharan": "Africa",
+    "european": "Europe",
+    "middle eastern": "Middle East",
+    "near eastern": "Middle East",
+    "south asian": "Central/South Asia",
+    "central asian": "Central/South Asia",
+    "east asian": "East Asia",
+    "oceanian": "Oceania",
+    "american": "America",
+    "native american": "America",
+    "indigenous american": "America"
   },
-  "aliases": {
-    "africa": "African",
-    "african": "African",
-    "sub-saharan african": "African",
-    "african ancestry": "African",
-    "african american": "African diaspora",
-    "african caribbean": "African diaspora"
+  "kgp_labels": {
+    "CDX": "Dai-1KGP",
+    "CHB": "Beijing Han",
+    "JPT": "Japanese-1KGP",
+    "KHV": "Kinh",
+    "CHS": "Southern Han",
+    "BEB": "Bengali",
+    "GIH": "Gujarati",
+    "ITU": "Telugu",
+    "PJL": "Punjabi",
+    "STU": "Sri Lankan",
+    "ASW": "African-American",
+    "ACB": "African-Caribbean",
+    "ESN": "Esan",
+    "GWD": "Gambian",
+    "LWK": "Luhya",
+    "MSL": "Mende",
+    "YRI": "Yoruba-1KGP",
+    "GBR": "British",
+    "FIN": "Finnish",
+    "IBS": "Iberian",
+    "TSI": "Tuscan-1KGP",
+    "CEU": "Utah European",
+    "CLM": "Colombian-1KGP",
+    "MXL": "Mexican",
+    "PEL": "Peruvian",
+    "PUR": "Puerto Rican"
   },
-  "regions_pending": ["European", "East Asian", "South Asian", "American", "Middle Eastern", "Oceanian", "ancient (AADR) predefined bins"],
-  "ancient_note": "modern_populations.json also contains predefined ancient (AADR) populations. Prefer selecting those existing labels; only use create_population when the user explicitly asks to build a NEW ancient-DNA group."
+  "notes": {
+    "labels": "select_populations needs the exact `population` display label, not an acronym. Map an acronym or synonym the user types to the catalog label (e.g. YRI -> Yoruba-1KGP, 'Han Chinese' -> Beijing Han / Southern Han) before emitting it.",
+    "ancient": "AADR labels encode region and age, e.g. 'aDNA West EUR 5-6 kya'. Filter these for ancient / aDNA requests.",
+    "duplicate_names": "A -1KGP suffix distinguishes a 1KGP population from an HGDP population of the same name (HGDP 'Yoruba' vs 1KGP 'Yoruba-1KGP'). If the user is not specific, ask which.",
+    "no_latlon": "Do not infer a population's region from latitude/longitude; use the catalog. If region is unknown or the match is ambiguous, ask."
+  }
 }
