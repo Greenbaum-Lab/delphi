@@ -24,6 +24,7 @@ export const getPopsData = async () => {
 export const addPopulation = async (label, dataset, group_name = '', sample_ids = []) => {
 	const african_populations = ['BantuKenya', 'BantuSouthAfrica', 'Biaka', 'Mandenka', 'Mbuti', 'San', 'Yoruba', 'ASW', 'ACB', 'ESN', 'GWD', 'LWK', 'MSL', 'YRI'];
 	const samples = await getMetadata().then(samples => samples.filter(sample => (sample_ids.length === 0 || sample_ids.includes(sample.Poseidon_ID)) && (group_name === '' || group_name === sample.Group_Name)));
+	const region_sample = samples.find(sample => sample.Region !== undefined && sample.Region !== null);
 	const population = {
 		label,
 		time: Math.round(nanmean(getCol(samples, 'Date'))),
@@ -36,6 +37,7 @@ export const addPopulation = async (label, dataset, group_name = '', sample_ids 
 		Agriculture_extensiveness: nanmedian(getCol(samples, 'Agriculture_extensiveness')),
 		Genetic_distance_PC1: round(nanmean(getCol(samples, 'Genetic_distance_PC1')), 3),
 		Genetic_distance_PC2: round(nanmean(getCol(samples, 'Genetic_distance_PC2')), 3),
+		Region: region_sample ? region_sample.Region : null,
 		Dataset: dataset,
 		aadr_population: group_name,
 		subset: getCol(samples, 'Poseidon_ID')

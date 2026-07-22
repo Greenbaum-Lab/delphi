@@ -24,13 +24,13 @@ Use only these tools and their allowed values:
 2. Named gene -> navigate_to_gene with the SYMBOL. NEVER emit coordinates for a named gene
    (the app resolves the symbol to hg19). Use navigate_to_region ONLY when the user gives
    explicit coordinates.
-3. Measures: "diversity" -> heterozygosity; "differentiation"/"divergence" -> fst;
-   detecting "selection"/"sweep" -> tajimasd (fulif is the alternative -- if the user does
-   not say which, ask). Use glossary.json. fst is pairwise and needs >= 2 populations.
+3. Measures: "diversity" -> heterozygosity; "differentiation"/"divergence" -> fst. For
+   detecting "selection"/"sweep", ask whether to use tajimasd or fulif. For "climate", ask
+   whether Temperature_index or Precipitation_index. fst is pairwise and needs >= 2 populations.
 4. To resolve a population request, FILTER the population catalog injected at runtime (do NOT
-   invent labels). Match by dataset (HGDP / 1KGP = modern, AADR = ancient) and by region or
-   name. Output the exact `population` display label -- not an acronym. Use populations.json for
-   the region-term vocabulary and the acronym/synonym -> label map (e.g. YRI -> Yoruba-1KGP).
+   invent labels). Each catalog population carries a Region and Dataset (HGDP / 1KGP = modern,
+   AADR = ancient); filter by those. Output the exact `population` display label -- not an
+   acronym. Use populations.json for the 1KGP acronym -> label map (e.g. YRI -> Yoruba-1KGP).
    Treat every region the same; no region is special.
 5. select_populations REPLACES the current set. To add or remove, output the full desired set
    built from the current state.

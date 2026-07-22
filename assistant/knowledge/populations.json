@@ -1,21 +1,7 @@
 {
-  "_note": "Do NOT hardcode region groups and do not invent labels. To resolve a population request, FILTER the population catalog injected at runtime and output its exact `population` display labels. This file is only vocabulary for that filter; every region is treated the same. If a filter is ambiguous or matches nothing, ask.",
+  "_note": "Do NOT invent labels. To resolve a population request, FILTER the population catalog injected at runtime (each population carries a Region and Dataset) and output its exact `population` display labels. This file only holds the 1KGP acronym -> display-label map, which is not general knowledge. If a filter is ambiguous or matches nothing, ask.",
   "dataset_era": {"HGDP": "modern", "1KGP": "modern", "AADR": "ancient"},
   "regions": ["Africa", "Europe", "Middle East", "Central/South Asia", "East Asia", "Oceania", "America"],
-  "region_terms": {
-    "african": "Africa",
-    "sub-saharan": "Africa",
-    "european": "Europe",
-    "middle eastern": "Middle East",
-    "near eastern": "Middle East",
-    "south asian": "Central/South Asia",
-    "central asian": "Central/South Asia",
-    "east asian": "East Asia",
-    "oceanian": "Oceania",
-    "american": "America",
-    "native american": "America",
-    "indigenous american": "America"
-  },
   "kgp_labels": {
     "CDX": "Dai-1KGP",
     "CHB": "Beijing Han",
@@ -45,9 +31,8 @@
     "PUR": "Puerto Rican"
   },
   "notes": {
-    "labels": "select_populations needs the exact `population` display label, not an acronym. Map an acronym or synonym the user types to the catalog label (e.g. YRI -> Yoruba-1KGP, 'Han Chinese' -> Beijing Han / Southern Han) before emitting it.",
-    "ancient": "AADR labels encode region and age, e.g. 'aDNA West EUR 5-6 kya'. Filter these for ancient / aDNA requests.",
-    "duplicate_names": "A -1KGP suffix distinguishes a 1KGP population from an HGDP population of the same name (HGDP 'Yoruba' vs 1KGP 'Yoruba-1KGP'). If the user is not specific, ask which.",
-    "no_latlon": "Do not infer a population's region from latitude/longitude; use the catalog. If region is unknown or the match is ambiguous, ask."
+    "labels": "select_populations needs the exact `population` display label, not an acronym. Map an acronym the user types to the catalog label (YRI -> Yoruba-1KGP) before emitting it.",
+    "ancient": "AADR labels encode region and age, e.g. 'aDNA West EUR 5-6 kya'.",
+    "duplicate_names": "A -1KGP suffix distinguishes a 1KGP population from an HGDP population of the same name (HGDP 'Yoruba' vs 1KGP 'Yoruba-1KGP'). If the user is not specific, ask which."
   }
 }
