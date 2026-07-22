@@ -1026,8 +1026,8 @@ body.loading .loading-overlay {
 	position: absolute;
 	right: 0;
 	bottom: calc(100% + 12px);
-	width: 320px;
-	height: 420px;
+	width: min(320px, calc(100vw - 40px));
+	height: min(420px, calc(100vh - 104px));
 	display: flex;
 	flex-direction: column;
 	background: var(--bg-panel);
@@ -1054,6 +1054,17 @@ body.loading .loading-overlay {
 	font-size: 14px;
 }
 
+.agent-chat-header-actions {
+	display: flex;
+	align-items: center;
+	gap: 2px;
+}
+
+.agent-chat-clear svg {
+	width: 15px;
+	height: 15px;
+}
+
 .agent-chat-messages {
 	flex: 1;
 	display: flex;
@@ -1068,6 +1079,15 @@ body.loading .loading-overlay {
 	text-align: center;
 	padding: 20px 10px;
 	font-size: 13px;
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+
+.agent-chat-empty-note {
+	color: var(--text-faint);
+	font-size: 11.5px;
+	line-height: 1.4;
 }
 
 .agent-chat-message {
@@ -1091,6 +1111,12 @@ body.loading .loading-overlay {
 	background: var(--bg-subtle);
 	color: var(--text);
 	border-bottom-left-radius: 2px;
+}
+
+.agent-chat-error {
+	background: rgba(176, 72, 63, 0.1);
+	border: 1px solid rgba(176, 72, 63, 0.35);
+	color: var(--accent2);
 }
 
 .agent-chat-input-row {
@@ -1155,4 +1181,62 @@ body.loading .loading-overlay {
 	font-size: 12px;
 	padding: 4px 8px;
 	text-align: center;
+}
+
+.agent-chat-progress {
+	align-self: stretch;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	padding: 10px;
+	border: 1px solid var(--border-strong);
+	border-radius: 8px;
+	background: var(--bg-panel);
+}
+
+.agent-chat-progress-head {
+	display: flex;
+	justify-content: space-between;
+	gap: 8px;
+	font-size: 12px;
+	color: var(--text-dim);
+}
+
+.agent-chat-progress-percent {
+	font-variant-numeric: tabular-nums;
+	color: var(--text);
+}
+
+.agent-chat-progress-track {
+	height: 6px;
+	border-radius: 3px;
+	background: var(--bg-subtle);
+	overflow: hidden;
+}
+
+.agent-chat-progress-fill {
+	width: 0;
+	height: 100%;
+	background: var(--accent);
+	transition: width 0.2s ease;
+}
+
+.agent-chat[data-busy="true"] .agent-chat-input {
+	opacity: 0.6;
+	cursor: not-allowed;
+}
+
+.agent-chat[data-busy="true"] .agent-chat-send {
+	opacity: 0.5;
+	pointer-events: none;
+}
+
+.agent-chat-bubble:focus-visible,
+.agent-chat-send:focus-visible,
+.agent-chat-clear:focus-visible,
+.agent-chat .btn-close:focus-visible,
+.agent-chat-input:focus-visible,
+.agent-chat-preview-actions .button:focus-visible {
+	outline: 2px solid var(--accent);
+	outline-offset: 2px;
 }
