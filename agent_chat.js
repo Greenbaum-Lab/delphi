@@ -1,8 +1,8 @@
 import { addHooks } from '/apc/common.js';
 import { runAction, describeAction } from '/agent_actions.js';
 import { isEngineSupported, loadEngine, generatePlan } from '/agent/engine.js';
+import { RESPONSE_SCHEMA, buildSystemPrompt, gatherContext } from '/agent/tools.js';
 
-const SYSTEM_PROMPT = 'You are the DELPHI genome browser assistant. Answer briefly.';
 const UNSUPPORTED_MESSAGE = 'On-device AI needs a WebGPU browser such as desktop Chrome or Edge.';
 
 const conversation_history = [];
@@ -41,7 +41,10 @@ const ensureEngine = container => {
 	return engine_promise;
 };
 
-const buildMessages = () => [{ role: 'system', content: SYSTEM_PROMPT }, ...conversation_history];
+const buildMessages = context => [
+	{ role: 'system', content: buildSystemPrompt(context.population_catalog, context.current_state) },
+	...conversation_history
+];
 
 const respond = async (container, text) => {
 	conversation_history.push({ role: 'user', content: text });
@@ -49,9 +52,11 @@ const respond = async (container, text) => {
 		return appendMessage(container, 'assistant', UNSUPPORTED_MESSAGE);
 	try {
 		const engine = await ensureEngine(container);
-		const reply = await generatePlan(engine, buildMessages(), null);
-		appendMessage(container, 'assistant', reply);
-		conversation_history.push({ role: 'assistant', content: reply });
+		setStatus(container, 'Thinking...');
+		const context = await gatherContext();
+		const plan = await generatePlan(engine, buildMessages(context), RESPONSE_SCHEMA);
+		setStatus(container, '');
+		handleResponse(container, plan);
 	} catch (error) {
 		setStatus(container, '');
 		appendMessage(container, 'assistant', `Model error: ${error.message}`);
