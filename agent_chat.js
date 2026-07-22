@@ -3,7 +3,7 @@ import { runAction, describeAction } from '/agent_actions.js';
 import { isEngineSupported, loadEngine, generatePlan } from '/agent/engine.js';
 import { RESPONSE_SCHEMA, buildSystemPrompt, gatherContext } from '/agent/tools.js';
 
-const UNSUPPORTED_MESSAGE = 'On-device AI needs a WebGPU browser such as desktop Chrome or Edge.';
+const UNSUPPORTED_MESSAGE = 'On-device AI needs WebGPU with a compatible GPU. Use desktop Chrome or Edge on a machine with a working GPU, and check https://webgpureport.org to confirm support.';
 
 const conversation_history = [];
 
@@ -48,7 +48,7 @@ const buildMessages = context => [
 
 const respond = async (container, text) => {
 	conversation_history.push({ role: 'user', content: text });
-	if (!isEngineSupported())
+	if (!(await isEngineSupported()))
 		return appendMessage(container, 'assistant', UNSUPPORTED_MESSAGE);
 	try {
 		const engine = await ensureEngine(container);

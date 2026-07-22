@@ -2,7 +2,12 @@ import * as webllm from 'https://esm.run/@mlc-ai/web-llm@0.2.84';
 
 const MODEL_ID = 'Llama-3.2-3B-Instruct-q4f16_1-MLC';
 
-export const isEngineSupported = () => Boolean(navigator.gpu);
+export const isEngineSupported = async () => {
+	if (!navigator.gpu)
+		return false;
+	const adapter = await navigator.gpu.requestAdapter().catch(() => null);
+	return Boolean(adapter);
+};
 
 export const loadEngine = on_progress =>
 	webllm.CreateMLCEngine(MODEL_ID, { initProgressCallback: on_progress });
