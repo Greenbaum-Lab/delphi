@@ -2,13 +2,16 @@ import { getOptions } from '/apc/common.js';
 import { addPopulation, getPops } from '/browser/pops.js';
 import { getMetadata } from '/assets.js';
 import { updateRegionFromInput } from '/browser/helpers.js';
+import { CHR_LENGTHS } from '/common.js';
 
 const MEASURES = ['heterozygosity', 'fst', 'tajimasd', 'fulif'];
+const SORT_FIELDS = ['time', 'Distance_from_Africa', 'Latitude', 'Longitude', 'Temperature_index', 'Precipitation_index', 'Agriculture_extensiveness', 'Urbanization_onset', 'genetic_distance', 'signal'];
+const WINDOW_SIZES = [10000, 100000, 1000000];
 
-const refreshBrowser = () => {
+const dispatchBrowser = event_name => {
 	const browser = document.querySelector('[data-module="browser"]');
 	if (browser)
-		browser.dispatchEvent(new Event('update'));
+		browser.dispatchEvent(new Event(event_name));
 };
 
 const unknownLabels = async labels => {
@@ -29,7 +32,7 @@ const ACTIONS = {
 		if (unknown.length > 0)
 			throw new Error(`unknown populations ${unknown.join(', ')}, use existing labels`);
 		getOptions([['populations', labels]]);
-		refreshBrowser();
+		dispatchBrowser('update');
 		return `selected populations ${labels.join(', ')}`;
 	},
 	create_population: async ({ label, region, date_start_kya, date_end_kya }) => {
@@ -59,6 +62,40 @@ const ACTIONS = {
 		input.value = gene_symbol;
 		updateRegionFromInput();
 		return `navigated to gene ${gene_symbol}`;
+	},
+	navigate_to_region: async ({ chr, start, end }) => {
+		const chromosome = String(chr).startsWith('chr') ? chr : `chr${chr}`;
+		if (!CHR_LENGTHS[chromosome])
+			throw new Error(`unknown chromosome ${chr}`);
+		if (!(start < end))
+			throw new Error('region start must be less than end');
+		const input = document.querySelector('.region-query');
+		input.value = `${chromosome}:${start}-${end}`;
+		updateRegionFromInput();
+		return `navigated to ${chromosome}:${start}-${end}`;
+	},
+	set_sort: async ({ field, direction }) => {
+		if (!SORT_FIELDS.includes(field))
+			throw new Error(`unknown sort field ${field}`);
+		const sort_dir = direction === 'desc' ? 'desc' : 'asc';
+		getOptions([['sort', field], ['sort_dir', sort_dir]]);
+		dispatchBrowser('update');
+		return `sorted by ${field} ${sort_dir}`;
+	},
+	set_window: async ({ size }) => {
+		if (!WINDOW_SIZES.includes(size))
+			throw new Error(`unknown window size ${size}`);
+		const selector = document.querySelector('.window-selector');
+		if (!selector)
+			throw new Error('window selector not found');
+		selector.value = String(size);
+		selector.dispatchEvent(new Event('change'));
+		return `set window size to ${size}`;
+	},
+	clear_populations: async () => {
+		getOptions([['populations', []]]);
+		dispatchBrowser('update');
+		return 'cleared selected populations';
 	}
 };
 
@@ -72,6 +109,14 @@ export const describeAction = ({ tool, args }) => {
 			return `Set measure to ${args.measure}`;
 		case 'navigate_to_gene':
 			return `Navigate to gene ${args.gene_symbol}`;
+		case 'navigate_to_region':
+			return `Navigate to ${args.chr}:${args.start}-${args.end}`;
+		case 'set_sort':
+			return `Sort by ${args.field} ${args.direction || 'asc'}`;
+		case 'set_window':
+			return `Set window size to ${args.size}`;
+		case 'clear_populations':
+			return 'Clear selected populations';
 		default:
 			return `Unknown action: ${tool}`;
 	}

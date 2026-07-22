@@ -12,7 +12,7 @@ export const RESPONSE_SCHEMA = {
 				properties: {
 					tool: {
 						type: 'string',
-						enum: ['select_populations', 'create_population', 'set_measure', 'navigate_to_gene']
+						enum: ['select_populations', 'create_population', 'set_measure', 'navigate_to_gene', 'navigate_to_region', 'set_sort', 'set_window', 'clear_populations']
 					},
 					args: { type: 'object' }
 				},
@@ -33,11 +33,16 @@ const PROMPT_HEADER = [
 	'- create_population: build a new population from ancient DNA samples by region and age. args: { label, region, date_start_kya, date_end_kya }. region is one of: Africa, Europe, Middle East, Central/South Asia, East Asia, Oceania, America.',
 	'- set_measure: set the statistic shown. args: { measure } one of: heterozygosity, fst, tajimasd, fulif.',
 	'- navigate_to_gene: move the view to a gene by exact symbol. args: { gene_symbol }',
+	'- navigate_to_region: move the view to explicit coordinates. args: { chr, start, end }',
+	'- set_sort: order the tracks by a metadata field. args: { field, direction }. direction is asc or desc. field is one of: time, Distance_from_Africa, Latitude, Longitude, Temperature_index, Precipitation_index, Agriculture_extensiveness, Urbanization_onset, genetic_distance, signal.',
+	'- set_window: set the genomic window size in base pairs. args: { size } one of: 10000, 100000, 1000000.',
+	'- clear_populations: remove all selected populations. args: {}',
 	'',
 	'Guidance:',
 	'- Prefer select_populations with labels from the catalog below. Use create_population only when no existing population matches.',
 	'- Modern populations come from the gnomAD dataset. Ancient populations come from the AADR dataset.',
 	'- For a request about a gene under selection or a phenotype, choose a specific gene from your own knowledge (for example LCT, EDAR, SLC24A5, HERC2, ACKR1, TYR, MC1R) and pass its exact symbol to navigate_to_gene. DELPHI has no gene category lookup, only exact symbols.',
+	'- Do not convert a gene name to coordinates yourself. Pass the gene symbol to navigate_to_gene and let DELPHI resolve the exact position. Use navigate_to_region only when the user gives explicit coordinates. DELPHI uses the hg19 assembly.',
 	'- If the request is ambiguous, put a clarifying question in reply and leave proposed_actions empty.'
 ].join('\n');
 
