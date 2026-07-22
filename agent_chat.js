@@ -1,7 +1,13 @@
 import { addHooks } from '/apc/common.js';
 import { runAction, describeAction } from '/agent_actions.js';
+import { isEngineSupported, loadEngine, generatePlan } from '/agent/engine.js';
+
+const SYSTEM_PROMPT = 'You are the DELPHI genome browser assistant. Answer briefly.';
+const UNSUPPORTED_MESSAGE = 'On-device AI needs a WebGPU browser such as desktop Chrome or Edge.';
 
 const conversation_history = [];
+
+let engine_promise = null;
 
 const appendMessage = (container, role, text) => {
 	const messages_container = container.querySelector('.agent-chat-messages');
@@ -15,9 +21,41 @@ const appendMessage = (container, role, text) => {
 	messages_container.scrollTop = messages_container.scrollHeight;
 };
 
-const respond = (container, text) => {
+const setStatus = (container, text) => {
+	const messages_container = container.querySelector('.agent-chat-messages');
+	const existing = messages_container.querySelector('.agent-chat-status');
+	if (!text)
+		return existing && existing.remove();
+	const status = existing || messages_container.appendChild(document.createElement('div'));
+	status.className = 'agent-chat-status';
+	status.textContent = text;
+	messages_container.scrollTop = messages_container.scrollHeight;
+};
+
+const ensureEngine = container => {
+	if (engine_promise)
+		return engine_promise;
+	engine_promise = loadEngine(report => setStatus(container, report.text))
+		.then(engine => (setStatus(container, ''), engine))
+		.catch(error => { engine_promise = null; throw error; });
+	return engine_promise;
+};
+
+const buildMessages = () => [{ role: 'system', content: SYSTEM_PROMPT }, ...conversation_history];
+
+const respond = async (container, text) => {
 	conversation_history.push({ role: 'user', content: text });
-	appendMessage(container, 'assistant', 'On-device model not wired yet.');
+	if (!isEngineSupported())
+		return appendMessage(container, 'assistant', UNSUPPORTED_MESSAGE);
+	try {
+		const engine = await ensureEngine(container);
+		const reply = await generatePlan(engine, buildMessages(), null);
+		appendMessage(container, 'assistant', reply);
+		conversation_history.push({ role: 'assistant', content: reply });
+	} catch (error) {
+		setStatus(container, '');
+		appendMessage(container, 'assistant', `Model error: ${error.message}`);
+	}
 };
 
 const sendMessage = container => {

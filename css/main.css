@@ -1148,3 +1148,11 @@ body.loading .loading-overlay {
 	background: var(--bg-subtle);
 	color: var(--text);
 }
+
+.agent-chat-status {
+	align-self: center;
+	color: var(--text-dim);
+	font-size: 12px;
+	padding: 4px 8px;
+	text-align: center;
+}
