@@ -1,0 +1,59 @@
+{
+  "_note": "Map natural-language terms to the exact measure or set_sort field. If a term is listed under 'ambiguous', do NOT pick for the user -- ask a clarifying question that lists the options.",
+  "measures": {
+    "diversity": "heterozygosity",
+    "genetic diversity": "heterozygosity",
+    "heterozygosity": "heterozygosity",
+    "expected heterozygosity": "heterozygosity",
+    "variation": "heterozygosity",
+    "differentiation": "fst",
+    "population differentiation": "fst",
+    "divergence": "fst",
+    "genetic distance between populations": "fst",
+    "fst": "fst",
+    "f st": "fst",
+    "tajima": "tajimasd",
+    "tajimas d": "tajimasd",
+    "tajima's d": "tajimasd",
+    "fu and li": "fulif",
+    "fu & li": "fulif",
+    "fu li": "fulif",
+    "fulif": "fulif"
+  },
+  "sort_fields": {
+    "time": "time",
+    "age": "time",
+    "date": "time",
+    "distance from africa": "Distance_from_Africa",
+    "out of africa": "Distance_from_Africa",
+    "serial founder": "Distance_from_Africa",
+    "latitude": "Latitude",
+    "longitude": "Longitude",
+    "temperature": "Temperature_index",
+    "precipitation": "Precipitation_index",
+    "rainfall": "Precipitation_index",
+    "neolithic": "Agriculture_extensiveness",
+    "farming": "Agriculture_extensiveness",
+    "agriculture": "Agriculture_extensiveness",
+    "urbanization": "Urbanization_onset",
+    "urban onset": "Urbanization_onset",
+    "genetic distance": "genetic_distance",
+    "pca distance": "genetic_distance",
+    "signal": "signal",
+    "signal strength": "signal",
+    "mean signal": "signal"
+  },
+  "ambiguous": {
+    "selection": ["tajimasd", "fulif"],
+    "positive selection": ["tajimasd", "fulif"],
+    "selective sweep": ["tajimasd", "fulif"],
+    "sweep": ["tajimasd", "fulif"],
+    "neutrality test": ["tajimasd", "fulif"],
+    "climate": ["Temperature_index", "Precipitation_index"],
+    "environment": ["Temperature_index", "Precipitation_index"]
+  },
+  "_notes": {
+    "diversity_vs_differentiation": "diversity/variation = heterozygosity (within one population); differentiation/divergence = fst (between two or more populations).",
+    "genetic_distance": "the genetic_distance sort field applies only to fst / pairwise views."
+  }
+}

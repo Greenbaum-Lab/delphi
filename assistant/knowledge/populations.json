@@ -1,0 +1,27 @@
+{
+  "_note": "Group names -> exact catalog labels for select_populations. Only labels marked verified are confirmed to exist in the app; 'regions_pending' await reconciliation with the live modern_populations.json catalog. Do NOT invent labels -- if a needed group is not here, ask the user.",
+  "groups": {
+    "African": {
+      "ancestry": "African",
+      "dataset": "modern",
+      "verified": true,
+      "labels": ["YRI", "LWK", "ESN", "GWD", "MSL", "Yoruba", "Mandenka", "Mbuti", "San", "Biaka", "BantuKenya", "BantuSouthAfrica"]
+    },
+    "African diaspora": {
+      "ancestry": "African (admixed/diaspora)",
+      "dataset": "modern",
+      "verified": true,
+      "labels": ["ACB", "ASW"]
+    }
+  },
+  "aliases": {
+    "africa": "African",
+    "african": "African",
+    "sub-saharan african": "African",
+    "african ancestry": "African",
+    "african american": "African diaspora",
+    "african caribbean": "African diaspora"
+  },
+  "regions_pending": ["European", "East Asian", "South Asian", "American", "Middle Eastern", "Oceanian", "ancient (AADR) predefined bins"],
+  "ancient_note": "modern_populations.json also contains predefined ancient (AADR) populations. Prefer selecting those existing labels; only use create_population when the user explicitly asks to build a NEW ancient-DNA group."
+}
