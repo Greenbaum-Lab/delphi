@@ -5,12 +5,14 @@ import { RESPONSE_SCHEMA, buildSystemPrompt, gatherContext } from '/agent/tools.
 
 const UNSUPPORTED_MESSAGE = 'On-device AI needs WebGPU with a compatible GPU. Use desktop Chrome or Edge on a machine with a working GPU, and check https://webgpureport.org to confirm support.';
 const EMPTY_PROMPT = 'Ask me to set up populations, change the measure, or jump to a gene.';
-const EMPTY_NOTE = 'Your first message downloads a one-time ~2 GB AI model that runs privately on your device, then stays cached.';
+const EMPTY_NOTE = 'Your first message downloads a one-time ~1 GB AI model that runs privately on your device, then stays cached.';
 const PROGRESS_LABEL = 'Loading the on-device model';
 
 const conversation_history = [];
 
 let engine_promise = null;
+
+const isEngineFatal = error => /not loaded|device|grammarmatcher|deleted object|gpu/i.test(error.message || '');
 
 const buildEmptyState = () => {
 	const empty = document.createElement('div');
@@ -111,6 +113,8 @@ const respond = async (container, text) => {
 		handleResponse(container, plan);
 	} catch (error) {
 		setStatus(container, '');
+		if (isEngineFatal(error))
+			engine_promise = null;
 		appendError(container, `Model error: ${error.message}`);
 	} finally {
 		setBusy(container, false);
