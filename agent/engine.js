@@ -1,4 +1,3 @@
-#test to remove later#
 import * as webllm from 'https://esm.run/@mlc-ai/web-llm@0.2.84';
 
 const MODEL_FLOAT16 = 'Llama-3.2-3B-Instruct-q4f16_1-MLC';
