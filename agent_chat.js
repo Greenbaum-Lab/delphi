@@ -8,11 +8,15 @@ const EMPTY_PROMPT = 'Ask me to set up populations, change the measure, or jump 
 const EMPTY_NOTE = 'Your first message downloads a one-time ~2 GB AI model that runs privately on your device, then stays cached.';
 const PROGRESS_LABEL = 'Loading the on-device model';
 
+const HISTORY_LIMIT = 4;
+const DEVICE_CRASH_MESSAGE = 'The on-device GPU crashed. Reload the page to keep chatting.';
+
 const conversation_history = [];
 
 let engine_promise = null;
+let engine_dead = false;
 
-const isEngineFatal = error => /not loaded|device|grammarmatcher|deleted object|gpu/i.test(error.message || '');
+const isDeviceCrash = error => /device.*(lost|removed|hung)|dxgi|d3d12|createcommandqueue|grammarmatcher|deleted object|gpu/i.test(error.message || '');
 
 const buildEmptyState = () => {
 	const empty = document.createElement('div');
@@ -97,7 +101,7 @@ const ensureEngine = container => {
 
 const buildMessages = context => [
 	{ role: 'system', content: buildSystemPrompt(context.current_state) },
-	...conversation_history
+	...conversation_history.slice(-HISTORY_LIMIT)
 ];
 
 const formatUsage = () => {
@@ -135,9 +139,13 @@ const respond = async (container, text) => {
 		showUsage(container);
 	} catch (error) {
 		setStatus(container, '');
-		if (isEngineFatal(error))
+		if (isDeviceCrash(error)) {
+			engine_dead = true;
 			engine_promise = null;
-		appendError(container, `Model error: ${error.message}`);
+			appendReload(container);
+		} else {
+			appendError(container, `Model error: ${error.message}`);
+		}
 	} finally {
 		setBusy(container, false);
 	}
@@ -146,6 +154,8 @@ const respond = async (container, text) => {
 const sendMessage = container => {
 	if (container.dataset.busy === 'true')
 		return;
+	if (engine_dead)
+		return appendReload(container);
 	const input = container.querySelector('.agent-chat-input');
 	const text = input.value.trim();
 	if (!text)
@@ -171,6 +181,17 @@ const createButton = (label, on_click) => {
 	button.textContent = label;
 	button.addEventListener('click', on_click);
 	return button;
+};
+
+const appendReload = container => {
+	const messages_container = container.querySelector('.agent-chat-messages');
+	const message = appendMessage(container, 'assistant', DEVICE_CRASH_MESSAGE);
+	message.classList.add('agent-chat-error');
+	const row = document.createElement('div');
+	row.classList.add('agent-chat-preview-actions');
+	row.append(createButton('Reload', () => location.reload()));
+	messages_container.appendChild(row);
+	messages_container.scrollTop = messages_container.scrollHeight;
 };
 
 const buildActionList = proposed_actions => {
