@@ -186,20 +186,28 @@
 	</footer>
 </div>
 <div class="agent-chat" data-module="agent_chat">
-	<a class="icon-btn agent-chat-bubble" data-action="toggle-agent-chat" data-tooltip="Ask the assistant" aria-label="Ask the assistant" aria-expanded="false">
+	<a class="icon-btn agent-chat-bubble" role="button" tabindex="0" data-action="toggle-agent-chat" data-tooltip="Ask the assistant" aria-label="Ask the assistant" aria-expanded="false" aria-controls="agent-chat-panel">
 		<svg aria-hidden="true"><use href="#icon-chat"></use></svg>
 	</a>
-	<div class="agent-chat-panel" hidden>
+	<div class="agent-chat-panel" id="agent-chat-panel" role="dialog" aria-label="Delphi Assistant" hidden>
 		<div class="agent-chat-header">
 			<span class="agent-chat-title">Delphi Assistant</span>
-			<a data-icon="x" class="btn-close" data-action="close-agent-chat" aria-label="Close chat"></a>
+			<span class="agent-chat-header-actions">
+				<a class="icon-btn agent-chat-clear" role="button" tabindex="0" data-action="clear-agent-chat" data-tooltip="Clear conversation" aria-label="Clear conversation">
+					<svg aria-hidden="true"><use href="#icon-reset"></use></svg>
+				</a>
+				<a data-icon="x" class="btn-close" role="button" tabindex="0" data-action="close-agent-chat" aria-label="Close chat"></a>
+			</span>
 		</div>
-		<div class="agent-chat-messages">
-			<div class="agent-chat-empty">Ask me to set up populations, change the measure, or jump to a gene.</div>
+		<div class="agent-chat-messages" aria-live="polite">
+			<div class="agent-chat-empty">
+				<p>Ask me to set up populations, change the measure, or jump to a gene.</p>
+				<p class="agent-chat-empty-note">Your first message downloads a one-time ~2 GB AI model that runs privately on your device, then stays cached.</p>
+			</div>
 		</div>
 		<div class="agent-chat-input-row">
 			<input type="text" class="agent-chat-input" placeholder="Type a message..." aria-label="Chat message">
-			<a class="icon-btn agent-chat-send" data-action="send-agent-chat" data-tooltip="Send" aria-label="Send message">
+			<a class="icon-btn agent-chat-send" role="button" tabindex="0" data-action="send-agent-chat" data-tooltip="Send" aria-label="Send message">
 				<svg aria-hidden="true"><use href="#icon-send"></use></svg>
 			</a>
 		</div>
