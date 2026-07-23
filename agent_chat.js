@@ -1,6 +1,6 @@
 import { addHooks } from '/apc/common.js';
 import { runAction, describeAction } from '/agent_actions.js';
-import { isEngineSupported, loadEngine, generatePlan } from '/agent/engine.js';
+import { isEngineSupported, loadEngine, generatePlan, getModelLimits, getLastUsage } from '/agent/engine.js';
 import { RESPONSE_SCHEMA, buildSystemPrompt, gatherContext } from '/agent/tools.js';
 
 const UNSUPPORTED_MESSAGE = 'On-device AI needs WebGPU with a compatible GPU. Use desktop Chrome or Edge on a machine with a working GPU, and check https://webgpureport.org to confirm support.';
@@ -100,6 +100,27 @@ const buildMessages = context => [
 	...conversation_history
 ];
 
+const formatUsage = () => {
+	const usage = getLastUsage();
+	if (!usage)
+		return '';
+	const limits = getModelLimits();
+	const limit = limits && limits.context_window_size ? limits.context_window_size : '?';
+	return `prompt ${usage.prompt_tokens} / ${limit} tok (reply ${usage.completion_tokens})`;
+};
+
+const showUsage = container => {
+	const text = formatUsage();
+	if (!text)
+		return;
+	const messages_container = container.querySelector('.agent-chat-messages');
+	const usage = messages_container.querySelector('.agent-chat-usage') || document.createElement('div');
+	usage.className = 'agent-chat-usage';
+	usage.textContent = text;
+	messages_container.appendChild(usage);
+	messages_container.scrollTop = messages_container.scrollHeight;
+};
+
 const respond = async (container, text) => {
 	conversation_history.push({ role: 'user', content: text });
 	try {
@@ -111,6 +132,7 @@ const respond = async (container, text) => {
 		const plan = await generatePlan(engine, buildMessages(context), RESPONSE_SCHEMA);
 		setStatus(container, '');
 		handleResponse(container, plan);
+		showUsage(container);
 	} catch (error) {
 		setStatus(container, '');
 		if (isEngineFatal(error))
