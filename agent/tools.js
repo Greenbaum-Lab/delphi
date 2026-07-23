@@ -1,5 +1,4 @@
 import { getOptions } from '/apc/common.js';
-import { getPopsData } from '/browser/pops.js';
 
 export const RESPONSE_SCHEMA = {
 	type: 'object',
@@ -39,18 +38,12 @@ const PROMPT_HEADER = [
 	'- clear_populations: remove all selected populations. args: {}',
 	'',
 	'Guidance:',
-	'- Prefer select_populations with labels from the catalog below. Use create_population only when no existing population matches.',
+	'- Prefer select_populations with an exact existing population label. Use create_population only when no existing population matches.',
 	'- Modern populations come from the gnomAD dataset. Ancient populations come from the AADR dataset.',
 	'- For a request about a gene under selection or a phenotype, choose a specific gene from your own knowledge (for example LCT, EDAR, SLC24A5, HERC2, ACKR1, TYR, MC1R) and pass its exact symbol to navigate_to_gene. DELPHI has no gene category lookup, only exact symbols.',
 	'- Do not convert a gene name to coordinates yourself. Pass the gene symbol to navigate_to_gene and let DELPHI resolve the exact position. Use navigate_to_region only when the user gives explicit coordinates. DELPHI uses the hg19 assembly.',
 	'- If the request is ambiguous, put a clarifying question in reply and leave proposed_actions empty.'
 ].join('\n');
-
-const formatPopulationLine = population =>
-	`- ${population.label}: ${population.Dataset}, lat ${population.Latitude}, lon ${population.Longitude}, ${population.time} BP`;
-
-const formatPopulationCatalog = population_catalog =>
-	population_catalog.map(formatPopulationLine).join('\n');
 
 const formatCurrentState = current_state => {
 	const region = `${current_state.chr}:${current_state.start}-${current_state.end}`;
@@ -58,12 +51,11 @@ const formatCurrentState = current_state => {
 	return `measure: ${current_state.measure}; region: ${region}; selected populations: ${populations}`;
 };
 
-export const buildSystemPrompt = (population_catalog, current_state) =>
-	`${PROMPT_HEADER}\n\nPopulation catalog:\n${formatPopulationCatalog(population_catalog)}\n\nCurrent browser state:\n${formatCurrentState(current_state)}`;
+export const buildSystemPrompt = current_state =>
+	`${PROMPT_HEADER}\n\nCurrent browser state:\n${formatCurrentState(current_state)}`;
 
-export const gatherContext = async () => {
-	'Read the population catalog and the current browser state used to ground the system prompt.';
-	const population_catalog = await getPopsData();
+export const gatherContext = () => {
+	'Read the current browser state used to ground the system prompt.';
 	const options = getOptions();
 	const current_state = {
 		measure: options.measure,
@@ -72,5 +64,5 @@ export const gatherContext = async () => {
 		end: options.end,
 		populations: options.populations
 	};
-	return { population_catalog, current_state };
+	return { current_state };
 };

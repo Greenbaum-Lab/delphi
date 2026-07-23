@@ -12,6 +12,8 @@ const conversation_history = [];
 
 let engine_promise = null;
 
+const isEngineFatal = error => /not loaded|device|grammarmatcher|deleted object|gpu/i.test(error.message || '');
+
 const buildEmptyState = () => {
 	const empty = document.createElement('div');
 	empty.className = 'agent-chat-empty';
@@ -94,7 +96,7 @@ const ensureEngine = container => {
 };
 
 const buildMessages = context => [
-	{ role: 'system', content: buildSystemPrompt(context.population_catalog, context.current_state) },
+	{ role: 'system', content: buildSystemPrompt(context.current_state) },
 	...conversation_history
 ];
 
@@ -105,12 +107,14 @@ const respond = async (container, text) => {
 			return appendError(container, UNSUPPORTED_MESSAGE);
 		const engine = await ensureEngine(container);
 		setStatus(container, 'Thinking...');
-		const context = await gatherContext();
+		const context = gatherContext();
 		const plan = await generatePlan(engine, buildMessages(context), RESPONSE_SCHEMA);
 		setStatus(container, '');
 		handleResponse(container, plan);
 	} catch (error) {
 		setStatus(container, '');
+		if (isEngineFatal(error))
+			engine_promise = null;
 		appendError(container, `Model error: ${error.message}`);
 	} finally {
 		setBusy(container, false);
