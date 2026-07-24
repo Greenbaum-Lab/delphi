@@ -3,6 +3,8 @@ import * as webllm from 'https://esm.run/@mlc-ai/web-llm@0.2.84';
 const MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
 const PREFILL_CHUNK_WEAK = 128;
 const PREFILL_CHUNK_STRONG = 2048;
+const MAX_TOKENS = 256;
+const GENERATION_TIMEOUT_MS = 30000;
 
 let model_limits = null;
 let last_usage = null;
@@ -64,8 +66,20 @@ export const loadEngine = async on_progress => {
 };
 
 const buildRequest = (messages, schema) => schema
-	? { messages, temperature: 0, response_format: { type: 'json_object', schema: JSON.stringify(schema) } }
-	: { messages, temperature: 0 };
+	? { messages, temperature: 0, max_tokens: MAX_TOKENS, response_format: { type: 'json_object', schema: JSON.stringify(schema) } }
+	: { messages, temperature: 0, max_tokens: MAX_TOKENS };
+
+const withTimeout = (engine, promise) => {
+	'Reject if generation runs past the timeout, interrupting the engine so the UI cannot hang forever.';
+	let timer;
+	const timeout = new Promise((resolve, reject) => {
+		timer = setTimeout(() => {
+			try { engine.interruptGenerate?.(); } catch (error) { console.log(`[agent] interrupt failed: ${error.message}`); }
+			reject(new Error('the model took too long and was stopped, try a shorter request'));
+		}, GENERATION_TIMEOUT_MS);
+	});
+	return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+};
 
 const logRuntimeStats = async engine => {
 	try {
@@ -77,7 +91,7 @@ const logRuntimeStats = async engine => {
 
 export const generatePlan = async (engine, messages, schema) => {
 	'Generate a reply from the loaded engine, returning parsed JSON when a schema is given and plain text otherwise.';
-	const completion = await engine.chat.completions.create(buildRequest(messages, schema));
+	const completion = await withTimeout(engine, engine.chat.completions.create(buildRequest(messages, schema)));
 	last_usage = completion.usage || null;
 	console.log('[agent] usage', last_usage, 'messages', messages.length);
 	await logRuntimeStats(engine);
