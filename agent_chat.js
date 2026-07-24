@@ -100,7 +100,7 @@ const ensureEngine = container => {
 };
 
 const buildMessages = context => [
-	{ role: 'system', content: buildSystemPrompt(context.current_state) },
+	{ role: 'system', content: buildSystemPrompt(context.current_state, context.catalog) },
 	...conversation_history.slice(-HISTORY_LIMIT)
 ];
 
@@ -132,7 +132,7 @@ const respond = async (container, text) => {
 			return appendError(container, UNSUPPORTED_MESSAGE);
 		const engine = await ensureEngine(container);
 		setStatus(container, 'Thinking...');
-		const context = gatherContext();
+		const context = await gatherContext();
 		const plan = await generatePlan(engine, buildMessages(context), RESPONSE_SCHEMA);
 		setStatus(container, '');
 		handleResponse(container, plan);
