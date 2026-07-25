@@ -1,6 +1,6 @@
 import * as webllm from 'https://esm.run/@mlc-ai/web-llm@0.2.84';
 
-const MODEL = 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+const MODEL = 'Qwen2.5-1.5B-Instruct-q4f16_1-MLC';
 const PREFILL_CHUNK_WEAK = 128;
 const PREFILL_CHUNK_STRONG = 2048;
 const MAX_TOKENS = 256;
