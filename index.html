@@ -84,11 +84,21 @@
 
 			<div class="controls-spacer"></div>
 
-			<div class="more-menu">
-				<a class="icon-btn more-toggle" data-action="toggle-more-menu" data-tooltip="More display options" aria-label="More display options" aria-haspopup="true" aria-expanded="false">
+			<div class="export-menu" data-menu="export">
+				<a class="icon-btn menu-toggle export-toggle" data-action="toggle-menu" data-tooltip="Export table data as TSV" aria-label="Export table data as TSV" aria-haspopup="true" aria-expanded="false">
+					<svg aria-hidden="true"><use href="#icon-export"></use></svg>
+				</a>
+				<div class="menu-panel" data-menu-panel hidden>
+					<a class="menu-item" data-action="export-data">Export data<span class="menu-item-note">Positional values in the current window</span></a>
+					<a class="menu-item" data-action="export-metadata">Export metadata<span class="menu-item-note" data-export-note="metadata">Populations and their metadata</span></a>
+				</div>
+			</div>
+
+			<div class="more-menu" data-menu="more">
+				<a class="icon-btn menu-toggle more-toggle" data-action="toggle-menu" data-tooltip="More display options" aria-label="More display options" aria-haspopup="true" aria-expanded="false">
 					<svg aria-hidden="true"><use href="#icon-more"></use></svg>
 				</a>
-				<div class="more-panel" data-more-panel hidden>
+				<div class="menu-panel" data-menu-panel hidden>
 					<div class="more-row">
 						<label class="more-label">Window size</label>
 						<span class="tooltip-wrap" data-tooltip="Genomic window size for aggregating signal">
@@ -123,13 +133,6 @@
 						<span class="more-label">Track size</span>
 						<a data-icon="m" data-action="decrease-track-size" class="icon-btn" data-tooltip="Decrease track size" aria-label="Decrease track size"></a>
 						<a data-icon="+" data-action="increase-track-size" class="icon-btn" data-tooltip="Increase track size" aria-label="Increase track size"></a>
-					</div>
-					<div class="more-divider"></div>
-					<div class="more-row">
-						<span class="more-label">Export data</span>
-						<a class="icon-btn icon-btn-placeholder" aria-disabled="true" data-tooltip="Export as CSV (coming soon)" aria-label="Export as CSV (coming soon)">
-							<svg aria-hidden="true"><use href="#icon-export"></use></svg>
-						</a>
 					</div>
 					<div class="more-divider"></div>
 					<div class="more-row">

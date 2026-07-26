@@ -217,6 +217,7 @@ const hooks = [
 			window_size: options.window_size
 		});
 		if (!response) {
+			track.signal_bins = null;
 			clearTimeout(loading_timeout);
 			track.classList.remove('loading');
 			track.dispatchEvent(new Event('refreshed'));
@@ -236,6 +237,7 @@ const hooks = [
 			const bin_start = track_response.start + (i * track_response.window_size);
 			bins.push({ start: bin_start, end: bin_start + track_response.window_size, value: values[i] });
 		}
+		track.signal_bins = bins; // Kept for data export, which mirrors what is drawn
 		const svg = track.querySelector('svg');
 		const plot_style = track.dataset.style || 'binned';
 		const bounds = track.dataset.bounds ? track.dataset.bounds.split(',').map(v => +v) : null;
