@@ -1,5 +1,6 @@
 const FENCE_BEGIN = 'BEGIN_UNTRUSTED_DATA';
 const FENCE_END = 'END_UNTRUSTED_DATA';
+const SELECTION_HEADER = 'SELECT';
 const MAX_FIELD_LENGTH = 48;
 const SAFE_TOKEN_PATTERN = /^[A-Za-z0-9_.:-]{1,20}$/;
 
@@ -43,24 +44,24 @@ const headerLines = observed_state => {
 
 const populationLine = population => `pop=${quarantineField(population.label)}|${quarantineField(population.dataset)}|${quarantineField(population.aadr_population)}|${formatNumber(population.sample_count)}|${formatNumber(population.time)}|${population.resolved ? 'ok' : 'unresolved'}`;
 
-const annotationStatus = (track_id, annotations) => track_id === annotations.gene_track ? 'gene' : annotations.active.includes(track_id) ? 'active' : 'available';
+const annotationStatus = (track_id, annotations) => track_id === annotations.gene_track ? 'gene' : 'active';
 
-const annotationLines = annotations => {
-	const track_ids = annotations.available.concat(annotations.active.filter(track_id => !annotations.available.includes(track_id)));
-	return track_ids.map(track_id => `ann=${quarantineField(track_id)}|${annotationStatus(track_id, annotations)}`);
-};
+const annotationLines = annotations => annotations.active.map(track_id => `ann=${quarantineField(track_id)}|${annotationStatus(track_id, annotations)}`);
 
 const hiddenPairLines = hidden_pairs => hidden_pairs.map(hidden_pair => `hidden=${quarantineField(hidden_pair)}`);
 
+const selectionLine = (fields, index) => `${index}|${fields.map(field => quarantineField(field)).join('|')}`;
+
 /**
- * Renders an observed state object as delimited text for the model and for
- * Agent 2's eval corpus. The header carries only numbers, flags and tokens
- * that passed SAFE_TOKEN_PATTERN, so it needs no escaping. Every string whose
- * value originates from population, annotation or sample data is escaped and
- * emitted between the untrusted fences, one record per line, regardless of how
- * harmless it looks. Escaping removes newlines, so a data value can never
- * begin a line and cannot forge a fence marker. This module imports nothing
- * and never reads DELPHI.
+ * Renders per-turn state as delimited text for the model and for the eval
+ * corpus. The header carries only numbers, flags and tokens that passed
+ * SAFE_TOKEN_PATTERN, so it needs no escaping. Every string whose value
+ * originates from population or annotation data is escaped and emitted between
+ * the untrusted fences, one record per line, regardless of how harmless it
+ * looks. Escaping removes newlines, so a data value can never begin a line and
+ * cannot forge a fence marker. Per D-021 the available-annotation catalogue is
+ * not carried here; only active annotations and the gene track are. This module
+ * imports nothing and never reads DELPHI.
  */
 export const serializeState = observed_state => [
 	...headerLines(observed_state),
@@ -68,5 +69,20 @@ export const serializeState = observed_state => [
 	...observed_state.populations.map(populationLine),
 	...annotationLines(observed_state.annotations),
 	...hiddenPairLines(observed_state.hidden_pairs),
+	FENCE_END
+].join('\n');
+
+/**
+ * Renders one turn's selection list. Items is an array of field arrays, so the
+ * same function serves annotation, gene, population and metadata selection.
+ * Every field is quarantined because a selection list is data by definition.
+ * Each record is addressed by its leading index and the model answers with that
+ * index, never with a composed identifier, so it cannot name an item that was
+ * not presented this turn.
+ */
+export const serializeSelectionList = items => [
+	`${SELECTION_HEADER} ${formatNumber(items.length)}`,
+	FENCE_BEGIN,
+	...items.map(selectionLine),
 	FENCE_END
 ].join('\n');
