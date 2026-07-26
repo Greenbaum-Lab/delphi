@@ -397,8 +397,10 @@ export const getLambdaTrack = async ({ chr, start, end, measure, populations }) 
 	const buffered_end = end + CONFIG.LAMBDA_BUFFER_BASES;
 	const required_bins = calculateBins(buffered_start, buffered_end, CONFIG.LAMBDA_WINDOW_SIZE);
 	const population_labels = Object.keys(populations);
-	const results = {};
-	for (const population_label of population_labels) {
+	// Resolved concurrently so every population of a track reaches the batch queue within
+	// the same debounce window. Awaiting them in sequence held back the second population
+	// of each pairwise track until the first had returned, splitting off a second invocation.
+	const results = await Promise.all(population_labels.map(async population_label => {
 		const lower_bound = ['pop', population_label, chr, required_bins[0].start, 0];
 		const upper_bound = ['pop', population_label, chr, required_bins[required_bins.length - 1].end, Infinity];
 		const cached_bins = await queryIDBRange(CONFIG.IDB_NAME, CONFIG.IDB_LAMBDA_TABLE, lower_bound, upper_bound);
@@ -440,14 +442,14 @@ export const getLambdaTrack = async ({ chr, start, end, measure, populations }) 
 			const measure_index = MEASURE_INDEX[measure];
 			bins_data = raw_bins_data.map(row => row ? row[measure_index] : null);
 		}
-		results[population_label] = {
+		return [population_label, {
 			data: bins_data,
 			window_size: CONFIG.LAMBDA_WINDOW_SIZE,
 			start: visible_bins[0].start,
 			end: visible_bins[visible_bins.length - 1].end
-		};
-	}
-	return results;
+		}];
+	}));
+	return Object.fromEntries(results);
 };
 
 export const getSignalTrack = async ({ chr, start, end, measure, populations, window_size }) => {
