@@ -145,27 +145,33 @@ const findMissingBins = (required_bins, cached_bins) => {
 	return required_bins.filter(bin => !cached_starts.has(bin.start));
 };
 
-const getGnomadChromosome = async (population, chr, window_size) => {
+const getGnomadChromosome = (population, chr, window_size) => {
 	const cache_key = `${population}_${chr}_${window_size}`;
 	if (gnomadMemoryCache.has(cache_key)) {
 		return gnomadMemoryCache.get(cache_key);
 	}
-	const idb_key = [population, chr, window_size];
-	const cached = await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_GNOMAD_TABLE, idb_key);
-	if (cached && Array.isArray(cached)) {
-		gnomadMemoryCache.set(cache_key, cached);
-		return cached;
-	}
-	const url = `${CONFIG.S3_BASE_URL}/gnomad/${window_size}/${population}_${chr}.npy`;
-	const response = await fetch(url);
-	if (!response.ok) {
-		throw new Error(`Failed to fetch gnomAD data: ${response.status}`);
-	}
-	const array_buffer = await response.arrayBuffer();
-	const parsed_data = parseNumpyFloat32(array_buffer);
-	await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_GNOMAD_TABLE, idb_key, parsed_data);
-	gnomadMemoryCache.set(cache_key, parsed_data);
-	return parsed_data;
+	const load_promise = (async () => {
+		const idb_key = [population, chr, window_size];
+		const cached = await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_GNOMAD_TABLE, idb_key);
+		if (cached && Array.isArray(cached)) {
+			return cached;
+		}
+		const url = `${CONFIG.S3_BASE_URL}/gnomad/${window_size}/${population}_${chr}.npy`;
+		const response = await fetch(url);
+		if (!response.ok) {
+			throw new Error(`Failed to fetch gnomAD data: ${response.status}`);
+		}
+		const array_buffer = await response.arrayBuffer();
+		const parsed_data = parseNumpyFloat32(array_buffer);
+		await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_GNOMAD_TABLE, idb_key, parsed_data);
+		return parsed_data;
+	})();
+	// Caching the in-flight load, as loadAnnotationData does, so tracks sharing a
+	// population download the file once. Dropped on failure so a later track retries
+	// rather than inheriting the error.
+	gnomadMemoryCache.set(cache_key, load_promise);
+	load_promise.catch(() => gnomadMemoryCache.delete(cache_key));
+	return load_promise;
 };
 
 const getGnomadTrack = async ({ chr, start, end, population, window_size, measure }) => {
@@ -397,8 +403,10 @@ export const getLambdaTrack = async ({ chr, start, end, measure, populations }) 
 	const buffered_end = end + CONFIG.LAMBDA_BUFFER_BASES;
 	const required_bins = calculateBins(buffered_start, buffered_end, CONFIG.LAMBDA_WINDOW_SIZE);
 	const population_labels = Object.keys(populations);
-	const results = {};
-	for (const population_label of population_labels) {
+	// Resolved concurrently so every population of a track reaches the batch queue within
+	// the same debounce window. Awaiting them in sequence held back the second population
+	// of each pairwise track until the first had returned, splitting off a second invocation.
+	const results = await Promise.all(population_labels.map(async population_label => {
 		const lower_bound = ['pop', population_label, chr, required_bins[0].start, 0];
 		const upper_bound = ['pop', population_label, chr, required_bins[required_bins.length - 1].end, Infinity];
 		const cached_bins = await queryIDBRange(CONFIG.IDB_NAME, CONFIG.IDB_LAMBDA_TABLE, lower_bound, upper_bound);
@@ -440,28 +448,29 @@ export const getLambdaTrack = async ({ chr, start, end, measure, populations }) 
 			const measure_index = MEASURE_INDEX[measure];
 			bins_data = raw_bins_data.map(row => row ? row[measure_index] : null);
 		}
-		results[population_label] = {
+		return [population_label, {
 			data: bins_data,
 			window_size: CONFIG.LAMBDA_WINDOW_SIZE,
 			start: visible_bins[0].start,
 			end: visible_bins[visible_bins.length - 1].end
-		};
-	}
-	return results;
+		}];
+	}));
+	return Object.fromEntries(results);
 };
 
 export const getSignalTrack = async ({ chr, start, end, measure, populations, window_size }) => {
 	const options = getOptions();
 	if (options.mode === 'gnomad') {
 		const population_labels = Object.keys(populations);
-		const tracks = {};
-		for (const population of population_labels) {
+		// Resolved concurrently for the same reason as the Lambda path: a track waited on
+		// each of its own populations in turn, so a pairwise track spent two serial .npy
+		// round-trips before it could draw.
+		const tracks = await Promise.all(population_labels.map(async population => {
 			const pop_data = await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_POPULATIONS_TABLE, population);
 			const gnomad_label = pop_data.aadr_population.replace(/\.(DG)$/, '');
-			const track = await getGnomadTrack({ chr, start, end, population: gnomad_label, window_size, measure });
-			tracks[population] = track;
-		}
-		return tracks;
+			return [population, await getGnomadTrack({ chr, start, end, population: gnomad_label, window_size, measure })];
+		}));
+		return Object.fromEntries(tracks);
 	}
 	return await getLambdaTrack({ chr, start, end, measure, populations });
 };
