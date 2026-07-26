@@ -34,7 +34,6 @@
 		<div class="tracks-controls">
 			<div class="control-group sort-container">
 				<a data-icon="O" data-action="toggle-sort" class="icon-btn" data-tooltip="Sort direction" aria-label="Sort direction"></a>
-				<svg class="group-icon" aria-hidden="true"><use href="#icon-sort"></use></svg>
 				<span class="tooltip-wrap" data-tooltip="Order tracks by metadata">
 					<select data-control="sort" class="sort-selector">
 						<option value="time">Time</option>
@@ -59,7 +58,6 @@
 			</div>
 
 			<div class="control-group">
-				<svg class="group-icon" aria-hidden="true"><use href="#icon-measure"></use></svg>
 				<span class="tooltip-wrap" data-tooltip="Select population genetics statistics">
 					<select data-control="measure" class="measure-selector">
 						<option value="heterozygosity" selected>Heterozygosity</option>
@@ -70,24 +68,18 @@
 				</span>
 			</div>
 
-			<div class="control-group control-group-populations" data-module="library">
-				<a class="icon-btn icon-btn-populations" data-action="open-populations" data-tooltip="Select populations" aria-label="Select populations">
-					<svg aria-hidden="true"><use href="#icon-populations"></use></svg>
-				</a>
+			<div data-module="library">
+				<a class="open-dialog-button" data-icon="I" data-action="open-populations" data-tooltip="Select populations" aria-label="Select populations"></a>
 			</div>
 
-			<div class="control-group control-group-annotations">
-				<a class="icon-btn icon-btn-annotations" data-action="open-annotations" data-tooltip="Add annotations" aria-label="Add annotations">
-					<svg aria-hidden="true"><use href="#icon-annotations"></use></svg>
-				</a>
+			<div>
+				<a class="open-dialog-button" data-icon="P" data-action="open-annotations" data-tooltip="Add annotations" aria-label="Add annotations"></a>
 			</div>
 
 			<div class="controls-spacer"></div>
 
 			<div class="export-menu" data-menu="export">
-				<a class="icon-btn menu-toggle export-toggle" data-action="toggle-menu" data-tooltip="Export table data as TSV" aria-label="Export table data as TSV" aria-haspopup="true" aria-expanded="false">
-					<svg aria-hidden="true"><use href="#icon-export"></use></svg>
-				</a>
+				<a class="open-dialog-button menu-toggle export-toggle" data-icon="e" data-action="toggle-menu" data-tooltip="Export table data as TSV" aria-label="Export table data as TSV" aria-haspopup="true" aria-expanded="false"></a>
 				<div class="menu-panel" data-menu-panel hidden>
 					<a class="menu-item" data-action="export-data">Export data<span class="menu-item-note">Positional values in the current window</span></a>
 					<a class="menu-item" data-action="export-metadata">Export metadata<span class="menu-item-note" data-export-note="metadata">Populations and their metadata</span></a>
@@ -95,9 +87,7 @@
 			</div>
 
 			<div class="more-menu" data-menu="more">
-				<a class="icon-btn menu-toggle more-toggle" data-action="toggle-menu" data-tooltip="More display options" aria-label="More display options" aria-haspopup="true" aria-expanded="false">
-					<svg aria-hidden="true"><use href="#icon-more"></use></svg>
-				</a>
+				<a class="open-dialog-button menu-toggle more-toggle" data-icon="f" data-action="toggle-menu" data-tooltip="More display options" aria-label="More display options" aria-haspopup="true" aria-expanded="false"></a>
 				<div class="menu-panel" data-menu-panel hidden>
 					<div class="more-row">
 						<label class="more-label">Window size</label>
@@ -143,8 +133,6 @@
 					</div>
 				</div>
 			</div>
-
-			<div class="controls-spacer controls-spacer-fixed"></div>
 		</div>
 		<div class="tracks-container signal-tracks-container">
 			<div class="empty-state" data-action="open-populations">Select populations to display data</div>
