@@ -1,4 +1,7 @@
-name: Deploy to S3
+- name: Rewrite paths for /bot2 deployment
+  run: |
+    # Rewrite all /data and /apc paths in HTML and JS
+    find . -type f \( -name "*.html" -o -name "*.js" \) ! -path "./.git/*" -exec sed -i "s|'/data'|'/bot2/data'|g; s|'/apc'|'/bot2/apc'|g" {} \;
 
 # Uploads the DELPHI static site to the S3 bucket behind CloudFront on every
 # push to bot, then invalidates the CloudFront cache so visitors get the new
@@ -43,7 +46,7 @@ jobs:
       # No --delete: only add/update site files, never remove bucket data files.
       - name: Sync site to S3
         run: |
-          aws s3 sync . "s3://$BUCKET" \
+          aws s3 sync . "s3://$BUCKET/bot2" \
             --exclude ".git/*" \
             --exclude ".github/*" \
             --exclude "lambdas/*" \
