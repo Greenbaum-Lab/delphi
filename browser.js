@@ -2,6 +2,7 @@ import { addHooks, addModule, errorBox, getOptions } from '/apc/common.js';
 import { getPops, initPopCache, getPopData, pairwiseSort, pairKey } from '/browser/pops.js';
 import { zoomToLevel, updateRegionFromInput, updateRegionInput } from '/browser/helpers.js';
 import { addAnnotation } from '/custom_annotation.js';
+import { exportMetadata, exportPositionalData, isPairwiseView } from '/browser/export.js';
 
 const syncSortDropdown = (is_pairwise, current_sort) => {
 	const selector = is_pairwise ? '.sort-selector-pairwise' : '.sort-selector';
@@ -13,6 +14,25 @@ const syncSortDropdown = (is_pairwise, current_sort) => {
 		dropdown.value = dropdown.options[0].value;
 		getOptions([['sort', dropdown.value]]);
 	}
+};
+
+const closeMenus = (except) => {
+	document.querySelectorAll('[data-menu]').forEach(menu => {
+		if (menu === except)
+			return;
+		menu.querySelector('[data-menu-panel]').setAttribute('hidden', '');
+		menu.querySelector('.menu-toggle').setAttribute('aria-expanded', 'false');
+	});
+};
+
+const syncExportMenu = () => {
+	const pairwise = isPairwiseView();
+	document.querySelector('[data-export-note="metadata"]').textContent = pairwise ? 'Population pairs and pairwise metrics' : 'Populations and their metadata';
+};
+
+const exportOrWarn = (exported, text) => {
+	if (!exported)
+		errorBox('Nothing to export', text, document.querySelector('[data-module="browser"]'));
 };
 
 const DEFAULTS = {
@@ -285,27 +305,30 @@ const hooks = [
 	['[data-module="browser"]', 'upload-annotation', e => {
 		addAnnotation(e.target);
 	}],
-	['[data-action="toggle-more-menu"]', 'click', e => {
-		const menu = e.target.closest('.more-menu');
-		const panel = menu.querySelector('[data-more-panel]');
+	['[data-action="toggle-menu"]', 'click', e => {
+		const menu = e.target.closest('[data-menu]');
+		const panel = menu.querySelector('[data-menu-panel]');
 		const opening = panel.hasAttribute('hidden');
+		closeMenus(menu);
+		if (opening && menu.dataset.menu === 'export')
+			syncExportMenu();
 		panel.toggleAttribute('hidden', !opening);
-		menu.querySelector('.more-toggle').setAttribute('aria-expanded', String(opening));
+		menu.querySelector('.menu-toggle').setAttribute('aria-expanded', String(opening));
+	}],
+	['[data-action="export-data"]', 'click', e => {
+		closeMenus();
+		exportOrWarn(exportPositionalData(), 'Select populations and let the tracks finish loading before exporting positional data.');
+	}],
+	['[data-action="export-metadata"]', 'click', async e => {
+		closeMenus();
+		exportOrWarn(await exportMetadata(), 'Select populations before exporting metadata.');
 	}],
 	['*', 'click', e => {
-		const menu = document.querySelector('.more-menu');
-		if (!menu || menu.contains(e.target)) return;
-		const panel = menu.querySelector('[data-more-panel]');
-		if (!panel || panel.hasAttribute('hidden')) return;
-		panel.setAttribute('hidden', '');
-		menu.querySelector('.more-toggle').setAttribute('aria-expanded', 'false');
+		closeMenus(e.target.closest('[data-menu]'));
 	}],
 	['*', 'keydown', e => {
 		if (e.key !== 'Escape') return;
-		const panel = document.querySelector('[data-more-panel]:not([hidden])');
-		if (!panel) return;
-		panel.setAttribute('hidden', '');
-		document.querySelector('.more-toggle').setAttribute('aria-expanded', 'false');
+		closeMenus();
 	}]
 ];
 

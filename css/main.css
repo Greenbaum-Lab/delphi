@@ -355,14 +355,14 @@ input, select, textarea {
 
 .icon-btn-populations,
 .icon-btn-annotations,
-.more-toggle {
+.menu-toggle {
 	width: 36px;
 	height: 34px;
 }
 
 .icon-btn-populations svg,
 .icon-btn-annotations svg,
-.more-toggle svg {
+.menu-toggle svg {
 	width: 20px;
 	height: 20px;
 }
@@ -375,22 +375,10 @@ input, select, textarea {
 	color: var(--data-2);
 }
 
-.more-toggle {
+.more-toggle,
+.export-toggle {
 	color: var(--accent);
 	border-color: currentColor;
-}
-
-.icon-btn-placeholder {
-	border: 1px dashed var(--border-strong);
-}
-
-.icon-btn-placeholder:hover {
-	background: transparent;
-	color: var(--text-dim);
-}
-
-.icon-btn[aria-disabled="true"] {
-	cursor: default;
 }
 
 [data-tooltip] {
@@ -423,11 +411,12 @@ input, select, textarea {
 	transform: translateX(-50%) translateY(0);
 }
 
-.more-menu {
+.more-menu,
+.export-menu {
 	position: relative;
 }
 
-.more-panel {
+.menu-panel {
 	position: absolute;
 	top: calc(100% + 8px);
 	right: 0;
@@ -443,8 +432,32 @@ input, select, textarea {
 	z-index: 50;
 }
 
-.more-panel[hidden] {
+.menu-panel[hidden] {
 	display: none;
+}
+
+.menu-item {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	padding: 6px 8px;
+	border-radius: 5px;
+	color: var(--text);
+	font-size: 13px;
+	font-weight: 600;
+	cursor: pointer;
+}
+
+.menu-item:hover {
+	background: var(--bg);
+}
+
+.menu-item-note {
+	font-size: 11.5px;
+	font-weight: 400;
+	color: var(--text-dim);
+	white-space: nowrap;
+	pointer-events: none;
 }
 
 .more-row {
