@@ -55,24 +55,6 @@
 	src: url(https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTS-muw.woff2) format('woff2');
 	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
 }
-@font-face {
-	font-family: 'Open Sans';
-	font-style: normal;
-	font-weight: 600;
-	font-stretch: 100%;
-	font-display: swap;
-	src: url(https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTS-muw.woff2) format('woff2');
-	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
-@font-face {
-	font-family: 'Open Sans';
-	font-style: normal;
-	font-weight: 700;
-	font-stretch: 100%;
-	font-display: swap;
-	src: url(https://fonts.gstatic.com/s/opensans/v44/memvYaGs126MiZpBA-UvWbX2vVnXBbObj2OVTS-muw.woff2) format('woff2');
-	unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
-}
 
 * { padding: 0; margin: 0; outline: 0; box-sizing: border-box; }
 
@@ -254,10 +236,9 @@ input, select, textarea {
 	flex-wrap: wrap;
 	gap: 8px;
 	margin-bottom: 12px;
-	padding: 6px 8px;
 	background: var(--bg);
 	border-radius: 6px;
-	font-size: 13px;
+	font-size: 16px;
 	color: var(--text-dim);
 }
 
@@ -272,10 +253,11 @@ input, select, textarea {
 .control-group {
 	display: flex;
 	align-items: center;
-	gap: 4px;
+	gap: 0px;
 	border: 1px solid var(--border);
 	border-radius: 6px;
 	padding: 3px 6px;
+	background: #fff;
 }
 
 .control-group-populations {
@@ -305,15 +287,24 @@ input, select, textarea {
 	border: none;
 	background: transparent;
 	padding: 2px 3px;
-	font-weight: 600;
+	font-weight: 400;
 	color: var(--text);
 }
 
 .tracks-controls [data-icon]:empty {
-	font-size: 18px;
+	font-size: 22px;
 	line-height: 22px;
-	color: var(--accent);
-	text-shadow: 2px 2px var(--border-strong);
+	color: #276399;
+}
+
+.tracks-controls .sort-container [data-icon] {
+    font-size: 18px;
+}
+
+.open-dialog-button {
+    display: inline-block;
+    width: 100%;
+    padding: 4px 4px;
 }
 
 .icon-btn {
@@ -351,13 +342,6 @@ input, select, textarea {
 	background: var(--accent);
 	border-color: var(--accent);
 	color: #fff;
-}
-
-.icon-btn-populations,
-.icon-btn-annotations,
-.menu-toggle {
-	width: 36px;
-	height: 34px;
 }
 
 .icon-btn-populations svg,
@@ -443,8 +427,8 @@ input, select, textarea {
 	padding: 6px 8px;
 	border-radius: 5px;
 	color: var(--text);
-	font-size: 13px;
-	font-weight: 600;
+	font-size: 14px;
+	font-weight: 400;
 	cursor: pointer;
 }
 
@@ -576,7 +560,7 @@ input, select, textarea {
 	align-items: center;
 }
 .track-label {
-	font-weight: 700;
+	font-weight: 400;
 }
 .track-type {
 	color: var(--text-dim);
@@ -734,12 +718,12 @@ input, select, textarea {
 .selection-counter {
 	color: var(--text-dim);
 	margin-bottom: 1rem;
-	font-weight: 600;
+	font-weight: 400;
 }
 
 .selection-counter .selected-count {
 	color: var(--accent);
-	font-weight: 700;
+	font-weight: 400;
 }
 
 .population-list {
@@ -790,7 +774,7 @@ input, select, textarea {
 	border: none;
 	border-radius: 4px;
 	cursor: pointer;
-	font-weight: 600;
+	font-weight: 400;
 }
 
 .btn-cancel {
