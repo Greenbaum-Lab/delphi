@@ -241,7 +241,7 @@ const showTable = async (table_name, options={}) => {
 			try {
 				const populations_table = await getPopsData();
 				const columns = Object.keys(populations_table[0]);
-				return loadTable('Populations', populations_table, '<a data-action="select" data-select-col="label" data-subfunction="update-populations" class="button fright">Add</a><a data-action="new-population" class="button">Create new populations from aDNA</a><a data-action="select" data-select-col="label" data-subfunction="remove-population" class="button disabled">Remove population</a>', columns, [], [], 'multiRow', {label: getOptions().populations}, 'populations');
+				return loadTable('Populations', populations_table, '<a data-action="select" data-select-col="label" data-subfunction="update-populations" class="button fright">Update</a>', columns, [], [], 'multiRow', {label: getOptions().populations}, 'populations');
 			} catch (e) {
 				console.log(e);
 				return errorBox('No populations defined', 'Click "Generate new populations"', document.querySelector('[data-module="browser"]'));
