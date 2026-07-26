@@ -276,7 +276,6 @@ const processBatch = async () => {
 			label,
 			samples
 		}));
-		console.log(`[lambda] invoke ${chr}:${union_start}-${union_end} populations=${population_samples.length} batched_requests=${batch.length}`);
 		const tracks = await fetchFromLambda(chr, union_start, union_end, measure, population_samples);
 		const bins = calculateBins(union_start, union_end, CONFIG.LAMBDA_WINDOW_SIZE);
 		const store_promises = [];
