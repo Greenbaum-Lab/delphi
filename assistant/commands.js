@@ -2,36 +2,11 @@ import { getOptions } from '/apc/common.js';
 import { getPopsData } from '/browser/pops.js';
 import { loadGeneMap } from '/assets.js';
 import { parseRegion } from '/browser/region.js';
-import { resolveGene, resolvePopulation, RESOLVED, AMBIGUOUS } from '/assistant/resolvers.js';
-import { setMeasure, setSort, navigateToRegion, navigateToGene, addPopulations, replacePopulations, setAnnotations, OK, INVALID } from '/assistant/actions.js';
+import { resolveGene, resolvePopulation, RESOLVED } from '/assistant/resolvers.js';
+import { reply, failure, actionMessage, resolutionMessage } from '/assistant/messages.js';
+import { setMeasure, setSort, navigateToRegion, navigateToGene, addPopulations, replacePopulations, setAnnotations } from '/assistant/actions.js';
 
-export const HELP = 'Commands: measure <name>, sort <field> <asc|desc>, region <chrN:start-end>, gene <NAME>, add <label>, replace <label>, annotation <id>';
-
-const CONFIRMATIONS = {
-	set_measure: 'Statistic set.',
-	set_sort: 'Sort set.',
-	navigate_to_region: 'Moved to the region.',
-	navigate_to_gene: 'Moved to the gene.',
-	add_populations: 'Populations added.',
-	replace_populations: 'Populations replaced.',
-	set_annotations: 'Annotation set.'
-};
-
-const REJECTIONS = {
-	chr: 'That is not a chromosome DELPHI carries.',
-	coordinates: 'Those coordinates do not fit that chromosome.',
-	measure: 'That is not one of the four statistics.',
-	sort: 'That sort field is not offered for the current statistic.',
-	sort_dir: 'Sort direction must be asc or desc.',
-	gene: 'That gene entry carries no usable position.',
-	populations: 'No usable population was given.',
-	annotations: 'No usable annotation was given.',
-	browser: 'The browser module is not on the page.'
-};
-
-const reply = message => ({ ok: true, message });
-
-const failure = message => ({ ok: false, message });
+export const HELP = 'Commands: measure <name>, sort <field> <asc|desc>, region <chrN:start-end>, gene <NAME>, add <label>, replace <label>, annotation <id>. Anything else goes to the model.';
 
 const parseCommand = line => {
 	const trimmed = line.trim();
@@ -39,33 +14,6 @@ const parseCommand = line => {
 	if (separator === -1)
 		return { command: trimmed.toLowerCase(), argument: '' };
 	return { command: trimmed.slice(0, separator).toLowerCase(), argument: trimmed.slice(separator + 1).trim() };
-};
-
-/**
- * Turns an action result into what the panel says. Code chooses the wording
- * from the failure type (D-035): a parameter the action refused and a write
- * DELPHI did not keep are different failures and read differently. Only the
- * verb is lowercased by the parser; an argument is never normalised, because
- * the resolvers match exactly.
- */
-const actionMessage = action_result => {
-	if (action_result.status === OK)
-		return reply(CONFIRMATIONS[action_result.action]);
-	if (action_result.status === INVALID)
-		return failure(REJECTIONS[action_result.detail]);
-	return failure(`DELPHI did not keep the new ${action_result.detail}.`);
-};
-
-/**
- * Wording for a name that did not resolve. Several matches offer what was
- * found so the user can choose; nothing found says so plainly (D-035).
- * Matching is exact, so a near miss arrives here as nothing found rather than
- * as a guess.
- */
-const resolutionMessage = (resolution, kind, name) => {
-	if (resolution.status === AMBIGUOUS)
-		return failure(`${name} matches ${resolution.matches.length} ${kind} records. Name one of them exactly.`);
-	return failure(`No ${kind} named ${name}. Names must match exactly, including case.`);
 };
 
 const runGene = async gene_name => {
@@ -111,11 +59,13 @@ const COMMAND_RUNNERS = {
 	annotation: argument => actionMessage(setAnnotations([argument]))
 };
 
+export const isTypedCommand = line => Object.prototype.hasOwnProperty.call(COMMAND_RUNNERS, parseCommand(line).command);
+
 /**
- * Routes one typed command through the resolvers to the action layer. There is
- * no model in this path by design: it is the deterministic route a model call
- * will later feed, so proving it now means a later failure is the model's and
- * not the plumbing's.
+ * Routes one typed command through the resolvers to the action layer, with no
+ * model in the path. It is the deterministic route the model path feeds, kept
+ * as the way to exercise an action without spending the model's budget and to
+ * tell a routing failure apart from a model failure.
  */
 export const runCommand = async line => {
 	const { command, argument } = parseCommand(line);

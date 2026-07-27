@@ -1,5 +1,10 @@
 import { addHooks } from '/apc/common.js';
-import { runCommand, HELP } from '/assistant/commands.js';
+import { getMetadata } from '/assets.js';
+import { runCommand, isTypedCommand, HELP } from '/assistant/commands.js';
+import { route } from '/assistant/router.js';
+import { startModel, modelReady } from '/assistant/model.js';
+
+const ACTIVATION_KEYS = ['Enter', ' '];
 
 const MESSAGE_CLASSES = {
 	request: 'assistant-message-request',
@@ -22,6 +27,47 @@ const appendMessage = (panel, kind, text) => {
 	log.scrollTop = log.scrollHeight;
 };
 
+const setStatus = (panel, text) => {
+	const status = panel.querySelector('[data-assistant="status"]');
+	status.textContent = text;
+	status.toggleAttribute('hidden', text === '');
+};
+
+/**
+ * Pulls the 11MB per-sample metadata into memory ahead of any request. Stage 1
+ * established that DELPHI only loads it when a population is missing from
+ * IndexedDB, so in a warm session it is absent and the first request that needs
+ * it would pay the parse inside the 20s budget (D-033, D-036). The failure is
+ * logged rather than surfaced because this is a warm-up: nothing has been asked
+ * for yet, and every path that needs the file loads it again on demand.
+ */
+const warmCatalogues = () => {
+	getMetadata().catch(error => console.error(error));
+};
+
+/**
+ * Loads the model once, on the first open of the panel rather than on page
+ * load. CLAUDE.md says startup, and this is the startup of the assistant: a
+ * genome browser must not download 800MB for every visitor who never opens the
+ * panel, and the assistant is additive. The cost is that the first request
+ * after a cold open waits for the download; every later one does not.
+ */
+const startAssistant = async panel => {
+	if (modelReady())
+		return;
+	setStatus(panel, 'Loading the model. First load downloads about 800MB, cached after that.');
+	warmCatalogues();
+	try {
+		await startModel(progress => setStatus(panel, progress.text));
+		setStatus(panel, '');
+		appendMessage(panel, 'reply', 'Model ready.');
+	} catch (error) {
+		console.error(error);
+		setStatus(panel, '');
+		appendMessage(panel, 'failure', 'The model could not start, so plain language is unavailable. Typed commands still work.');
+	}
+};
+
 const togglePanel = (panel, open) => {
 	const toggle = document.querySelector('[data-action="toggle-assistant"]');
 	panel.toggleAttribute('hidden', !open);
@@ -33,17 +79,18 @@ const togglePanel = (panel, open) => {
 };
 
 /**
- * Runs one command and keeps the panel usable whatever happens. The catch is
- * deliberate and narrow: a rejected catalogue read must not leave the input
- * disabled and the user with no message, which is the one reason this layer
- * continues past an error rather than letting it surface.
+ * Runs one line and keeps the panel usable whatever happens. A line beginning
+ * with a known command word takes the deterministic path and never reaches the
+ * model; anything else is a request for the model to classify. The catch is
+ * deliberate and narrow: a rejected catalogue read or a model fault must not
+ * leave the input disabled and the user with no message.
  */
 const runAndReport = async line => {
 	try {
-		return await runCommand(line);
+		return isTypedCommand(line) ? await runCommand(line) : await route(line);
 	} catch (error) {
 		console.error(error);
-		return { ok: false, message: 'That command failed before it reached the browser.' };
+		return { ok: false, message: 'That request failed before it reached the browser.' };
 	}
 };
 
@@ -61,8 +108,6 @@ const submitCommand = async panel => {
 	input.focus();
 };
 
-const ACTIVATION_KEYS = ['Enter', ' '];
-
 const hooks = [
 	['[data-action="toggle-assistant"], [data-action="close-assistant"]', 'keydown', e => {
 		if (!ACTIVATION_KEYS.includes(e.key))
@@ -72,7 +117,10 @@ const hooks = [
 	}],
 	['[data-action="toggle-assistant"]', 'click', e => {
 		const panel = document.querySelector('.assistant-panel');
-		togglePanel(panel, panel.hasAttribute('hidden'));
+		const opening = panel.hasAttribute('hidden');
+		togglePanel(panel, opening);
+		if (opening)
+			startAssistant(panel);
 	}],
 	['[data-action="close-assistant"]', 'click', e => {
 		togglePanel(e.target.closest('.assistant-panel'), false);
@@ -89,8 +137,8 @@ const hooks = [
 
 /**
  * Starts the assistant panel. init.js finds this module from the panel's
- * data-module attribute, so nothing else has to import it. Stage 4 wires the
- * panel to the deterministic command path only; no model is loaded here.
+ * data-module attribute, so nothing else has to import it. The model is not
+ * loaded here; see startAssistant.
  */
 export const init = container => {
 	appendMessage(container, 'reply', HELP);
