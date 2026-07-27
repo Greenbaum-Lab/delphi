@@ -16,6 +16,7 @@
 	<symbol id="icon-guides" viewBox="0 0 24 24"><path d="M8 4v16M16 4v16" stroke-dasharray="2.5 2.5"/></symbol>
 	<symbol id="icon-export" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></symbol>
 	<symbol id="icon-reset" viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h9a7 7 0 0 1 0 14H8"/></symbol>
+	<symbol id="icon-assistant" viewBox="0 0 24 24"><path d="M4 5h16a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H9l-4 4v-4H4a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1Z"/><path d="M8 10h.01M12 10h.01M16 10h.01"/></symbol>
 </svg>
 <div class="wrap genome-browser" data-module="browser">
 	<header class="top-bar">
@@ -74,6 +75,12 @@
 
 			<div>
 				<a class="open-dialog-button" data-icon="P" data-action="open-annotations" data-tooltip="Add annotations" aria-label="Add annotations"></a>
+			</div>
+
+			<div>
+				<a class="icon-btn assistant-toggle" data-action="toggle-assistant" role="button" tabindex="0" data-tooltip="Open the assistant" aria-label="Open the assistant" aria-expanded="false" aria-controls="assistant-panel">
+					<svg aria-hidden="true"><use href="#icon-assistant"></use></svg>
+				</a>
 			</div>
 
 			<div class="controls-spacer"></div>
@@ -168,6 +175,16 @@
 			<div class="track-plot-area"></div>
 			<div class="track-tooltip"></div>
 		</template>
+		<div class="assistant-panel" id="assistant-panel" data-module="assistant" role="dialog" aria-label="Assistant" hidden>
+			<div class="assistant-header">
+				<h3>Assistant</h3>
+				<a data-icon="x" data-action="close-assistant" role="button" tabindex="0" data-tooltip="Close the assistant" aria-label="Close the assistant"></a>
+			</div>
+			<div class="assistant-log" data-assistant="log" role="log" aria-live="polite"></div>
+			<div class="assistant-entry">
+				<input type="text" class="assistant-input" data-assistant="input" placeholder="gene LCT" aria-label="Assistant command" autocomplete="off" spellcheck="false">
+			</div>
+		</div>
 	</main>
 	<!-- Footer -->
 	<footer class="footer">
