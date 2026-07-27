@@ -47,7 +47,7 @@ const runSet = async (engine, set_name, items) => {
 const summarize = (set_name, rows) => {
 	const latencies = rows.map(row => row.ms).sort((left, right) => left - right);
 	console.log(`${set_name}: overall ${rate(rows)}, excluding hard ${rate(rows.filter(row => !row.hard))}, latency p50 ${latencies[Math.floor(latencies.length / 2)]}ms max ${latencies[latencies.length - 1]}ms`);
-	console.table(byAction(rows));
+	Object.entries(byAction(rows)).forEach(([action, summary]) => console.log(`  ${set_name} ${action}: ${summary.passed}/${summary.tasks} = ${summary.rate}`));
 };
 
 /**

@@ -30,6 +30,13 @@ const resolveAndAct = async (population_label, populationAction) => {
 	return actionMessage(populationAction([resolution.matches[0]]));
 };
 
+/**
+ * Weak path. The model reaches this branch for 1 request in 6 that should
+ * reach it (assistant/MEASUREMENTS.md, run 4), so plain-language gene
+ * navigation does not work. Everything below the model is sound: exact-match
+ * resolution refuses whatever a misfire produces, and the typed command
+ * `gene NAME` reaches the same code with no model in the path.
+ */
 const actOnGene = async gene_name => {
 	const gene_track_id = (getOptions().annotations || [])[0];
 	if (!gene_track_id)
@@ -41,6 +48,13 @@ const actOnGene = async gene_name => {
 	return actionMessage(navigateToGene(resolution.matches[0]));
 };
 
+/**
+ * Weak path. Also 1 in 6 in run 4, having measured 1.00 one run earlier. The
+ * regression arrived with the action rename and the scoped question rule in the
+ * same change, so which of the two caused it is unattributed and needs a set
+ * that has not been spent. Reading the value is not the problem; choosing this
+ * branch is.
+ */
 const answerState = async field => {
 	const observed_state = await observeState();
 	const value = answerField(observed_state, field);

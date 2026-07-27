@@ -112,11 +112,115 @@ asking what something is right now, it covers what time is it and who won the
 world cup; three of four clarify failures went to answer_state. The rule is now
 scoped to what this browser is showing.
 
+## Run 4, action rename plus scoped question rule. Current state.
+
+Three sets, one engine, no state in the prompt. TEST is the only unburned set
+and the only number to quote.
+
+| capability | TEST, 6 each | held-out r2, 5 each |
+|---|---|---|
+| statistic | **1.00** | 1.00 |
+| sort | **1.00** | 1.00 |
+| region | 0.67 | 1.00 |
+| add_population | 0.67 | 1.00 |
+| replace_population | 0.67 | 0.20 |
+| clarify | 0.67 | 0.60 |
+| gene | **0.17** | 0.20 |
+| question | **0.17** | 0.40 |
+| **overall** | **0.63** | 0.68 |
+
+Latency p50 5491ms, max 6154ms. The 20s target in D-033 is met with a wide
+margin and is not the constraint on anything.
+
+The per-action table printed for TEST in the round-4 console was the
+development set's shape. The numbers above are recomputed from the per-utterance
+lines. summarize now labels each line with its set name so the tables cannot be
+confused again.
+
+### The rename did not do what I claimed it would
+
+The prefix theory was that three actions named select_gene, select_statistic and
+select_sort put the whole decision on the token after select_. Held-out round 2
+ran under both schemes and is the controlled comparison: gene scored 0.20 before
+the rename and 0.20 after. The shared prefix was not the cause. The change is
+kept because reverting it is another untested change, not because it was shown
+to help.
+
+### The question regression is confounded, and that is my error
+
+On the same held-out set, question fell from 1.00 to 0.40 while clarify rose
+from 0.20 to 0.60. The action rename and the scoping of the question rule landed
+in the same run, so neither can be attributed. Separating them needs a set that
+has not been spent.
+
+### Failures have an attractor, and it moves
+
+In run 3 misclassifications piled onto select_statistic. In run 4 they pile onto
+sort: look at ADH1B, throw in the Yakut, how far am I zoomed in, remind me which
+populations are up. The attractor changes with the naming, which suggests that
+for the weak categories the model is not discriminating at all but falling to
+whichever branch is cheapest that run. Prompt wording has not moved that, across
+three attempts.
+
+---
+
+# Issues that persist and need attention
+
+## 1. gene at 0.17 is the worst result on the board
+
+Six TEST utterances, one pass. Failures scatter to statistic, sort and
+replace_population, and get me to VDR produced replace_population with
+population_label VDR, which is a gene symbol offered as a population.
+
+Nothing is unsafe about it: exact-match resolution refuses VDR as a population
+label and the user gets a clarify. But plain-language gene navigation does not
+work, and it is the capability most likely to be tried first.
+
+The deterministic path is unaffected. Typing `gene TP53` resolves and jumps
+every time, and that path has no model in it.
+
+## 2. question at 0.17, having been 1.00 one run earlier
+
+which statistic is active right now goes to statistic; what is my current window
+size goes to clarify; how far am I zoomed in goes to sort. Asking about a field
+and setting it are not being told apart, and the run that had this at 1.00 is
+the run before the confounded change.
+
+## 3. Three attempts at prompt wording have not fixed the weak categories
+
+clarify bias, then action bias, then a rename. Each moved which categories fail
+without moving how many. This is the point at which D-013's revisit trigger
+deserves a straight answer rather than a fourth attempt: measured reliability of
+the 1B model may be too low for these two capabilities regardless of prompt.
+
+Untried, in rough order of cost: a two-call design, which the 5.5s measurement
+makes affordable inside the 20s budget and which D-029's schema fixes implied;
+a larger model within the D-013 RAM budget, which the record puts out of scope
+for v1; or cutting gene and question from the model path and leaving them to
+typed commands.
+
+## 4. Six samples per capability cannot support a rate
+
+D-022 specifies 25-40 tasks per type. statistic and sort at 6/6 mean not
+obviously broken, not 1.00. Nothing here should be quoted as a capability
+number, and all three sets are now burned.
+
+## 5. Three decision records are contradicted by the code
+
+D-025, the sort option set. D-019, whose T-5 control cannot be implemented as
+written because ESM imports take no SRI. D-020, whose ratified per-turn
+serialization is no longer on the shipping path. Each needs a superseding
+record, which is the owner's to write.
+
+---
+
 ### The decision this bears on
 
 D-013 made Llama-3.2-1B the v1 target with reliability explicitly unmeasured,
 and its revisit trigger reads: measured reliability of the 1B model is too low
-to ship any useful capability. 0.62 overall, with two capabilities at or near
-zero, is the first evidence against that record. It is not yet enough to fire
-the trigger, because the remaining failures are concentrated in prompt problems
-that have not had one honest attempt at a fix.
+to ship any useful capability. 0.63 on the unburned set, with gene and
+question at 0.17 after three separate attempts at the prompt, is real evidence
+against that record. Five of eight capabilities are at 0.67 or better and two
+are at 1.00 on six samples, so the trigger has not fired for the whole
+assistant. For gene and question specifically it is close, and the next move
+should be a design change or a scope cut rather than a fourth rewording.

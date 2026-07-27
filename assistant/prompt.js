@@ -42,11 +42,19 @@ const SYSTEM_PROMPT = [
 /**
  * Builds the two messages for one turn.
  *
- * The action names deliberately share no leading token. Under a constrained
- * grammar the model emits the action string one token at a time, so three
- * actions named select_gene, select_statistic and select_sort put the whole
- * decision on the token after select_, and gene requests were landing on
- * statistic. gene, region, statistic and sort separate at the first token.
+ * Measured state, and the standing warning about editing this file: three
+ * separate rewrites have moved which categories fail without moving how many.
+ * Clarify bias, then action bias, then this. Current unburned measurement is
+ * 0.63 overall with gene and question at 0.17; see assistant/MEASUREMENTS.md.
+ * All three utterance sets are burned, so a fourth rewording cannot be
+ * evaluated until a new set exists, and the honest next move is a design change
+ * or a scope cut rather than more wording.
+ *
+ * The action names share no leading token. The theory was that select_gene,
+ * select_statistic and select_sort put the whole decision on the token after
+ * select_. The controlled comparison refuted it: gene scored 0.20 both before
+ * and after the rename. The naming is kept because reverting is another
+ * untested change, not because it was shown to help.
  *
  * The guide, the distinctions and the examples exist because the grammar
  * constrains the shape of the output and nothing else. A model shown eight
@@ -55,9 +63,11 @@ const SYSTEM_PROMPT = [
  * and the second reached for an action on every one. All three sections cost
  * prefill only, and measured latency leaves room.
  *
- * The question rule is scoped to this browser's own display. Stated as any
+ * The question rule is scoped to what this browser shows. Stated as any
  * question about what something is now, it swallowed what time is it and who
- * won the world cup, which are clarify.
+ * won the world cup, which are clarify. Scoping it fixed those and coincided
+ * with question itself falling from 1.00 to 0.40, in the same change as the
+ * rename, so the two are confounded.
  *
  * The copy-exactly line is deliberate: resolution is exact match (D-026), so a
  * model that tidies a name turns a resolvable request into a clarify.
