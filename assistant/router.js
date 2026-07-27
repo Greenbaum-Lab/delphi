@@ -2,7 +2,6 @@ import { getOptions } from '/apc/common.js';
 import { getPopsData } from '/browser/pops.js';
 import { loadGeneMap } from '/assets.js';
 import { observeState } from '/assistant/state_observer.js';
-import { serializeState } from '/assistant/state_serializer.js';
 import { buildMessages } from '/assistant/prompt.js';
 import { COMMAND_SCHEMA, CLARIFY } from '/assistant/schemas.js';
 import { startModel, generate } from '/assistant/model.js';
@@ -42,7 +41,8 @@ const actOnGene = async gene_name => {
 	return actionMessage(navigateToGene(resolution.matches[0]));
 };
 
-const answerState = (observed_state, field) => {
+const answerState = async field => {
+	const observed_state = await observeState();
 	const value = answerField(observed_state, field);
 	return value === null ? failure(NOT_UNDERSTOOD) : reply(`${field}: ${value}`);
 };
@@ -56,7 +56,7 @@ const answerState = (observed_state, field) => {
  * Exported so the whole decision table can be exercised with synthetic
  * commands, on hardware that cannot run the model at all.
  */
-export const applyCommand = (command, observed_state) => {
+export const applyCommand = command => {
 	switch (command.action) {
 		case 'navigate': return actionMessage(navigateToRegion(command.chr, command.start, command.end));
 		case 'select_gene': return actOnGene(command.gene_name);
@@ -64,25 +64,35 @@ export const applyCommand = (command, observed_state) => {
 		case 'select_sort': return actionMessage(setSort(command.sort_field, command.sort_direction));
 		case 'add_population': return resolveAndAct(command.population_label, addPopulations);
 		case 'replace_population': return resolveAndAct(command.population_label, replacePopulations);
-		case 'answer_state': return answerState(observed_state, command.field);
+		case 'answer_state': return answerState(command.field);
 		default: return failure(NOT_UNDERSTOOD);
 	}
 };
 
 /**
- * One request, one model call. Code reads the state, serializes it, asks the
- * model for a single command, then resolves and acts on its own. The model
- * classifies and extracts; routing, resolution, validation, verification and
- * the wording of every reply are ordinary code, which is where they belong.
+ * One request, one model call. The model classifies and extracts; routing,
+ * resolution, validation, verification and the wording of every reply are
+ * ordinary code, which is where they belong.
+ *
+ * The model is shown no state. Measured on 26 held-out utterances, the same
+ * engine scored 0.62 without the state block against 0.38 with it, better on
+ * four capabilities and worse on none, 16 percent faster, and the six borrowed
+ * names fell to zero: with the block present the model answered with values it
+ * could see, gencode19_genes and heterozygosity, for requests naming neither.
+ *
+ * It needs no state to do its job. It picks an action and extracts a name from
+ * the request, and a state question needs only the field name, whose value
+ * answerState reads afterwards. A consequence worth keeping: no string of data
+ * provenance now reaches the prompt on any turn, so the injection surface T-2
+ * reasons about is closed structurally rather than by a fence.
  */
 export const route = async utterance => {
 	const engine = await startModel();
-	const observed_state = await observeState();
-	const raw_text = await generate(engine, buildMessages(serializeState(observed_state), utterance), COMMAND_SCHEMA);
+	const raw_text = await generate(engine, buildMessages('', utterance), COMMAND_SCHEMA);
 	const command = parseCommand(raw_text);
 	if (!command || typeof command.action !== 'string')
 		return failure(MALFORMED);
 	if (command.action === CLARIFY)
 		return failure(NOT_UNDERSTOOD);
-	return applyCommand(command, observed_state);
+	return applyCommand(command);
 };
