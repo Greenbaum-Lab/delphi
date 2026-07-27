@@ -164,6 +164,58 @@ three attempts.
 
 ---
 
+## Run 5 protocol, recorded before the run
+
+Written down first on purpose. Every earlier round decided what counted after
+seeing numbers, and run 1 was void because of it.
+
+**Two sets, and they do different jobs.**
+
+- `SELECTION_SET`, 128 utterances, 16 per capability, in
+  `assistant/eval_selection.js`. Models are compared on this, and any tuning
+  that follows is measured on this. It is expected to be spent.
+- `FINAL_SET`, 200 utterances, 25 per capability, in `assistant/eval_final.js`.
+  Run once, on the configuration already chosen, and not looked at before that
+  choice. 25 per capability is D-022's floor and the first set in this project
+  to reach it.
+
+Selecting on one set and reporting on the other is the whole point. A model
+picked as best of three on a set will score high on that set whether or not it
+is better, and quoting that number would repeat run 1's error with more
+arithmetic on top.
+
+**Both sets were verified mechanically, not by eye.** Every gene symbol exists
+in the real gencode19 name map (55,765 entries), every population label exists
+in the real 147-entry catalogue, every region lies inside `CHR_LENGTHS`, the
+per-capability counts are exactly even, and the overlap with `DEV_SET`,
+`HELD_OUT_SET` and `TEST_SET` is zero. A classification pass is therefore also
+a request that would have resolved.
+
+**Three arms**, in `assistant/bench.js`:
+
+| model | status |
+|---|---|
+| Llama-3.2-1B-Instruct-q4f16_1 | incumbent, named by D-013 |
+| Qwen2.5-1.5B-Instruct-q4f16_1 | candidate, same memory class, different family |
+| Llama-3.2-3B-Instruct-q4f16_1 | ceiling reading only, out of scope by D-013 |
+
+The 3B arm is diagnostic and is not a shipping candidate. It answers one
+question the other two cannot: whether the weak categories move with model
+capability at all. If 3B fails `gene` and `question` too, then no model swap
+fixes them and the design is what is wrong, which would settle the open
+question left at the end of run 4.
+
+**One variable.** Same prompt, same schema, same no-state router, same
+utterances in the same order, temperature 0. Only the model id changes. Run 4's
+confounded change is the reason this is stated explicitly.
+
+**What gets reported.** Per capability, never pooled into a single headline
+alone (D-029), plus a confusion breakdown of what each failure was classified
+as. Run 3 and run 4 had similar overall rates while failing different
+categories, and the rates alone could not show that.
+
+---
+
 # Issues that persist and need attention
 
 ## 1. gene at 0.17 is the worst result on the board

@@ -33,7 +33,7 @@ const byAction = rows => Object.fromEntries([...new Set(rows.map(row => row.expe
 	return [expected, { tasks: group.length, passed: group.filter(row => row.passed).length, rate: rate(group) }];
 }));
 
-const runSet = async (engine, set_name, items) => {
+export const probeSet = async (engine, set_name, items) => {
 	console.log(`--- ${set_name}, ${items.length} utterances ---`);
 	const rows = [];
 	for (const item of items) {
@@ -44,10 +44,27 @@ const runSet = async (engine, set_name, items) => {
 	return rows;
 };
 
-const summarize = (set_name, rows) => {
+export const summarize = (set_name, rows) => {
 	const latencies = rows.map(row => row.ms).sort((left, right) => left - right);
 	console.log(`${set_name}: overall ${rate(rows)}, excluding hard ${rate(rows.filter(row => !row.hard))}, latency p50 ${latencies[Math.floor(latencies.length / 2)]}ms max ${latencies[latencies.length - 1]}ms`);
 	Object.entries(byAction(rows)).forEach(([action, summary]) => console.log(`  ${set_name} ${action}: ${summary.passed}/${summary.tasks} = ${summary.rate}`));
+};
+
+/**
+ * Where the failures went. A capability's rate says how often it is wrong; this
+ * says what it is wrong as, which is the only thing that separates a model that
+ * cannot tell two categories apart from one that collapses onto whichever
+ * branch is cheapest. Run 3 and run 4 differed on exactly that and the rates
+ * alone could not show it.
+ */
+export const confusion = (set_name, rows) => {
+	const failures = rows.filter(row => !row.passed);
+	console.log(`${set_name}: ${failures.length} failures by expected -> chosen`);
+	[...new Set(failures.map(row => row.expected))].forEach(expected => {
+		const chosen = failures.filter(row => row.expected === expected).map(row => row.action);
+		const tally = [...new Set(chosen)].map(action => `${action} x${chosen.filter(item => item === action).length}`);
+		console.log(`  ${expected} -> ${tally.join(', ')}`);
+	});
 };
 
 /**
@@ -68,9 +85,9 @@ const summarize = (set_name, rows) => {
 export const run = async () => {
 	const engine = await startModel(progress => console.log(progress.text));
 	console.log(`${MODEL_METADATA.model_id}, ${DEV_SET.length + HELD_OUT_SET.length + TEST_SET.length} utterances over three sets`);
-	const test_rows = await runSet(engine, 'TEST (unburned)', TEST_SET);
-	const dev_rows = await runSet(engine, 'dev (burned)', DEV_SET);
-	const held_out_rows = await runSet(engine, 'held-out round 2 (burned)', HELD_OUT_SET);
+	const test_rows = await probeSet(engine, 'TEST (unburned)', TEST_SET);
+	const dev_rows = await probeSet(engine, 'dev (burned)', DEV_SET);
+	const held_out_rows = await probeSet(engine, 'held-out round 2 (burned)', HELD_OUT_SET);
 	summarize('TEST (unburned)', test_rows);
 	summarize('dev (burned)', dev_rows);
 	summarize('held-out round 2 (burned)', held_out_rows);

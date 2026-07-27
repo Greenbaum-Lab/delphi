@@ -34,6 +34,32 @@ export const startModel = progress_callback => {
 export const modelReady = () => engine_promise !== null;
 
 /**
+ * Starts a named model for measurement, uncached, so two candidates can be
+ * compared in one session. The shipping path is startModel and is unaffected:
+ * it keeps its own single cached engine on the constant above.
+ *
+ * The caller owns the returned engine and must pass it to unloadModel before
+ * loading the next one, or the second load competes with the first for GPU
+ * memory on hardware that has little of it (D-031).
+ */
+export const startNamedModel = async (model_id, progress_callback) => {
+	const web_llm = await import(WEBLLM_MODULE_URL);
+	return web_llm.CreateMLCEngine(model_id, { initProgressCallback: progress_callback });
+};
+
+export const unloadModel = engine => engine && typeof engine.unload === 'function' ? engine.unload() : Promise.resolve();
+
+/**
+ * Every model id the pinned WebLLM build can load. Read rather than assumed, so
+ * a candidate that does not exist is caught before a long run rather than
+ * halfway through one.
+ */
+export const listModelIds = async () => {
+	const web_llm = await import(WEBLLM_MODULE_URL);
+	return web_llm.prebuiltAppConfig.model_list.map(entry => entry.model_id);
+};
+
+/**
  * One constrained generation. Temperature is zero and the token ceiling is
  * low, because every generated token costs roughly 0.44s on the integrated
  * chip D-031 makes the target and the whole budget is 20s (D-033). The schema
