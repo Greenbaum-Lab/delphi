@@ -1,32 +1,32 @@
 const ACTION_GUIDE = [
 	'Actions, and when each applies:',
-	'select_gene - the request names a gene symbol, such as HBB or BRCA2',
-	'navigate - the request gives chromosome coordinates, with or without a verb',
-	'select_statistic - the request asks for a different statistic: heterozygosity, fst, tajimasd, fulif',
+	'gene - the request names a gene symbol, such as HBB or BRCA2',
+	'region - the request gives chromosome coordinates, with or without a verb',
+	'statistic - the request asks for a different statistic: heterozygosity, fst, tajimasd, fulif',
 	'add_population - the request names a population to show alongside the ones already shown',
 	'replace_population - the request names a population and asks for that one alone',
-	'select_sort - the request asks to reorder or rank the tracks by a field and a direction',
-	'answer_state - the request is a question about what is displayed now, and changes nothing',
-	'clarify - the request is not about this genome browser, or names nothing to act on'
+	'sort - the request asks to reorder or rank the tracks by a field and a direction',
+	'question - the request asks about the browser itself: its region, statistic, mode, zoom, window, sort or populations',
+	'clarify - anything else'
 ].join('\n');
 
 const DISTINCTIONS = [
 	'Telling them apart:',
 	'A gene symbol is short, capitalised letters and digits. A population is a people, a country or a place. Both are just a name, so decide from which kind of thing it is.',
-	'Adding is the default for a population. Choose replace_population only when the request says only, just, instead, or otherwise asks for the rest to go.',
-	'A request that asks what something is right now is answer_state. A request that asks for something to become different is a change. Naming a statistic in a question does not make it select_statistic.',
-	'Small talk, a greeting, a thank you, or anything not about this browser is clarify. Do not reach for an action when the request names nothing to act on.'
+	'Adding is the default for a population. Choose replace_population only when the request says only, just, instead, nothing but, or otherwise asks for the rest to go.',
+	'question is only for what this browser is showing. A question about the world, about you, or about anything outside this browser is clarify, however it is phrased.',
+	'clarify is the answer for small talk, greetings, thanks, requests to write or explain something, and anything this browser does not do. Do not reach for an action when the request names nothing in the browser to act on.'
 ].join('\n');
 
 const EXAMPLES = [
 	'Examples:',
-	'open the HBB locus -> {"action":"select_gene","gene_name":"HBB"}',
-	'chr9:20000000-21000000 -> {"action":"navigate","chr":"chr9","start":20000000,"end":21000000}',
-	'I want to see fulif -> {"action":"select_statistic","measure":"fulif"}',
+	'open the HBB locus -> {"action":"gene","gene_name":"HBB"}',
+	'chr9:20000000-21000000 -> {"action":"region","chr":"chr9","start":20000000,"end":21000000}',
+	'I want to see fulif -> {"action":"statistic","measure":"fulif"}',
 	'include Sardinian -> {"action":"add_population","population_label":"Sardinian"}',
 	'only Papuan, nothing else -> {"action":"replace_population","population_label":"Papuan"}',
-	'order by Precipitation_index descending -> {"action":"select_sort","sort_field":"Precipitation_index","sort_direction":"desc"}',
-	'which chromosome is this -> {"action":"answer_state","field":"chr"}',
+	'order by Precipitation_index descending -> {"action":"sort","sort_field":"Precipitation_index","sort_direction":"desc"}',
+	'which chromosome is this -> {"action":"question","field":"chr"}',
 	'what is the capital of France -> {"action":"clarify"}',
 	'tell me a joke -> {"action":"clarify"}'
 ].join('\n');
@@ -42,23 +42,28 @@ const SYSTEM_PROMPT = [
 /**
  * Builds the two messages for one turn.
  *
- * The action guide, the distinctions and the examples exist because the
- * grammar constrains the shape of the output and nothing else. A model shown
- * eight action names and told nothing about them takes whichever branch needs
- * no understanding, which is how the first run returned clarify for seven of
- * eight requests and the second reached for an action on every one. All three
- * sections cost prefill only, and measured latency leaves room.
+ * The action names deliberately share no leading token. Under a constrained
+ * grammar the model emits the action string one token at a time, so three
+ * actions named select_gene, select_statistic and select_sort put the whole
+ * decision on the token after select_, and gene requests were landing on
+ * statistic. gene, region, statistic and sort separate at the first token.
  *
- * The distinctions address the three confusions the development set exposed as
- * kinds rather than as items: a population read as a gene, a question about a
- * field read as a request to change it, and clarify never chosen. They are
- * stated as rules about the categories, not as the failing phrasings.
+ * The guide, the distinctions and the examples exist because the grammar
+ * constrains the shape of the output and nothing else. A model shown eight
+ * action names and told nothing about them takes whichever branch needs no
+ * understanding: the first run returned clarify for seven of eight requests,
+ * and the second reached for an action on every one. All three sections cost
+ * prefill only, and measured latency leaves room.
+ *
+ * The question rule is scoped to this browser's own display. Stated as any
+ * question about what something is now, it swallowed what time is it and who
+ * won the world cup, which are clarify.
  *
  * The copy-exactly line is deliberate: resolution is exact match (D-026), so a
  * model that tidies a name turns a resolvable request into a clarify.
  *
  * The serialized state is no longer passed on the shipping path; see route().
- * The parameter is kept so diagnose.js can still reproduce the comparison that
+ * The parameter is kept so diagnose.js can reproduce the comparison that
  * settled it.
  */
 export const buildMessages = (serialized_state, utterance) => [

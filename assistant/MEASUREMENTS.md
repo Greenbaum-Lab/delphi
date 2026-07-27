@@ -73,6 +73,45 @@ and `select_gene` at 5/5 are not evidence of a 1.00 rate; they are evidence
 those capabilities are not obviously broken. Nothing here should be quoted as a
 capability number.
 
+## Run 3, prompt rules stated as categories
+
+Development set 0.65, held-out set 0.70. Held-out scoring above development is
+the control passing: the rules generalised rather than memorised the failures
+they were written against.
+
+| capability | held-out, 5 each |
+|---|---|
+| navigate | 1.00 |
+| select_statistic | 1.00 |
+| add_population | 1.00 |
+| select_sort | 1.00 |
+| answer_state | 1.00 |
+| select_gene | 0.20 |
+| replace_population | 0.20 |
+| clarify | 0.20 |
+| **overall** | **0.70** |
+
+Latency p50 5545ms, max 6331ms. Higher than run 2's 4103ms, from the longer
+prompt; still a quarter of the 20s target.
+
+Five capabilities at 5/5 is not five capabilities at 1.00. Five samples cannot
+distinguish a rate of 1.00 from one near 0.6, and nothing here should be quoted
+as a capability number.
+
+### Two defects this exposed, both mine
+
+**Three actions shared the select_ prefix.** Under a constrained grammar the
+action string is emitted a token at a time, so select_gene, select_statistic
+and select_sort put the entire decision on the token after select_. Three of
+four gene failures went to select_statistic. Actions are renamed to gene,
+region, statistic, sort, question, add_population, replace_population and
+clarify, which separate at the first token.
+
+**The answer_state rule was too broad as written.** Stated as any request
+asking what something is right now, it covers what time is it and who won the
+world cup; three of four clarify failures went to answer_state. The rule is now
+scoped to what this browser is showing.
+
 ### The decision this bears on
 
 D-013 made Llama-3.2-1B the v1 target with reliability explicitly unmeasured,

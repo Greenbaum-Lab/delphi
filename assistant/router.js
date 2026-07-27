@@ -58,13 +58,13 @@ const answerState = async field => {
  */
 export const applyCommand = command => {
 	switch (command.action) {
-		case 'navigate': return actionMessage(navigateToRegion(command.chr, command.start, command.end));
-		case 'select_gene': return actOnGene(command.gene_name);
-		case 'select_statistic': return actionMessage(setMeasure(command.measure));
-		case 'select_sort': return actionMessage(setSort(command.sort_field, command.sort_direction));
+		case 'region': return actionMessage(navigateToRegion(command.chr, command.start, command.end));
+		case 'gene': return actOnGene(command.gene_name);
+		case 'statistic': return actionMessage(setMeasure(command.measure));
+		case 'sort': return actionMessage(setSort(command.sort_field, command.sort_direction));
 		case 'add_population': return resolveAndAct(command.population_label, addPopulations);
 		case 'replace_population': return resolveAndAct(command.population_label, replacePopulations);
-		case 'answer_state': return answerState(command.field);
+		case 'question': return answerState(command.field);
 		default: return failure(OFF_TOPIC);
 	}
 };

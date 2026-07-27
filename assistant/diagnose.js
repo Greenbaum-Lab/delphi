@@ -1,7 +1,7 @@
 import { startModel, generate, MODEL_METADATA } from '/assistant/model.js';
 import { COMMAND_SCHEMA } from '/assistant/schemas.js';
 import { buildMessages } from '/assistant/prompt.js';
-import { DEV_SET, HELD_OUT_SET } from '/assistant/eval_set.js';
+import { DEV_SET, HELD_OUT_SET, TEST_SET } from '/assistant/eval_set.js';
 
 const FREE_TEXT_KEYS = ['gene_name', 'population_label'];
 
@@ -54,11 +54,12 @@ const summarize = (set_name, rows) => {
  * Runs both sets against one engine, no state in the prompt, and reports each
  * separately.
  *
- * The held-out number is the one that means anything. The development number
- * is reported beside it because a prompt change that does not move the set it
- * was written against has not done what it claimed, and because a large gap
- * between the two is the signature of a fix that memorised rather than
- * generalised.
+ * TEST is the only unburned set and the only number worth quoting. The two
+ * burned sets run beside it as controls: a change that does not move the sets
+ * it was written against has not done what it claimed, and a run where those
+ * rise while TEST does not is the signature of memorising.
+ *
+ * TEST runs first so a run cut short still produces the number that counts.
  *
  * It acts on nothing: no option is written and no event dispatched.
  *
@@ -66,10 +67,12 @@ const summarize = (set_name, rows) => {
  */
 export const run = async () => {
 	const engine = await startModel(progress => console.log(progress.text));
-	console.log(`${MODEL_METADATA.model_id}, dev ${DEV_SET.length} + held-out ${HELD_OUT_SET.length} utterances`);
-	const dev_rows = await runSet(engine, 'development (burned)', DEV_SET);
-	const held_out_rows = await runSet(engine, 'held out', HELD_OUT_SET);
-	summarize('development (burned)', dev_rows);
-	summarize('held out', held_out_rows);
-	return { dev: dev_rows, held_out: held_out_rows };
+	console.log(`${MODEL_METADATA.model_id}, ${DEV_SET.length + HELD_OUT_SET.length + TEST_SET.length} utterances over three sets`);
+	const test_rows = await runSet(engine, 'TEST (unburned)', TEST_SET);
+	const dev_rows = await runSet(engine, 'dev (burned)', DEV_SET);
+	const held_out_rows = await runSet(engine, 'held-out round 2 (burned)', HELD_OUT_SET);
+	summarize('TEST (unburned)', test_rows);
+	summarize('dev (burned)', dev_rows);
+	summarize('held-out round 2 (burned)', held_out_rows);
+	return { test: test_rows, dev: dev_rows, held_out: held_out_rows };
 };
