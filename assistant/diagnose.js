@@ -3,60 +3,64 @@ import { COMMAND_SCHEMA } from '/assistant/schemas.js';
 import { observeState } from '/assistant/state_observer.js';
 import { serializeState } from '/assistant/state_serializer.js';
 import { buildMessages } from '/assistant/prompt.js';
+import { EVAL_SET } from '/assistant/eval_set.js';
 
-const UTTERANCES = [
-	'show me population Basque',
-	'take me to the lactase gene',
-	'switch to FST',
-	'what statistic am I looking at',
-	'sort by distance from Africa, descending',
-	'go to chr2:136545000-136594000',
-	'add the San as well',
-	'make me a sandwich'
-];
+const NAME_KEYS = ['gene_name', 'population_label', 'measure', 'sort_field', 'field', 'chr'];
 
-const parseOutcome = raw_text => {
+const parseCommand = raw_text => {
 	try {
-		const command = JSON.parse(raw_text);
-		return typeof command.action === 'string' ? command.action : 'no action field';
+		return JSON.parse(raw_text);
 	} catch (error) {
-		return 'unparseable';
+		return null;
 	}
 };
 
-const probe = async (engine, serialized_state, utterance) => {
+const extractedName = command => {
+	const key = NAME_KEYS.find(name_key => command[name_key] !== undefined);
+	return key === undefined ? '' : String(command[key]);
+};
+
+const probe = async (engine, serialized_state, item) => {
 	const started_at = performance.now();
-	try {
-		const raw_text = await generate(engine, buildMessages(serialized_state, utterance), COMMAND_SCHEMA);
-		return { utterance, outcome: parseOutcome(raw_text), raw: raw_text, ms: Math.round(performance.now() - started_at) };
-	} catch (error) {
-		return { utterance, outcome: 'threw', raw: error.message, ms: Math.round(performance.now() - started_at) };
-	}
+	const raw_text = await generate(engine, buildMessages(serialized_state, item.utterance), COMMAND_SCHEMA);
+	const command = parseCommand(raw_text);
+	const action = command && typeof command.action === 'string' ? command.action : 'unparseable';
+	return { utterance: item.utterance, expected: item.expected, action, passed: action === item.expected, hard: Boolean(item.hard), extracted: command ? extractedName(command) : '', borrowed: Boolean(command) && serialized_state.includes(extractedName(command)) && extractedName(command) !== '', ms: Math.round(performance.now() - started_at) };
 };
+
+const rate = rows => rows.length === 0 ? null : Number((rows.filter(row => row.passed).length / rows.length).toFixed(2));
+
+const byAction = rows => Object.fromEntries([...new Set(rows.map(row => row.expected))].map(expected => {
+	const group = rows.filter(row => row.expected === expected);
+	return [expected, { tasks: group.length, passed: group.filter(row => row.passed).length, rate: rate(group) }];
+}));
 
 /**
- * Asks the model for one command per fixed utterance and reports exactly what
- * came back, unedited. This is the instrument the router deliberately lacks:
- * the router discards raw output once it has parsed it, so a model that emits
- * the wrong shape is indistinguishable from one that emits nothing.
+ * Runs the held-out set and reports per-action success, never one headline
+ * number, because a pooled figure hides which capability is usable.
  *
- * It acts on nothing. No option is written and no event is dispatched, so the
- * view is the same after a run as before it, and the state every utterance was
- * shown is identical.
+ * borrowed flags an extracted name that appears verbatim in the state block.
+ * That is the failure the first tuned run exposed, where the model answered
+ * with DELPHI_STATE 1 and gencode19_genes as gene names, and it needs its own
+ * count because exact-match resolution hides it behind an ordinary clarify.
  *
- * Run it from the DELPHI page console:
+ * It acts on nothing: no option is written, no event dispatched, and every
+ * utterance sees identical state.
+ *
  *   (await import('/assistant/diagnose.js')).run()
  */
 export const run = async () => {
 	const engine = await startModel(progress => console.log(progress.text));
 	const serialized_state = serializeState(await observeState());
-	console.log(`model ${MODEL_METADATA.model_id}, state ${serialized_state.length} chars, schema ${JSON.stringify(COMMAND_SCHEMA).length} chars`);
+	console.log(`${MODEL_METADATA.model_id}, ${EVAL_SET.length} held-out utterances, state ${serialized_state.length} chars`);
 	const rows = [];
-	for (const utterance of UTTERANCES) {
-		const row = await probe(engine, serialized_state, utterance);
-		console.log(`${row.ms}ms  ${row.outcome}  ${row.utterance}  ->  ${row.raw}`);
+	for (const item of EVAL_SET) {
+		const row = await probe(engine, serialized_state, item);
+		console.log(`${row.passed ? 'pass' : 'FAIL'} ${row.ms}ms  ${row.utterance}  ->  ${row.action}${row.extracted ? ` (${row.extracted})` : ''}${row.borrowed ? '  BORROWED-FROM-STATE' : ''}`);
 		rows.push(row);
 	}
-	console.table(rows.map(row => ({ utterance: row.utterance, outcome: row.outcome, ms: row.ms })));
+	const latencies = rows.map(row => row.ms).sort((left, right) => left - right);
+	console.table(byAction(rows));
+	console.log(`overall ${rate(rows)}, excluding hard ${rate(rows.filter(row => !row.hard))}, borrowed names ${rows.filter(row => row.borrowed).length}, latency p50 ${latencies[Math.floor(latencies.length / 2)]}ms max ${latencies[latencies.length - 1]}ms`);
 	return rows;
 };
