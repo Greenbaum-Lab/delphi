@@ -690,3 +690,191 @@ Agent 0, declined by owner).
 
 **Revisit if:** Users report losing their place, or capability scope widens
 beyond view state.
+
+
+Append these to the end of DECISIONS.md. Do not edit any existing record.
+
+---
+
+## D-030: Confirmation gating is removed from v1  [SUPERSEDES D-004]
+
+**Decision:** The assistant acts on its scoped actions without asking the user
+to confirm. No confirmation step and no undo mechanism ship in v1.
+
+**Owner's condition:** The assistant may act freely provided the step is
+valid. A population must exist, a gene must exist, coordinates must fit the
+chromosome. Validation replaces confirmation as the guard.
+
+**Driver:** Owner decision, 2026-07-27.
+
+**Constraint change:** Block 0 constraint 4 (CONFIRMED ACTIONS ONLY) is
+withdrawn by the owner. Constraint 4 is now the hardware target; see D-031.
+
+**Security assessment:** No live security control depended on confirmation.
+T-1 (spend) died with D-017. T-6 (exfiltration) is closed architecturally by
+D-018. T-3 (composed parameters) is closed by D-024, D-026 and D-028, which
+keep every action parameter either a selection from a code-held list or an
+integer the assistant validates itself. The posture is architectural, not
+procedural, so removing the human gate reopens nothing.
+
+**Residual risk accepted:** An injected instruction reaching an action now
+executes with no human gate. Blast radius is a view change: bounded, and
+manually repairable for every field except region, where the user's prior
+coordinates are lost with no way to recover them.
+
+**Alternatives rejected:** Per-action confirmation (owner: paperwork). Full
+undo stack (owner: not needed). Region-only state snapshot (recommended by
+Agent 0, declined by owner).
+
+**Closes:** Q-003 as moot. Agent 4's confirmation gating list is withdrawn as
+having no subject.
+
+**Revisit if:** Users report losing their place, or capability scope widens
+beyond view state.
+
+---
+
+## D-031: Integrated Intel graphics is the v1 design target  [AMENDS D-013]
+
+**Decision:** Assume Chrome selects the built-in Intel GPU rather than a
+discrete GPU when both are present. The integrated chip is the baseline for
+every throughput, latency and capability judgement. A discrete GPU is a bonus,
+never an assumption.
+
+**Driver:** Owner decision, 2026-07-27, on the Q-017 observation that Chrome
+selected the Intel UHD 630 over a Quadro present on the same machine.
+
+**Consequences:**
+- D-013's throughput expectations are re-based on the integrated chip.
+- The Gate 4a decode rate of 2.3 tok/s is no longer presumed to be a defect.
+  It may be roughly correct for a 1B q4f16 on this class of hardware.
+- Adapter selection is not fought. No attempt is made to force the discrete
+  GPU.
+
+**Revisit if:** Measured integrated-GPU throughput cannot meet the 20-second
+target even with fixed per-call cost removed.
+
+---
+
+## D-032: The owner's machine is the sole test platform for v1
+
+**Decision:** All measurement happens on the owner's machine. The 8GB floor
+from D-013 remains the stated design target but is unvalidated and will not be
+tested before v1.
+
+**Driver:** Owner decision, 2026-07-27. No 8GB machine is available.
+
+**Risk accepted:** The supported-tier claim rests on arithmetic, not
+measurement. A machine at the floor may perform materially worse than
+anything we have seen.
+
+**Consequences:** Q-010, the interactivity threshold, is deferred rather than
+closed. It cannot be answered without hardware we do not have.
+
+**Revisit if:** An 8GB machine becomes available, or a user at the floor
+reports a problem.
+
+---
+
+## D-033: Twenty seconds is the end-to-end response target
+
+**Decision:** The assistant answers and acts in under 20 seconds, measured
+from the user's input to the visible state change.
+
+**Driver:** Owner requirement, 2026-07-27.
+
+**How the budget is met:** Model output is kept as short as possible, since
+each generated token costs roughly 0.44s on the target hardware. Setup work
+happens once at startup, never per call. One model call per task is preferred
+over two.
+
+**Consequences:**
+- D-021's two-hop annotation selection is at risk against this budget. If two
+  hops cannot come in under 20 seconds, D-021's revisit trigger fires and
+  annotation selection returns to a single hop.
+- Any design that cannot meet the target is raised before it is built, not
+  after.
+
+**Revisit if:** The owner changes the target, or measured hardware makes it
+unreachable.
+
+---
+
+## D-034: The population action has two forms, add and replace, with add as default
+
+**Decision:** Adding populations and replacing the selection are two separate
+action functions. Adding is the default. Replacing happens only when the user
+asks for it.
+
+**Driver:** Owner decision, 2026-07-27.
+
+**Consequences:**
+- Two functions, not one with a mode argument. Catchall arguments are
+  forbidden by the engineering standards.
+- The model extracts the intent as an enum; code routes to the function.
+- D-022's T-select-population tasks must cover both intents. D-029's claim
+  that the corpus needs no change is superseded on this point, and this
+  extension must land before the clean re-run.
+
+**Revisit if:** The default proves wrong in use.
+
+---
+
+## D-035: Clarification wording is chosen by code from the failure type
+
+**Decision:** When the assistant cannot act, code decides what it says, based
+on which stage failed. The model emits only a clarify signal.
+
+- Resolver near-miss or multiple matches: ask a follow-up question, offering
+  what was found.
+- Classification failed, or nothing extractable: say plainly that it did not
+  understand.
+
+**Driver:** Owner decision, 2026-07-27, answering the open question of what
+the assistant says when it does not understand.
+
+**Consequences:**
+- Consistent with deterministic-first: the model makes one decision, code
+  handles presentation.
+- A lazy clarify becomes detectable and therefore scorable. The model emitting
+  clarify on an input the resolver would have resolved is a scored failure,
+  checkable against the code-held collections with no human judgement.
+- This closes the clarify-ownership hole flagged against D-026 and D-029.
+
+**Revisit if:** A third failure mode appears that neither form fits.
+
+---
+
+## D-036: Region, country and metadata filtering is in v1 scope  [CLOSES Q-015]
+
+**Decision:** Population filtering by numeric metadata, region and country
+ships in v1.
+
+**Driver:** Owner statement, 2026-07-27, that the population catalogue
+(`modern_populations.json`, 16 KB), the per-sample metadata
+(`Poseidon_AADR_v62_metadata.json`, 11 MB) and the gene name map are all
+already cached at load. Region-genome statistics are not cached and are
+fetched on demand.
+
+**Consequences:**
+- The load-cost objection in Q-015 is answered: the file is already resident,
+  so filtering costs no extra fetch.
+- The join path recorded in Q-015 stands: `population.subset` to
+  `Poseidon_ID` to per-sample metadata.
+- Resolution and filtering are code-side lookups over resident data. The
+  model extracts a field and a value; it never scans the metadata itself.
+
+**Closes:** Q-015.
+
+**Revisit if:** The 11 MB file turns out not to be resident in a normal
+session, which stage 1 reconnaissance will confirm or refute.
+
+---
+
+## Q-007 closes: solo
+
+**Recorded:** The project is solo. All five specialist seats are held by the
+owner personally. Implementation moves to Claude Code against `CLAUDE.md`,
+`DECISIONS.md` and `ARCHITECTURE.md` in the repository root. The six-project
+structure is retired, having served its purpose: the decisions it produced are
+in this file.
