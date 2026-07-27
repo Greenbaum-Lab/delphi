@@ -7,6 +7,32 @@ Reported per capability, never pooled into one headline, per D-029.
 
 ---
 
+## Correction: every latency figure below runs 4 was measured on the wrong GPU
+
+Runs 2, 3 and 4 were all run on the discrete NVIDIA chip, not the integrated
+Intel chip D-031 makes the design target. This was not known when they were
+recorded. Their **accuracy** numbers stand, since greedy decoding on the same
+weights does not depend on which GPU runs it. Their **latency** numbers do not
+apply to the target hardware and must not be quoted.
+
+The specific claim to strike is mine: that D-029's 2.3 tok/s produced a 9-14s
+projection "wrong by a factor of three". On the Intel chip that projection now
+looks roughly correct, and D-031 already said as much. A measured number from
+the wrong machine was used to overrule a recorded figure from the right one.
+
+Two conclusions built on those timings are withdrawn until re-measured on
+Intel:
+
+- that latency is not the binding constraint;
+- that a second round trip is affordable, which is what made the two-call
+  design look cheap.
+
+D-031's revisit trigger reads: integrated-GPU throughput cannot meet the
+20-second target even with fixed per-call cost removed. Whether it has fired is
+now an open measurement, not a settled question.
+
+---
+
 ## Run 1, void. Tuned on its own test set.
 
 Eight utterances, of which four were verbatim examples in the system prompt.
@@ -213,6 +239,70 @@ confounded change is the reason this is stated explicitly.
 alone (D-029), plus a confusion breakdown of what each failure was classified
 as. Run 3 and run 4 had similar overall rates while failing different
 categories, and the rates alone could not show that.
+
+## Run 5 arm 1: Llama-3.2-1B on SELECTION_SET, 128 utterances
+
+Overall 0.65. Loaded in 3273ms. **Ran on the NVIDIA chip again**, reported by
+WebLLM itself as `Finish loading on WebGPU - nvidia`, so the p50 of 5537ms is
+once more not a target-hardware number. The max of 14169ms is the first few
+calls warming up, not a steady-state figure.
+
+| capability | rate |
+|---|---|
+| sort | 16/16 = 1.00 |
+| region | 15/16 = 0.94 |
+| statistic | 15/16 = 0.94 |
+| add_population | 14/16 = 0.88 |
+| question | 8/16 = 0.50 |
+| clarify | 8/16 = 0.50 |
+| replace_population | 7/16 = 0.44 |
+| **gene** | **0/16 = 0.00** |
+
+Where the 45 failures went:
+
+```
+gene               -> statistic x7, region x2, sort x2, add_population x2,
+                      replace_population x2, question x1
+replace_population -> clarify x4, question x2, sort x2, add_population x1
+question           -> statistic x4, sort x3, clarify x1
+clarify            -> statistic x5, add_population x2, question x1
+add_population     -> replace_population x1, question x1
+region             -> sort x1
+statistic          -> replace_population x1
+```
+
+### gene is not weak, it is absent
+
+Zero of sixteen, on a set three times the size of the one that measured 0.17.
+`find the LDLR gene` returns statistic while containing the word gene, and the
+bare symbol `MC1R` returns statistic. The model is not discriminating this
+category at all.
+
+The dominant sink is statistic, 7 of 16. A mechanism worth testing: `fst` is
+the salient short uppercase token in the prompt and the guide describes a gene
+symbol as short capitalised letters and digits, so the two descriptions
+compete and the enum-constrained branch wins.
+
+Only 4 of the 16 gene failures went to a population action, so cross-catalogue
+disambiguation is worth having but is not the fix for this.
+
+### The prompt's own example names are being emitted
+
+Four failures returned a name that appears nowhere in the utterance and comes
+straight out of the prompt examples:
+
+```
+move over to fulif                        -> replace_population (Papuan)
+go to PSEN1                               -> replace_population (Papuan)
+make the tracks purple                    -> add_population (Papuan)
+create a new population from these samples -> add_population (Sardinian)
+```
+
+This is the borrowed-name failure from run 1, which removing the state block
+was thought to have closed. It did close the data-provenance route, which is
+what mattered for T-2. The remaining route is the prompt's own examples, and it
+means the examples are being copied rather than read as patterns. The
+copy-exactly instruction is not holding.
 
 ---
 
