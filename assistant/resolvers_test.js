@@ -1,4 +1,5 @@
 import { resolveGene, resolvePopulation, RESOLVED, AMBIGUOUS, UNRESOLVED } from './resolvers.js';
+import { suggestNames } from './suggest.js';
 
 const GENE_MAP = new Map([
 	['LCT', { chr: 'chr2', start: 136545410 }],
@@ -23,8 +24,9 @@ const geneCases = () => [
 	{ name: 'gene: exact name resolves', result: resolveGene(GENE_MAP, 'LCT'), status: RESOLVED, matches: 1 },
 	{ name: 'gene: resolved entry carries the code-held coordinates', result: resolveGene(GENE_MAP, 'LCT'), status: RESOLVED, matches: 1, detail: matches => firstMatch(matches).chr === 'chr2' && firstMatch(matches).start === 136545410 },
 	{ name: 'gene: resolved entry carries the gene name', result: resolveGene(GENE_MAP, 'EDAR'), status: RESOLVED, matches: 1, detail: matches => firstMatch(matches).gene_name === 'EDAR' },
-	{ name: 'gene: lowercase does not match', result: resolveGene(GENE_MAP, 'lct'), status: UNRESOLVED, matches: 0 },
-	{ name: 'gene: mixed case does not match', result: resolveGene(GENE_MAP, 'Lct'), status: UNRESOLVED, matches: 0 },
+	{ name: 'gene: lowercase resolves by case folding', result: resolveGene(GENE_MAP, 'lct'), status: RESOLVED, matches: 1 },
+	{ name: 'gene: mixed case resolves by case folding', result: resolveGene(GENE_MAP, 'Lct'), status: RESOLVED, matches: 1 },
+	{ name: 'gene: case-folded match returns the catalogue spelling', result: resolveGene(GENE_MAP, 'mcm6'), status: RESOLVED, matches: 1, detail: matches => firstMatch(matches).gene_name === 'MCM6' },
 	{ name: 'gene: trailing punctuation does not match', result: resolveGene(GENE_MAP, 'LCT.'), status: UNRESOLVED, matches: 0 },
 	{ name: 'gene: surrounding whitespace does not match', result: resolveGene(GENE_MAP, ' LCT '), status: UNRESOLVED, matches: 0 },
 	{ name: 'gene: absent name is unresolved', result: resolveGene(GENE_MAP, 'NOTAGENE'), status: UNRESOLVED, matches: 0 },
@@ -42,7 +44,9 @@ const populationCases = () => [
 	{ name: 'population: resolved entry is the catalogue record', result: resolvePopulation(POPULATIONS, 'Yoruba'), status: RESOLVED, matches: 1, detail: matches => firstMatch(matches) === POPULATIONS[0] },
 	{ name: 'population: a label that is a prefix of another resolves to itself only', result: resolvePopulation(POPULATIONS, 'Yoruba'), status: RESOLVED, matches: 1, detail: matches => firstMatch(matches).aadr_population === 'Yoruba' },
 	{ name: 'population: suffixed label resolves separately', result: resolvePopulation(POPULATIONS, 'Yoruba-1KGP'), status: RESOLVED, matches: 1, detail: matches => firstMatch(matches).aadr_population === 'YRI.DG' },
-	{ name: 'population: lowercase does not match', result: resolvePopulation(POPULATIONS, 'yoruba'), status: UNRESOLVED, matches: 0 },
+	{ name: 'population: lowercase resolves by case folding', result: resolvePopulation(POPULATIONS, 'yoruba'), status: RESOLVED, matches: 1 },
+	{ name: 'population: case-folded match returns the catalogue record', result: resolvePopulation(POPULATIONS, 'YORUBA'), status: RESOLVED, matches: 1, detail: matches => firstMatch(matches) === POPULATIONS[0] },
+	{ name: 'population: an exact hit wins over a case-folded one', result: resolvePopulation([{ label: 'san' }, POPULATIONS[2]], 'San'), status: RESOLVED, matches: 1, detail: matches => firstMatch(matches).label === 'San' },
 	{ name: 'population: trailing punctuation does not match', result: resolvePopulation(POPULATIONS, 'Yoruba?'), status: UNRESOLVED, matches: 0 },
 	{ name: 'population: surrounding whitespace does not match', result: resolvePopulation(POPULATIONS, ' Yoruba'), status: UNRESOLVED, matches: 0 },
 	{ name: 'population: acronym does not match', result: resolvePopulation(POPULATIONS, 'YRI'), status: UNRESOLVED, matches: 0 },
@@ -55,6 +59,21 @@ const populationCases = () => [
 	{ name: 'population: duplicate labels are ambiguous', result: resolvePopulation(DUPLICATE_LABEL_POPULATIONS, 'Yoruba'), status: AMBIGUOUS, matches: 2 },
 	{ name: 'population: ambiguous result returns every match', result: resolvePopulation(DUPLICATE_LABEL_POPULATIONS, 'Yoruba'), status: AMBIGUOUS, matches: 2, detail: matches => matches[0].Dataset === 'gnomAD' && matches[1].Dataset === 'AADR' }
 ];
+
+const POPULATION_LABELS = ['Yoruba', 'Yoruba-1KGP', 'San', 'Basque', 'French', 'Sardinian'];
+
+const suggestionCases = () => [
+	{ name: 'suggest: a truncated name offers the full one', got: suggestNames(POPULATION_LABELS, 'Basq'), want: ['Basque'] },
+	{ name: 'suggest: a single-letter typo is offered', got: suggestNames(POPULATION_LABELS, 'Frenchh'), want: ['French'] },
+	{ name: 'suggest: a name that already resolves is not suggested', got: suggestNames(POPULATION_LABELS, 'Basque'), want: [] },
+	{ name: 'suggest: a case-only difference is not suggested, the resolver handles it', got: suggestNames(POPULATION_LABELS, 'basque'), want: [] },
+	{ name: 'suggest: nothing close returns nothing', got: suggestNames(POPULATION_LABELS, 'Atlantis'), want: [] },
+	{ name: 'suggest: an empty query returns nothing', got: suggestNames(POPULATION_LABELS, ''), want: [] },
+	{ name: 'suggest: a missing catalogue returns nothing', got: suggestNames(undefined, 'Basque'), want: [] },
+	{ name: 'suggest: nearest is offered first', got: suggestNames(['Yoruba', 'Yoruba-1KGP'], 'Yorub'), want: ['Yoruba'] }
+];
+
+const checkSuggestion = test_case => ({ name: test_case.name, passed: test_case.got.join(',') === test_case.want.join(','), status: test_case.got.join(',') || 'none', matches: test_case.got.length, expected_status: test_case.want.join(',') || 'none', expected_matches: test_case.want.length });
 
 const checkCase = test_case => {
 	const result = test_case.result;
@@ -70,7 +89,7 @@ const checkCase = test_case => {
  * failure is always the resolver and never the catalogue.
  */
 export const runResolverTests = () => {
-	const results = [...geneCases(), ...populationCases()].map(checkCase);
+	const results = [...[...geneCases(), ...populationCases()].map(checkCase), ...suggestionCases().map(checkSuggestion)];
 	const failures = results.filter(result => !result.passed);
 	failures.forEach(failure => console.error(`FAIL ${failure.name}: got ${failure.status}/${failure.matches}, expected ${failure.expected_status}/${failure.expected_matches}`));
 	console.log(`resolvers: ${results.length - failures.length}/${results.length} passed`);

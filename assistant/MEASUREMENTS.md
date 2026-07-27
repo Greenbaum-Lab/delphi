@@ -304,6 +304,95 @@ what mattered for T-2. The remaining route is the prompt's own examples, and it
 means the examples are being copied rather than read as patterns. The
 copy-exactly instruction is not holding.
 
+## Run 5 arm 2: Qwen2.5-1.5B on SELECTION_SET
+
+Overall **0.77** against Llama-1B's 0.65, on the same 128 utterances in the same
+order with only the model id changed. Also on NVIDIA, so the p50 of 7405ms is
+again not a target-hardware figure; it is 34 percent slower than Llama-1B on
+the same chip, which is the only latency statement these two runs support.
+
+| capability | Llama-3.2-1B | Qwen2.5-1.5B |
+|---|---|---|
+| gene | 0.00 | **0.75** |
+| region | 0.94 | **1.00** |
+| statistic | **0.94** | 0.75 |
+| add_population | **0.88** | 0.38 |
+| replace_population | 0.44 | **0.75** |
+| sort | 1.00 | 1.00 |
+| question | 0.50 | **1.00** |
+| clarify | 0.50 | 0.56 |
+| **overall** | 0.65 | **0.77** |
+
+Qwen wins five capabilities, loses two, ties one. The two it wins largest are
+the two that three prompt rewrites could not move: gene from nothing to 0.75,
+and question from a coin flip to 16 out of 16. That is the answer to whether
+these categories are reachable by a 1B-class model on this prompt. They are
+not, and they are reachable one size up.
+
+### The add/replace bias is systematic and one-directional
+
+Qwen's single bad capability is add_population at 0.38, and 7 of its 10 failures
+are the same mistake: it chooses replace_population for a plainly additive
+request.
+
+```
+bring in the Balochi     -> replace_population
+show the Biaka as well   -> replace_population
+I want Burusho on there  -> replace_population
+also include Dai         -> replace_population
+put Daur up              -> replace_population
+stick Mongolian in       -> replace_population
+include Sindhi           -> replace_population
+```
+
+`as well` and `also` are additive in so many words. Meanwhile every one of the
+16 replace utterances in this set carries an explicit exclusivity marker: only,
+just, alone, nothing but, instead, except, wipe, swap, clear, by itself, drop
+the others.
+
+That asymmetry is worth acting on in code rather than in the prompt, because
+the two errors do not cost the same. Replacing when the user meant add destroys
+a selection they built. Adding when they meant replace leaves one extra track.
+D-034 already says adding is the default and replacing happens only when asked;
+requiring an exclusivity marker before a replace is that decision enforced
+rather than delegated to a model that is measurably bad at it.
+
+Applied to this set it would move add_population from 6/16 to 13/16 and break
+none of the 16 replace cases. That is a projection on the set it was derived
+from, so it needs FINAL_SET to mean anything.
+
+### Classification is not end-to-end, and the harness only measures the first
+
+`take a look at OCA2` was scored a pass: the action was gene, which is correct.
+The extracted name was **OCAB2**, which is not a gene. It would have reached the
+resolver, failed, and produced a clarification. The harness counted it as a
+success.
+
+Other outputs show the same class of defect, though they were already failing
+on classification:
+
+```
+run fst instead of what is up              -> replace_population (run fst instead of what is up)
+stick Mongolian in                         -> replace_population (Stick Mongolian)
+create a new population from these samples -> replace_population (new_population_label)
+make the tracks purple                     -> replace_population (tracks)
+```
+
+`new_population_label` is a schema field name emitted as a value. `Stick
+Mongolian` is a capitalised fragment of the utterance rather than the label
+inside it.
+
+So every rate above is an upper bound on what a user experiences. Before
+FINAL_SET runs, the harness has to check that an extracted gene or population
+name actually resolves, and report classification and end-to-end separately.
+
+### The borrowed-name failure has a second form
+
+Llama emitted the prompt's example names, Papuan and Sardinian. Qwen emits
+schema field names and utterance fragments. Neither borrows from data any more,
+so T-2 stays closed, but "copy the name letter for letter from the request" is
+not holding on either model.
+
 ---
 
 # Issues that persist and need attention

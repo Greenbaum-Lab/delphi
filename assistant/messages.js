@@ -43,12 +43,16 @@ export const actionMessage = action_result => {
 
 /**
  * Wording for a name that did not resolve. Several matches offer what was
- * found so the user can choose; nothing found says so plainly (D-035).
- * Matching is exact, so a near miss arrives here as nothing found rather than
- * as a guess.
+ * found so the user can choose; a near miss offers the closest names back as a
+ * question; nothing close says so plainly (D-035).
+ *
+ * Offering a name is not acting on it. The user's next message is what selects
+ * one, which keeps the guarantee that nothing runs on a guessed name.
  */
-export const resolutionMessage = (resolution, kind, name) => {
+export const resolutionMessage = (resolution, kind, name, suggestions) => {
 	if (resolution.status === AMBIGUOUS)
 		return failure(`${name} matches ${resolution.matches.length} ${kind} records. Name one of them exactly.`);
-	return failure(`No ${kind} named ${name}. Names must match exactly, including case.`);
+	if (suggestions.length > 0)
+		return failure(`No ${kind} named ${name}. Did you mean ${suggestions.join(', ')}?`);
+	return failure(`No ${kind} named ${name}.`);
 };

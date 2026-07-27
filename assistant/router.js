@@ -6,6 +6,7 @@ import { buildMessages } from '/assistant/prompt.js';
 import { COMMAND_SCHEMA, CLARIFY } from '/assistant/schemas.js';
 import { startModel, generate } from '/assistant/model.js';
 import { resolveGene, resolvePopulation, RESOLVED } from '/assistant/resolvers.js';
+import { suggestNames } from '/assistant/suggest.js';
 import { answerField } from '/assistant/state_answers.js';
 import { reply, failure, actionMessage, resolutionMessage } from '/assistant/messages.js';
 import { setMeasure, setSort, navigateToRegion, navigateToGene, addPopulations, replacePopulations } from '/assistant/actions.js';
@@ -26,7 +27,7 @@ const resolveAndAct = async (population_label, populationAction) => {
 	const populations = await getPopsData();
 	const resolution = resolvePopulation(populations, population_label);
 	if (resolution.status !== RESOLVED)
-		return resolutionMessage(resolution, 'population', population_label);
+		return resolutionMessage(resolution, 'population', population_label, suggestNames(populations.map(population => population.label), population_label));
 	return actionMessage(populationAction([resolution.matches[0]]));
 };
 
@@ -44,7 +45,7 @@ const actOnGene = async gene_name => {
 	const gene_map = await loadGeneMap({ track_id: gene_track_id });
 	const resolution = resolveGene(gene_map, gene_name);
 	if (resolution.status !== RESOLVED)
-		return resolutionMessage(resolution, 'gene', gene_name);
+		return resolutionMessage(resolution, 'gene', gene_name, suggestNames([...gene_map.keys()], gene_name));
 	return actionMessage(navigateToGene(resolution.matches[0]));
 };
 
