@@ -29,13 +29,13 @@ const actionSchema = (action_name, parameters) => ({
  */
 export const COMMAND_SCHEMA = {
 	anyOf: [
-		actionSchema(CLARIFY, {}),
-		actionSchema('navigate', { chr: { type: 'string', enum: CHROMOSOMES }, start: { type: 'integer' }, end: { type: 'integer' } }),
 		actionSchema('select_gene', { gene_name: { type: 'string' } }),
+		actionSchema('navigate', { chr: { type: 'string', enum: CHROMOSOMES }, start: { type: 'integer' }, end: { type: 'integer' } }),
 		actionSchema('select_statistic', { measure: { type: 'string', enum: MEASURES } }),
 		actionSchema('add_population', { population_label: { type: 'string' } }),
 		actionSchema('replace_population', { population_label: { type: 'string' } }),
 		actionSchema('select_sort', { sort_field: { type: 'string' }, sort_direction: { type: 'string', enum: SORT_DIRECTIONS } }),
-		actionSchema('answer_state', { field: { type: 'string', enum: STATE_FIELDS } })
+		actionSchema('answer_state', { field: { type: 'string', enum: STATE_FIELDS } }),
+		actionSchema(CLARIFY, {})
 	]
 };
