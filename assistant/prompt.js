@@ -48,5 +48,5 @@ const SYSTEM_PROMPT = [
  */
 export const buildMessages = (serialized_state, utterance) => [
 	{ role: 'system', content: SYSTEM_PROMPT },
-	{ role: 'user', content: `${serialized_state}\nUSER_REQUEST: ${utterance}` }
+	{ role: 'user', content: serialized_state === '' ? `USER_REQUEST: ${utterance}` : `${serialized_state}\nUSER_REQUEST: ${utterance}` }
 ];
