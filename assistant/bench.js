@@ -59,6 +59,8 @@ export const benchOne = async (model_id, set_name, items) => {
 	return { model_id, set_name, load_ms, rows };
 };
 
+export const benchSelection = model_id => benchOne(model_id, 'SELECTION', SELECTION_SET);
+
 /**
  * Every candidate against SELECTION_SET, one at a time, printing a comparison
  * once they have all run.
