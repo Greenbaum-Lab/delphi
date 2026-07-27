@@ -10,7 +10,7 @@ import { answerField } from '/assistant/state_answers.js';
 import { reply, failure, actionMessage, resolutionMessage } from '/assistant/messages.js';
 import { setMeasure, setSort, navigateToRegion, navigateToGene, addPopulations, replacePopulations } from '/assistant/actions.js';
 
-const NOT_UNDERSTOOD = 'Did not understand that. Try naming a gene, a population, a region, a statistic or a sort field.';
+const OFF_TOPIC = 'That is not what this assistant is for. It drives the DELPHI browser: genes, regions, statistics, populations and sort order.';
 
 const MALFORMED = 'The model did not return a usable command.';
 
@@ -44,7 +44,7 @@ const actOnGene = async gene_name => {
 const answerState = async field => {
 	const observed_state = await observeState();
 	const value = answerField(observed_state, field);
-	return value === null ? failure(NOT_UNDERSTOOD) : reply(`${field}: ${value}`);
+	return value === null ? failure(MALFORMED) : reply(`${field}: ${value}`);
 };
 
 /**
@@ -65,7 +65,7 @@ export const applyCommand = command => {
 		case 'add_population': return resolveAndAct(command.population_label, addPopulations);
 		case 'replace_population': return resolveAndAct(command.population_label, replacePopulations);
 		case 'answer_state': return answerState(command.field);
-		default: return failure(NOT_UNDERSTOOD);
+		default: return failure(OFF_TOPIC);
 	}
 };
 
@@ -93,6 +93,6 @@ export const route = async utterance => {
 	if (!command || typeof command.action !== 'string')
 		return failure(MALFORMED);
 	if (command.action === CLARIFY)
-		return failure(NOT_UNDERSTOOD);
+		return failure(OFF_TOPIC);
 	return applyCommand(command);
 };
