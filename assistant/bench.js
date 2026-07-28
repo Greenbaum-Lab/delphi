@@ -1,5 +1,5 @@
 import { startNamedModel, unloadModel, listModelIds } from '/assistant/model.js';
-import { probeSet, summarize, confusion } from '/assistant/diagnose.js';
+import { probeSet, summarize, confusion, checkExtractions, summarizeEndToEnd } from '/assistant/diagnose.js';
 import { SELECTION_SET } from '/assistant/eval_selection.js';
 import { FINAL_SET } from '/assistant/eval_final.js';
 
@@ -52,8 +52,10 @@ const loadTimed = async model_id => {
 export const benchOne = async (model_id, set_name, items) => {
 	const { engine, load_ms } = await loadTimed(model_id);
 	const label = `${shortName(model_id)} on ${set_name}`;
-	const rows = await probeSet(engine, label, items);
+	const probed_rows = await probeSet(engine, label, items);
+	const rows = await checkExtractions(probed_rows);
 	summarize(label, rows);
+	summarizeEndToEnd(label, rows);
 	confusion(label, rows);
 	await unloadModel(engine);
 	return { model_id, set_name, load_ms, rows };

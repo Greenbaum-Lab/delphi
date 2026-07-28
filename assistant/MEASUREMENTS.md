@@ -393,6 +393,54 @@ schema field names and utterance fragments. Neither borrows from data any more,
 so T-2 stays closed, but "copy the name letter for letter from the request" is
 not holding on either model.
 
+## Run 5 arm 3: Qwen2.5-1.5B on the integrated Intel chip
+
+The first measurement in this project taken on the hardware D-031 names as the
+target. Confirmed by WebLLM's own line, `Finish loading on WebGPU - intel`.
+
+| | NVIDIA | **Intel** |
+|---|---|---|
+| overall | 0.77 | **0.77** |
+| latency p50 | 7405ms | **5047ms** |
+| latency max | 9682ms | 10957ms |
+| load, cold | 21976ms | 38645ms |
+
+### The integrated chip is faster per request, not slower
+
+p50 5047ms against 7405ms on the discrete card: 32 percent **quicker**. This
+contradicts the expectation the whole latency worry rested on, including the
+owner's impression that Qwen was significantly slower on Intel.
+
+What is slower is loading: 38.6s against 22.0s. Both were cold and
+download-dominated, so that gap is mostly network rather than hardware, but the
+first open is where the delay is felt, and it is a one-off per model.
+
+Single-token decode is bound by memory latency and per-dispatch overhead rather
+than arithmetic, so a discrete card's advantage does not show up at batch size
+one and its transfer costs do. That is a plausible reading, not a measured
+cause; nothing here isolates it.
+
+**D-033 is met on target hardware with a fourfold margin.** The claim withdrawn
+in the correction above is restored for Qwen on Intel, this time from the right
+chip. D-031's revisit trigger has not fired.
+
+The slowest requests are region jumps, 7-11s, which emit the most tokens: a
+chromosome plus two integers. That is D-033's cost model behaving exactly as
+stated, and the tail still sits at half the budget.
+
+### Accuracy does not depend on the GPU
+
+0.77 on both chips. Seven of eight capabilities scored identically; only
+add_population moved, 6/16 to 5/16, a single utterance flipping. The
+assumption behind the correction above, that accuracy carries across GPUs while
+latency does not, is now measured rather than assumed.
+
+### add_population is the one bad capability, and it got worse
+
+0.31 here, with 8 of 11 failures being replace_population chosen for an
+additive request. On NVIDIA it was 7. The case for enforcing D-034 in code
+rather than in the prompt is unchanged and slightly stronger.
+
 ---
 
 # Issues that persist and need attention

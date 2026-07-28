@@ -1,3 +1,7 @@
+import { getOptions } from '/apc/common.js';
+import { getPopsData } from '/browser/pops.js';
+import { loadGeneMap } from '/assets.js';
+import { resolveGene, resolvePopulation, RESOLVED } from '/assistant/resolvers.js';
 import { startModel, generate, MODEL_METADATA } from '/assistant/model.js';
 import { COMMAND_SCHEMA } from '/assistant/schemas.js';
 import { buildMessages } from '/assistant/prompt.js';
@@ -27,6 +31,46 @@ const probe = async (engine, serialized_state, item) => {
 };
 
 const rate = rows => rows.length === 0 ? null : Number((rows.filter(row => row.passed).length / rows.length).toFixed(2));
+
+const NAME_ACTIONS = ['gene', 'add_population', 'replace_population'];
+
+const loadCatalogues = async () => {
+	const gene_track_id = (getOptions().annotations || [])[0];
+	const gene_map = gene_track_id ? await loadGeneMap({ track_id: gene_track_id }) : new Map();
+	return { gene_map, populations: await getPopsData() };
+};
+
+const nameResolves = (row, catalogues) => row.action === 'gene'
+	? resolveGene(catalogues.gene_map, row.extracted).status === RESOLVED
+	: resolvePopulation(catalogues.populations, row.extracted).status === RESOLVED;
+
+/**
+ * Marks each row with whether the name the model extracted actually exists.
+ *
+ * Classification alone overstates what a user gets. `take a look at OCA2`
+ * scored a pass on the action while extracting OCAB2, which is not a gene: it
+ * would reach the resolver, fail, and produce a clarification. Rows carrying no
+ * name are marked null rather than false, so they neither pass nor fail this
+ * check.
+ */
+export const checkExtractions = async rows => {
+	const catalogues = await loadCatalogues();
+	return rows.map(row => NAME_ACTIONS.includes(row.action)
+		? Object.assign({}, row, { resolves: nameResolves(row, catalogues) })
+		: Object.assign({}, row, { resolves: null }));
+};
+
+/**
+ * The rate a user would actually experience: the action was right and the name
+ * it carried exists. Reported beside the classification rate, never instead of
+ * it, because the two failing separately means different things.
+ */
+export const summarizeEndToEnd = (set_name, rows) => {
+	const succeeded = rows.filter(row => row.passed && row.resolves !== false);
+	const unresolvable = rows.filter(row => row.resolves === false);
+	console.log(`${set_name}: end-to-end ${(succeeded.length / rows.length).toFixed(2)}, ${unresolvable.length} extracted a name that does not exist`);
+	unresolvable.forEach(row => console.log(`  no such ${row.action === 'gene' ? 'gene' : 'population'}: ${row.extracted}  (${row.utterance})`));
+};
 
 const byAction = rows => Object.fromEntries([...new Set(rows.map(row => row.expected))].map(expected => {
 	const group = rows.filter(row => row.expected === expected);
