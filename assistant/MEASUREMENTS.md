@@ -499,6 +499,69 @@ There is still no Llama-1B measurement on either Intel machine. Without it we
 cannot separate how much of Intel B's 45.6-second floor is model size and how
 much is prompt length. That one run is the highest-value measurement left.
 
+## Run 6: the 50-prompt user test, and what it caught
+
+`assistant/user_test.js` drives route() rather than the model, and scores on the
+option values the browser ends up with. First run: **35/50**.
+
+| group | rate |
+|---|---|
+| add population | 7/7 |
+| region | 5/5 |
+| statistic | 5/5 |
+| sort | 5/5 |
+| conversation | 5/5 |
+| state question | 3/6 |
+| gene | 3/8 |
+| near miss | 1/2 |
+| off topic | 1/3 |
+| replace population | 0/4 |
+
+Model turns p50 5434ms, code-only turns 0ms, first turn 29115ms including the
+load.
+
+### It caught that the shipping path was never switched
+
+The stack trace runs route() to startModel() to the MODEL_ID constant, which was
+still Llama-3.2-1B. Every Qwen measurement had gone through startNamedModel in
+the bench and session probes. So this 35/50 is the old model, and gene at 3/8
+and replace_population at 0/4 are its known collapse points. MODEL_ID is now
+Qwen2.5-1.5B.
+
+Worth keeping in mind: three runs of accuracy measurement never touched the code
+path a user actually reaches. Only a test written against route() found it.
+
+### A defect, not a score: read-only requests are writing state
+
+```
+how is it sorted                -> Sort set.
+what statistic am I looking at  -> Statistic set.
+write me a poem                 -> Statistic set.
+```
+
+Asking a question changed the view, and so did a request to write a poem. A
+misclassification that only produces a wrong answer is tolerable; one that
+mutates the browser is not. Nothing in the action layer distinguishes a question
+from a command, because the model is trusted to have made that call.
+
+### The two models have opposite population biases
+
+Llama turned all four replace requests into adds. Qwen turns adds into replaces:
+8 of 11 add failures on the 128-set. This kills the guard proposed after run 5,
+which forced add when no exclusivity marker was present: that fixes Qwen and
+does nothing for Llama. The rule has to run both ways, marker present meaning
+replace and marker absent meaning add, decided in code from the user's own
+words.
+
+### The near-miss path did not fire, because the model tidied the name
+
+`add Basqe` returned Populations added. The model emitted a label that resolved
+rather than copying what the user typed, so the resolver never failed and the
+did-you-mean question never happened. The user got what they wanted by way of
+the model doing exactly what D-024 forbids. Silent correction is not free: the
+same behaviour on a name that is close to two real labels picks one without
+asking.
+
 ---
 
 # Issues that persist and need attention
