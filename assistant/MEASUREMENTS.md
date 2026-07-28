@@ -441,6 +441,64 @@ latency does not, is now measured rather than assumed.
 additive request. On NVIDIA it was 7. The case for enforcing D-034 in code
 rather than in the prompt is unchanged and slightly stronger.
 
+## Run 5 arm 4: Qwen2.5-1.5B on a second, weaker Intel machine
+
+Same model, same set, same order. Accuracy identical to the first Intel run
+down to the individual failure: 0.77, the same 30 failures, the same confusion
+counts. Latency is another matter entirely.
+
+| | NVIDIA | Intel A | **Intel B** |
+|---|---|---|---|
+| overall | 0.77 | 0.77 | 0.77 |
+| p50 | 7405ms | 5047ms | **47785ms** |
+| fastest call | - | 3447ms | 45599ms |
+| slowest call | 9682ms | 10957ms | 55778ms |
+
+**Intel B misses D-033's 20-second target by a factor of 2.4, on every single
+request.** The fastest thing it did all run was 45.6 seconds.
+
+### Accuracy does not depend on hardware. This is now measured, not assumed.
+
+Three machines, two GPU vendors, one score: 0.77. Intel A and Intel B produced
+byte-identical results. NVIDIA differed by one utterance out of 128. Any future
+accuracy work can be done on whatever machine is free.
+
+### The cost is prefill, not decode, and that is fixable
+
+Splitting each machine into the fixed cost every call pays and the part that
+scales with output length:
+
+| | Intel A | Intel B | ratio |
+|---|---|---|---|
+| fixed (fastest call) | 3447ms | 45599ms | **13.2x** |
+| variable (slowest minus fastest) | 7510ms | 10179ms | **1.35x** |
+
+Decode is barely slower on Intel B. The fixed cost is thirteen times worse.
+
+That is the signature of a weak-compute integrated GPU. Prefill multiplies
+matrices and is compute-bound; decode multiplies a matrix by a vector and is
+memory-bandwidth-bound. Intel B has comparable bandwidth and far less compute,
+so it pays enormously for prefill and almost nothing extra for generation.
+
+What is being prefilled is our own system prompt: **585 tokens, re-prefilled on
+every message.** At Intel B's rate that is roughly 13 tokens per second, which
+accounts for essentially the whole 45.6-second floor.
+
+Neither the pinned WebLLM 0.2.79 nor 0.2.84 exposes prefix caching, checked by
+searching both builds. So the same 585 tokens are recomputed for every turn and
+nothing in the runtime will reuse them.
+
+D-033 says setup work happens once at startup and never inside a request. The
+system prompt is setup, it is identical on every call, and it is being paid for
+per request. That went unnoticed because every earlier measurement was taken on
+hardware fast enough to hide it.
+
+### What this does not settle
+
+There is still no Llama-1B measurement on either Intel machine. Without it we
+cannot separate how much of Intel B's 45.6-second floor is model size and how
+much is prompt length. That one run is the highest-value measurement left.
+
 ---
 
 # Issues that persist and need attention
