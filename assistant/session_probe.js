@@ -7,14 +7,26 @@ const CAPABILITY_STRIDE = 16;
 
 const PER_CAPABILITY = 5;
 
+const capabilityBlocks = () => Array.from({ length: SELECTION_SET.length / CAPABILITY_STRIDE }, (unused, block) =>
+	SELECTION_SET.slice(block * CAPABILITY_STRIDE, block * CAPABILITY_STRIDE + PER_CAPABILITY));
+
 /**
- * Five utterances from each of the eight capabilities, taken from the front of
- * each block of SELECTION_SET. Forty in all, and every one of them already has
- * a stateless result from run 5, so accuracy here is comparable to a baseline
- * rather than floating free.
+ * Five utterances from each of the eight capabilities, interleaved so that no
+ * two consecutive turns expect the same action.
+ *
+ * Taking them in blocks, as the first version did, makes this probe measure the
+ * wrong thing. Order is irrelevant when every call is independent, but in one
+ * conversation a turn can see four previous answers of its own kind, and the
+ * model follows them: the first run returned region for four consecutive gene
+ * requests and then kept returning region for the region block that followed.
+ * add_population rose from 1/5 to 5/5 and gene fell from 4/5 to 1/5 on that run
+ * for the same reason, and neither number meant anything.
+ *
+ * Round-robin removes the momentum without changing which forty utterances are
+ * asked, so the stateless baseline stays comparable.
  */
-const probeItems = () => Array.from({ length: SELECTION_SET.length / CAPABILITY_STRIDE }, (unused, block) => block)
-	.flatMap(block => SELECTION_SET.slice(block * CAPABILITY_STRIDE, block * CAPABILITY_STRIDE + PER_CAPABILITY));
+const probeItems = () => Array.from({ length: PER_CAPABILITY }, (unused, position) => position)
+	.flatMap(position => capabilityBlocks().map(block => block[position]));
 
 const parseAction = raw_text => {
 	try {
