@@ -579,6 +579,73 @@ The conversation resets every 40 turns, which is the length that was measured
 rather than a length believed to be safe. The turn after a reset pays the full
 prompt again.
 
+## Run 7: the same 50 prompts, on Qwen with the session cache
+
+**45/50**, against 35/50 for the previous configuration. Model turns p50
+1999ms against 5491ms, code-only turns 0ms.
+
+| group | run 6 | run 7 |
+|---|---|---|
+| replace population | 0/4 | **4/4** |
+| state question | 3/6 | **6/6** |
+| off topic | 1/3 | **3/3** |
+| gene | 3/8 | **6/8** |
+| region | 5/5 | 5/5 |
+| add population | 7/7 | 7/7 |
+| sort | 5/5 | 5/5 |
+| conversation | 5/5 | 5/5 |
+| statistic | 5/5 | 4/5 |
+| near miss | 1/2 | 0/2 |
+
+**Two variables moved at once**, the model and the session cache, so the gain is
+not cleanly attributable. What can be said: the session probe measured caching
+as roughly accuracy-neutral, and the capabilities that improved are the ones
+Qwen won on the 128-utterance set. That is consistent with the model being the
+cause, and it is not proof.
+
+### The state-mutation defect is gone
+
+Run 6 had `how is it sorted` setting the sort and `write me a poem` setting a
+statistic. Here state questions are 6/6 and off-topic requests 3/3, and no
+read-only request changed an option.
+
+### The reset is visible in the timings
+
+`which populations are up` took 7145ms among neighbours of about 1800ms. It is
+the 41st model turn, so it is the turn after the conversation reset paying the
+full prompt again. The mechanism works and costs roughly five seconds once every
+forty turns on this machine.
+
+### Near miss 0/2, because the model silently fixes typos
+
+```
+add Basqe        -> Populations added.
+show me Yorubaa  -> Populations replaced.
+```
+
+The model emitted a resolvable label rather than copying what was typed, so the
+resolver never failed and the did-you-mean question never fired. The test
+expected the behaviour D-024 requires; the model does not do it.
+
+One of the two is benign and one is not: `show me Yorubaa` is an add phrased as
+an add, and it replaced the selection instead. The typo correction hid a wrong
+action.
+
+This also means suggest.js will rarely fire on the model path. It still fires
+for typed commands, which have no model to tidy the name first.
+
+### What still fails
+
+`where is BRCA1` and `take me to LCT` both classify as region. The second
+produced coordinates outside the chromosome and was refused by validation
+rather than acted on, which is the guard working. `change to heterozygosity`
+classified as sort.
+
+### This set is now burned
+
+Both runs have been read and a model was chosen partly on them. A further
+configuration change needs a set that has not been spent.
+
 ---
 
 # Issues that persist and need attention
