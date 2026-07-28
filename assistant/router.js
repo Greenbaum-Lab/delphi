@@ -9,6 +9,7 @@ import { resolveGene, resolvePopulation, RESOLVED } from '/assistant/resolvers.j
 import { suggestNames } from '/assistant/suggest.js';
 import { answerField } from '/assistant/state_answers.js';
 import { reply, failure, actionMessage, resolutionMessage } from '/assistant/messages.js';
+import { conversationalReply } from '/assistant/conversation.js';
 import { setMeasure, setSort, navigateToRegion, navigateToGene, addPopulations, replacePopulations } from '/assistant/actions.js';
 
 const OFF_TOPIC = 'That is not what this assistant is for. It drives the DELPHI browser: genes, regions, statistics, populations and sort order.';
@@ -85,9 +86,12 @@ export const applyCommand = command => {
 };
 
 /**
- * One request, one model call. The model classifies and extracts; routing,
- * resolution, validation, verification and the wording of every reply are
- * ordinary code, which is where they belong.
+ * One request, at most one model call. Greetings, questions about the assistant
+ * itself, and requests for the meaning of a term are answered from code and the
+ * glossary before the model is reached, so they cost nothing and cannot invent
+ * a fact. Everything else classifies and extracts through the model, while
+ * routing, resolution, validation, verification and the wording of every reply
+ * stay ordinary code.
  *
  * The model is shown no state. Measured on 26 held-out utterances, the same
  * engine scored 0.62 without the state block against 0.38 with it, better on
@@ -102,6 +106,9 @@ export const applyCommand = command => {
  * reasons about is closed structurally rather than by a fence.
  */
 export const route = async utterance => {
+	const conversational = await conversationalReply(utterance);
+	if (conversational)
+		return conversational;
 	const engine = await startModel();
 	const raw_text = await generate(engine, buildMessages('', utterance), COMMAND_SCHEMA);
 	const command = parseCommand(raw_text);
