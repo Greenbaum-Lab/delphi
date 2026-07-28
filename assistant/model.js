@@ -66,14 +66,27 @@ export const listModelIds = async () => {
  * is passed unchanged on every call so the runtime can reuse its compiled
  * grammar rather than rebuilding it per request.
  */
+const complete = (engine, messages, schema) => engine.chat.completions.create({
+	messages,
+	temperature: 0,
+	max_tokens: MAX_OUTPUT_TOKENS,
+	response_format: { type: 'json_object', schema: JSON.stringify(schema) }
+});
+
 export const generate = async (engine, messages, schema) => {
-	const completion = await engine.chat.completions.create({
-		messages,
-		temperature: 0,
-		max_tokens: MAX_OUTPUT_TOKENS,
-		response_format: { type: 'json_object', schema: JSON.stringify(schema) }
-	});
+	const completion = await complete(engine, messages, schema);
 	return completion.choices[0].message.content;
+};
+
+/**
+ * The same generation, with the runtime's own per-request accounting attached.
+ * Used only by the cost probe: usage.prompt_tokens is how many tokens this call
+ * prefilled, which is the one direct observation that settles whether the
+ * system prompt is being re-read every turn or reused.
+ */
+export const generateWithUsage = async (engine, messages, schema) => {
+	const completion = await complete(engine, messages, schema);
+	return { text: completion.choices[0].message.content, usage: completion.usage };
 };
 
 export const MODEL_METADATA = { model_id: MODEL_ID, module_url: WEBLLM_MODULE_URL, max_output_tokens: MAX_OUTPUT_TOKENS };
