@@ -878,3 +878,202 @@ owner personally. Implementation moves to Claude Code against `CLAUDE.md`,
 `DECISIONS.md` and `ARCHITECTURE.md` in the repository root. The six-project
 structure is retired, having served its purpose: the decisions it produced are
 in this file.
+
+---
+
+## D-037: The proposed hosted-proxy design is rejected; three of its parts are kept
+
+**Decision:** The uploaded "DELPHI Navigation Assistant - Design" is not built as
+written. Its architecture (sections 3, 4, 7, 8, 9 and 10) is a Cloudflare Worker
+proxy holding a provider API key, a hosted LLM tier, Turnstile bot checks,
+per-IP quotas and a monthly spend ceiling. Every one of those is closed by
+D-003 (local inference only) and D-002 (no accounts), and the spend controls
+have no subject under D-017. Its section 6 "propose, do not apply" preview with
+Go and Cancel is closed by D-030.
+
+Three parts of it are adopted, because they are compatible and good:
+- The deterministic tier that runs before any model. See D-038.
+- A fixed-shape output validated field by field against closed vocabularies
+  before anything reaches getOptions. This is what the action layer does.
+- The 200-character input cap, kept as the panel input's maxlength.
+
+Two parts are noted and not built: the shared query cache (it needs the server
+this project does not have) and relative moves such as zoom, pan and back
+(out of the D-011 capability scope, and "back" has no undo stack under D-030).
+
+**Driver:** The design document predates D-003 and D-030 and contradicts them
+directly. CLAUDE.md section 10 gives this file precedence on facts and the rules
+file precedence on rules; both point the same way here.
+
+**Revisit if:** The owner reopens D-003, which is the only thing that would make
+the proxy architecture buildable.
+
+---
+
+## D-038: The deterministic parser runs before the model
+
+**Decision:** A code-only parser reads the request first. Explicit coordinates,
+statistic words, sort phrases, single-field state questions, and a bare token
+that is an exact gene or population name are all handled with no model call at
+all. The model is consulted only for what the parser could not read.
+
+**Driver:** D-033's twenty-second budget. On the D-031 hardware every avoided
+call saves the whole decode. Adopted from the rejected design document, where it
+is the one architectural idea independent of hosting.
+
+**Consequences:**
+- The common cases are instant, and they still work on a machine with no WebGPU,
+  which is the honest degraded tier D-014 requires.
+- Every word table in the parser maps onto a closed enum this code owns. No
+  table maps a word onto a population, gene or annotation name; those are data
+  and only exact resolution may name them, per D-024 and D-026.
+
+**Revisit if:** The parser starts absorbing requests it reads wrongly, which
+would show up as actions the user did not ask for rather than as clarifications.
+
+---
+
+## D-039: The model emits one action and one required target, in one call
+
+**Decision:** The model's grammar is a single object with exactly two required
+properties: an action from a closed list of ten, and a target string. Both are
+required. There is no per-action schema and no optional parameter.
+
+**Driver:** D-029 recorded two harness defects that contaminated Gate 4a. Both
+are answered structurally here rather than by prompt wording: every parameter is
+required, so the grammar cannot permit omitting one; and clarify is one member of
+one enum rather than a value reachable inside every schema.
+
+**Consequences:**
+- One round trip per request, which D-033 prefers, at roughly fifteen output
+  tokens.
+- The target is a lookup key for the resolvers, never an action parameter in
+  itself, so D-024 and D-026 hold unchanged.
+- Sort direction does not fit two properties. Code reads it from the request
+  with the parser, and keeps the current direction when the request does not say.
+  The model classifies; code reads the qualifier.
+
+**Revisit if:** A capability turns out to need two parameters that code cannot
+supply, at which point the cost of a second property or a second call is
+measured rather than assumed.
+
+---
+
+## D-040: The model loads on first open of the panel, not at page load
+
+**Decision:** Weights download when the user first opens the assistant panel.
+DELPHI itself starts unchanged and a visitor who never opens the panel never
+downloads a model.
+
+**Driver:** The download is roughly 800MB. Paying it on every page load would
+make the assistant a cost to every DELPHI user rather than to its own users.
+D-033's "set up once, not per call" is satisfied either way: setup still happens
+once per session, not per request.
+
+**Consequences:** The first request after opening waits for the load. The panel
+says so, and the deterministic path works while it loads.
+
+**Revisit if:** The wait on first open proves worse than the wait on page load.
+
+---
+
+## D-041: A region change writes all six region fields, including on a gene jump
+
+**Decision:** Every assistant region change writes chr, start, end, zoom_level,
+viewfinder_start and viewfinder_end, and validates coordinates against
+CHR_LENGTHS keyed by chromosome before writing anything.
+
+**Driver:** Stage 1 reconnaissance. tracks/viewfinder.js reads
+viewfinder_start and viewfinder_end straight from options and nothing in DELPHI
+derives them from the main region, so a three-field write leaves the minimap on
+the previous locus. DELPHI's own gene search (handleSearch in
+tracks/annotation.js) writes three fields and has exactly this defect.
+
+**Consequences:**
+- The assistant's gene jump leaves the view in a consistent state where DELPHI's
+  own gene search does not. This is not a fix to DELPHI: tracks/annotation.js is
+  untouched, per CLAUDE.md section 5.
+- A span wider than MAX_SPAN is centred and capped, alongside the existing
+  minimum-span clamp DELPHI already applies to its search box.
+
+**Revisit if:** The upstream gene search is fixed, at which point both paths
+agree and this record is redundant rather than wrong.
+
+---
+
+## D-042: Near-miss candidates are offered by number; resolution stays exact
+
+**Decision:** When an exact resolution misses, the assistant asks a question
+offering up to six code-held names, numbered. The user answers with the number,
+and the exact name held in code is what reaches the action. Candidates are found
+by case-insensitive equality, prefix, or a difference of at most one character.
+
+**Driver:** D-026 forbids fuzzy resolution, and D-035 requires a near miss to ask
+while offering what was found. Both hold: the loose comparison decides only what
+is worth offering as a question, never what an action acts on. A typo of one
+character is the common near miss and would otherwise be answered with a flat
+"no such population".
+
+**Revisit if:** Candidate lists prove noisy enough that users pick the wrong
+number, which would argue for offering fewer rather than for matching less.
+
+---
+
+## D-043: Three guards the capability scope did not specify
+
+**Decision:**
+- The sort field genetic_distance is refused outside the FST view. DELPHI's
+  individual-track dropdown does not offer it, and syncSortDropdown silently
+  rewrites options.sort to its first entry when the value is not in the
+  dropdown, so writing it would look like it worked and then quietly revert.
+- A metadata filter that selects more than twelve populations does not act. It
+  reports the count and asks the user to narrow it. Twelve tracks is already a
+  full screen, and under FST the pair count grows as the square.
+- A metadata filter adds to the selection rather than replacing it, per D-034's
+  default. The user asks for replacement in words to get replacement.
+
+**Driver:** All three surfaced while building the action layer, not from a
+recorded decision. Each is an owner-visible behaviour choice and is recorded so
+it can be overruled cheaply.
+
+**Revisit if:** Any of the three proves wrong in use. The twelve is a constant in
+one file.
+
+---
+
+## D-044: What is not built, and is not hidden
+
+**Decision:** The following are absent from this version and are named rather
+than quietly skipped.
+
+- **Weight verification.** D-019 rests T-5 on "pinned URL plus post-download
+  hash verification". Only the pinned URL is implemented. WebLLM downloads and
+  caches its own weights and exposes no hook to hash them before use, so the
+  hash half of that control does not exist. This is a real gap in a control the
+  security record claims, not a deferral.
+- **Population generation from samples**, per D-011's phase-1 scope.
+- **Per-bin value questions**, per D-016.
+- **Free-form narration**, per D-023.
+- **The eval corpus is not re-run.** Stages 2 to 5 are built and unit-tested;
+  the Gate 4a re-run D-029 calls for has not happened, so no capability in this
+  version has a measured success rate. Nothing here may be described as an
+  n-in-ten capability until that run exists.
+
+**Driver:** Arbitration rule 3. A capability with no number is not a capability
+with a good number.
+
+**Revisit:** The eval re-run against D-039's grammar is the next piece of work.
+
+---
+
+## Q-018: the sort dropdown and D-025 disagree
+
+**Recorded, not decided.** D-025 says the sort option set is one closed list of
+five. index.html's individual-track dropdown offers nine: the five plus
+Latitude, Longitude, Agriculture_extensiveness, Urbanization_onset and signal.
+The pairwise dropdown offers six: the five plus signal. D-025's own revisit
+trigger says the dropdown is authoritative if it disagrees, and it does.
+
+The assistant ships D-025's five, which are the values valid in both dropdowns,
+and cannot reach the other four. Whether the extra four should be reachable is
+an owner call.

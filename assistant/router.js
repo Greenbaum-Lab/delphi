@@ -28,7 +28,17 @@ const routeGene = (catalogue, target) => {
 	return unresolved('gene', target, resolution.candidates, 'go_to_gene');
 };
 
-const resolvePopulations = (catalogue, target) => splitLabels(target).map(label => ({ label, resolution: resolvePopulation(catalogue.population_records, label) }));
+/**
+ * Resolves the target as one whole label before splitting it, because a
+ * population label may itself contain a comma or the word and, and splitting
+ * such a label would leave two halves that resolve to nothing.
+ */
+const resolvePopulations = (catalogue, target) => {
+	const whole_resolution = resolvePopulation(catalogue.population_records, target.trim());
+	if (whole_resolution.status === 'resolved')
+		return [{ label: target.trim(), resolution: whole_resolution }];
+	return splitLabels(target).map(label => ({ label, resolution: resolvePopulation(catalogue.population_records, label) }));
+};
 
 const routePopulations = (catalogue, target, population_action, action_name) => {
 	const resolutions = resolvePopulations(catalogue, target);

@@ -47,13 +47,16 @@ const handleSubmit = async (session, request_text) => {
 	if (!session.catalogue)
 		return session.panel.say('Still reading the catalogue, try again in a moment.');
 	session.panel.setBusy(true);
-	const parsed_command = answerPending(session, request_text) || parseCommand(request_text) || await modelCommand(session, request_text);
-	session.pending = null;
-	if (parsed_command)
-		await respond(session, parsed_command);
-	else
-		session.panel.say(session.engine ? NOT_UNDERSTOOD : NO_MODEL);
-	session.panel.setBusy(false);
+	try {
+		const parsed_command = answerPending(session, request_text) || parseCommand(request_text) || await modelCommand(session, request_text);
+		session.pending = null;
+		if (parsed_command)
+			await respond(session, parsed_command);
+		else
+			session.panel.say(session.engine ? NOT_UNDERSTOOD : NO_MODEL);
+	} finally {
+		session.panel.setBusy(false);
+	}
 };
 
 /**

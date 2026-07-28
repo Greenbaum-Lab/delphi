@@ -52,9 +52,16 @@ const command = (action, target, direction = null) => ({ action, target, directi
 
 const expandScales = text => text.replace(SCALED_NUMBER, (match, number, unit) => String(Math.round(Number(number) * SCALES[unit.toLowerCase()])));
 
+/**
+ * Finds the longest word-table entry present in the text as a whole word.
+ * Matching on substrings instead would read "het" out of "whether", so every
+ * lookup here is anchored on word boundaries.
+ */
 const matchWordTable = (text, word_table) => {
 	const lowered_text = text.toLowerCase();
-	const matched_word = Object.keys(word_table).sort((first, second) => second.length - first.length).find(word => lowered_text.includes(word));
+	const matched_word = Object.keys(word_table)
+		.sort((first, second) => second.length - first.length)
+		.find(word => new RegExp(`\\b${word}\\b`).test(lowered_text));
 	return matched_word ? word_table[matched_word] : null;
 };
 
