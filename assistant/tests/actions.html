@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>DELPHI assistant action tests</title>
+	<style>
+		body { font-family: monospace; padding: 16px; }
+		.pass { color: #1c6b3a; }
+		.fail { color: #b0483f; }
+		.summary { margin-top: 12px; font-weight: bold; }
+	</style>
+</head>
+<body>
+<h1>Action and routing tests</h1>
+<div data-module="browser" hidden></div>
+<div data-results></div>
+<script type="module">
+	import { runTests } from '/assistant/tests/actions_test.js';
+	window.test_summary = await runTests();
+</script>
+</body>
+</html>

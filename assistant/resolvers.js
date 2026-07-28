@@ -8,10 +8,36 @@ const unresolvedResult = candidates => ({ status: candidates.length > 0 ? 'ambig
 
 const isUsableQuery = query => typeof query === 'string' && query.trim().length > 0;
 
+const MIN_TYPO_LENGTH = 4;
+
+/**
+ * True when two names differ by at most one character, which is what a typed
+ * typo usually is. This decides only whether a name is worth offering back as a
+ * question; it never decides what an action acts on.
+ */
+const withinOneEdit = (candidate_name, query_name) => {
+	if (Math.abs(candidate_name.length - query_name.length) > 1)
+		return false;
+	const [shorter, longer] = candidate_name.length <= query_name.length ? [candidate_name, query_name] : [query_name, candidate_name];
+	let shorter_index = 0;
+	let edit_count = 0;
+	for (const longer_character of longer) {
+		if (shorter[shorter_index] === longer_character)
+			shorter_index += 1;
+		else if (++edit_count > 1)
+			return false;
+		else if (shorter.length === longer.length)
+			shorter_index += 1;
+	}
+	return true;
+};
+
 const isNearMiss = (candidate_name, query_name) => {
 	const lowered_candidate = candidate_name.toLowerCase();
 	const lowered_query = query_name.trim().toLowerCase();
-	return lowered_candidate === lowered_query || lowered_candidate.startsWith(lowered_query) || lowered_query.startsWith(lowered_candidate);
+	if (lowered_candidate === lowered_query || lowered_candidate.startsWith(lowered_query) || lowered_query.startsWith(lowered_candidate))
+		return true;
+	return lowered_query.length >= MIN_TYPO_LENGTH && withinOneEdit(lowered_candidate, lowered_query);
 };
 
 /**
