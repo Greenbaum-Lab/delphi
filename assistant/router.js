@@ -2,9 +2,8 @@ import { getOptions } from '/apc/common.js';
 import { getPopsData } from '/browser/pops.js';
 import { loadGeneMap } from '/assets.js';
 import { observeState } from '/assistant/state_observer.js';
-import { buildMessages } from '/assistant/prompt.js';
-import { COMMAND_SCHEMA, CLARIFY } from '/assistant/schemas.js';
-import { startModel, generate } from '/assistant/model.js';
+import { CLARIFY } from '/assistant/schemas.js';
+import { askModel } from '/assistant/session.js';
 import { resolveGene, resolvePopulation, RESOLVED } from '/assistant/resolvers.js';
 import { suggestNames } from '/assistant/suggest.js';
 import { answerField } from '/assistant/state_answers.js';
@@ -93,6 +92,10 @@ export const applyCommand = command => {
  * routing, resolution, validation, verification and the wording of every reply
  * stay ordinary code.
  *
+ * The turn goes through session.js, which keeps one running conversation so the
+ * instructions are prefilled once rather than on every request. See there for
+ * what that costs and what it bought.
+ *
  * The model is shown no state. Measured on 26 held-out utterances, the same
  * engine scored 0.62 without the state block against 0.38 with it, better on
  * four capabilities and worse on none, 16 percent faster, and the six borrowed
@@ -109,8 +112,7 @@ export const route = async utterance => {
 	const conversational = await conversationalReply(utterance);
 	if (conversational)
 		return conversational;
-	const engine = await startModel();
-	const raw_text = await generate(engine, buildMessages('', utterance), COMMAND_SCHEMA);
+	const raw_text = await askModel(utterance);
 	const command = parseCommand(raw_text);
 	if (!command || typeof command.action !== 'string')
 		return failure(MALFORMED);

@@ -562,6 +562,23 @@ the model doing exactly what D-024 forbids. Silent correction is not free: the
 same behaviour on a name that is close to two real labels picks one without
 asking.
 
+## Adopted: one running conversation, primed when the panel opens
+
+The session probe's result is now the shipping path. `session.js` keeps one
+conversation so WebLLM treats each request as a continuation and prefills only
+the new message, and `assistant.js` primes it the moment the panel opens, while
+the user has not asked for anything yet.
+
+Measured basis: prefill falls from 570 tokens to 12-36 after the first turn,
+taking the slow Intel machine from a p50 of 47785ms to 8149ms. Accuracy over 40
+turns without a reset was 33/40 against a stateless 30/40 on the same
+utterances in round-robin order, so the growing context did no harm at that
+length.
+
+The conversation resets every 40 turns, which is the length that was measured
+rather than a length believed to be safe. The turn after a reset pays the full
+prompt again.
+
 ---
 
 # Issues that persist and need attention

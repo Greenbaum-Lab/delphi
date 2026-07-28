@@ -3,6 +3,7 @@ import { getMetadata } from '/assets.js';
 import { runCommand, isTypedCommand, HELP } from '/assistant/commands.js';
 import { route } from '/assistant/router.js';
 import { startModel, modelReady } from '/assistant/model.js';
+import { primeSession } from '/assistant/session.js';
 
 const ACTIVATION_KEYS = ['Enter', ' '];
 
@@ -48,19 +49,26 @@ const warmCatalogues = () => {
 /**
  * Loads the model once, on the first open of the panel rather than on page
  * load. CLAUDE.md says startup, and this is the startup of the assistant: a
- * genome browser must not download 800MB for every visitor who never opens the
+ * genome browser must not download 830MB for every visitor who never opens the
  * panel, and the assistant is additive. The cost is that the first request
  * after a cold open waits for the download; every later one does not.
+ *
+ * Priming happens here too, and it is the reason nobody waits 44 seconds for
+ * their first sentence. The model reads its instructions once, into a cache
+ * every later turn reuses, and opening the panel is the moment to pay for it
+ * because the user has not asked for anything yet.
  */
 const startAssistant = async panel => {
 	if (modelReady())
 		return;
-	setStatus(panel, 'Loading the model. First load downloads about 800MB, cached after that.');
+	setStatus(panel, 'Loading the model. First load downloads about 830MB, cached after that.');
 	warmCatalogues();
 	try {
 		await startModel(progress => setStatus(panel, progress.text));
+		setStatus(panel, 'Reading the instructions once, so every reply after this is fast.');
+		await primeSession();
 		setStatus(panel, '');
-		appendMessage(panel, 'reply', 'Model ready.');
+		appendMessage(panel, 'reply', 'Ready.');
 	} catch (error) {
 		console.error(error);
 		setStatus(panel, '');
