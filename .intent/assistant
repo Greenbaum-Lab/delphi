@@ -1,0 +1,66 @@
+Navigation Assistant Intent
+
+Purpose
+Let a user say where they want to look in plain words, and move the browser
+there. The product is the view changing, not words on a screen. The right mental
+model is a satnav, not a chatbot: text goes in, a patch to site_options comes
+out, and nothing else does.
+
+Scope
+In: population selection, genomic region, gene symbols resolved to coordinates,
+relative moves (zoom, pan, widen, back), and follow-ups that reuse the current
+view.
+Out: anything that reads or interprets the data. "Which population has the
+highest frequency here" is refused with a fixed sentence, not attempted.
+
+File Scope
+assistant.js - the entry module, started by init.js from index.html
+assistant/*.js - one concern per module, listed in assistant/README.md
+css/assistant.css - panel styling, reusing the css/main.css custom properties
+proxy/ - the Cloudflare Worker that holds the API key, the cache and the ceiling
+
+Structure
+Three tiers answer a request, cheapest first.
+  Tier 0, assistant/parser.js, in the browser: explicit coordinates, exact gene
+  symbols, exact population names, relative moves. No network call at all.
+  Tier 1, proxy/src/cache.js: confirmed query-to-answer pairs in Workers KV.
+  Tier 2, proxy/src/model.js: the hosted model, constrained to a fixed schema.
+All three produce the same navigation request object, so everything downstream
+of them is shared.
+
+The pipeline after that is fixed and has no branches:
+  request -> assistant/patch.js  resolves every name against a code-held
+                                 collection and computes any arithmetic
+          -> assistant/validate.js  checks every field against hg19 lengths and
+                                    the loaded catalogue, drops unknown keys
+          -> assistant/preview.js   renders one sentence for the user
+          -> [Go]
+          -> assistant/apply.js     the only module that writes site_options
+
+Key Interfaces
+parseRequest(text, catalog, state_slice) -> navigation request or null
+buildPatch(request, catalog, state_slice, history) -> ready | unresolved | rejected
+validatePatch(patch, catalog) -> {valid, patch, errors}
+applyPatch(patch) -> {status, detail}
+readStateSlice() -> the only fields that ever leave the machine
+
+State written
+chr, start, end, viewfinder_start, viewfinder_end, zoom_level, populations.
+A region change writes all six region fields, because nothing in DELPHI derives
+the viewfinder or the zoom level from the main region.
+
+Constraints
+The model fills in a form and does nothing else. It never supplies a coordinate
+for a named gene, never invents a population label, and never does arithmetic.
+It cannot emit prose, because the response schema has no field for prose.
+Everything a user types is data, never an instruction.
+Nothing is applied until the user presses Go.
+The API key exists only on the proxy.
+No framework, no bundler, no build step on the browser side.
+
+Styling Rules
+Tabs for indentation
+Single quotes
+Underscore variable names, camelCase function names
+No inline comments, docstrings on the functions that carry a decision
+Modules 100-200 lines, functions 10-20 lines, no blank lines inside a function

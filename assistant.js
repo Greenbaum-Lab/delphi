@@ -1,91 +1,117 @@
 import { createPanel } from '/assistant/panel.js';
-import { loadCatalogue } from '/assistant/catalogue.js';
-import { parseCommand } from '/assistant/parser.js';
-import { routeCommand } from '/assistant/router.js';
-import { isModelSupported, loadModel, readCommand } from '/assistant/model.js';
-import { observeState } from '/assistant/state_observer.js';
-import { serializeState } from '/assistant/state_serializer.js';
-import { NOT_UNDERSTOOD, NO_MODEL, THINKING } from '/assistant/messages.js';
+import { loadCatalog } from '/assistant/catalog.js';
+import { readStateSlice, currentRegion } from '/assistant/state_slice.js';
+import { parseRequest } from '/assistant/parser.js';
+import { buildPatch } from '/assistant/patch.js';
+import { validatePatch } from '/assistant/validate.js';
+import { previewPatch, previewSource } from '/assistant/preview.js';
+import { applyPatch } from '/assistant/apply.js';
+import { createHistory } from '/assistant/history.js';
+import { createProxyClient } from '/assistant/client.js';
+import { GREETING, PRIVACY_NOTICE, SERVICE_UNAVAILABLE, APPLIED, CANCELLED, candidateQuestion, applyFailed, invalidPatch } from '/assistant/messages.js';
 
-const READY_STATUS = 'Ready.';
-const DIRECT_ONLY_STATUS = 'Direct commands only.';
-
-/**
- * Reads a reply to a question the assistant asked. A bare number picks one of
- * the candidates the resolver offered, and the exact name held in code is what
- * goes on to the action, not anything the user retyped.
- */
-const answerPending = (session, request_text) => {
-	if (!session.pending || !/^[0-9]+$/.test(request_text.trim()))
+const answerFromCandidates = (session, query) => {
+	if (!session.candidates || !/^[0-9]+$/.test(query))
 		return null;
-	const candidate = session.pending.candidates[Number(request_text.trim()) - 1];
-	return candidate ? { action: session.pending.action, target: candidate, direction: null } : null;
-};
-
-const modelCommand = async (session, request_text) => {
-	if (!session.engine)
-		return null;
-	session.panel.setStatus(THINKING);
-	const serialized_state = serializeState(await observeState());
-	const parsed_command = await readCommand(session.engine, serialized_state, request_text);
-	session.panel.setStatus(READY_STATUS);
-	return parsed_command;
-};
-
-const respond = async (session, parsed_command) => {
-	const { message, pending } = await routeCommand(session.catalogue, parsed_command);
-	session.panel.say(message);
-	session.pending = pending;
+	return session.candidates[Number(query) - 1] || null;
 };
 
 /**
- * Deterministic first: a request that the parser understands never reaches the
- * model, which is what keeps the common cases instant against the twenty-second
- * budget. The model is consulted only for what the parser could not read.
+ * The three tiers, in order. Tier 0 reads the request with no network call at
+ * all; only what it cannot read reaches the proxy, where the cache is tried
+ * before the model.
  */
-const handleSubmit = async (session, request_text) => {
-	if (!session.catalogue)
+const readRequest = async (session, query) => {
+	const state_slice = readStateSlice();
+	const parsed_request = parseRequest(query, session.catalog, state_slice);
+	if (parsed_request)
+		return { source: 'parser', request: parsed_request };
+	session.panel.setStatus('Interpreting.');
+	const reply = await session.proxy.navigate(query, state_slice).catch(error => ({ status: 'error', message: error.message }));
+	session.panel.setStatus('');
+	return reply.status === 'ok' ? { source: reply.source, request: reply.request } : { source: 'error', message: reply.message };
+};
+
+const proposePatch = (session, query, read_result) => {
+	const outcome = buildPatch(read_result.request, session.catalog, readStateSlice(), session.history);
+	if (outcome.status === 'unresolved')
+		return offerCandidates(session, outcome);
+	if (outcome.status === 'rejected')
+		return session.panel.say(outcome.message);
+	const validation = validatePatch(outcome.patch, session.catalog);
+	if (!validation.valid)
+		return session.panel.say(invalidPatch(validation.errors));
+	session.pending = { patch: validation.patch, query, request: read_result.request, source: read_result.source };
+	session.panel.propose(`${previewPatch(validation.patch)} (${previewSource(read_result.source)})`);
+};
+
+const offerCandidates = (session, outcome) => {
+	session.candidates = outcome.candidates;
+	session.panel.say(outcome.candidates.length > 0 ? candidateQuestion(outcome.message, outcome.candidates) : outcome.message);
+};
+
+const handleSubmit = async (session, typed_query) => {
+	const query = answerFromCandidates(session, typed_query) || typed_query;
+	session.candidates = null;
+	session.pending = null;
+	if (!session.catalog)
 		return session.panel.say('Still reading the catalogue, try again in a moment.');
 	session.panel.setBusy(true);
 	try {
-		const parsed_command = answerPending(session, request_text) || parseCommand(request_text) || await modelCommand(session, request_text);
-		session.pending = null;
-		if (parsed_command)
-			await respond(session, parsed_command);
-		else
-			session.panel.say(session.engine ? NOT_UNDERSTOOD : NO_MODEL);
+		const read_result = await readRequest(session, query);
+		if (read_result.source === 'error')
+			return session.panel.say(read_result.message || SERVICE_UNAVAILABLE);
+		proposePatch(session, query, read_result);
 	} finally {
 		session.panel.setBusy(false);
 	}
 };
 
 /**
- * Sets up once, on first open rather than on page load, so a visitor who never
- * opens the assistant never downloads a model. Everything expensive happens
- * here and nothing is rebuilt per request.
+ * Go. The patch is applied only here, after the user has read it. A confirmed
+ * model answer is reported back to the proxy, which is how the cache learns:
+ * every Go is a free labelled example.
  */
+const handleConfirm = session => {
+	if (!session.pending)
+		return;
+	const { patch, query, request, source } = session.pending;
+	session.pending = null;
+	session.history.record(currentRegion());
+	const result = applyPatch(patch);
+	session.panel.say(result.status === 'applied' ? APPLIED : applyFailed(result.detail));
+	if (result.status === 'applied' && source === 'model')
+		session.proxy.confirm(query, request).catch(() => undefined);
+};
+
+const handleCancel = session => {
+	if (!session.pending)
+		return;
+	session.pending = null;
+	session.panel.say(CANCELLED);
+};
+
 const prepare = async session => {
 	if (session.prepared)
 		return;
 	session.prepared = true;
+	session.panel.say(PRIVACY_NOTICE);
 	session.panel.setStatus('Reading the catalogue.');
-	session.catalogue = await loadCatalogue().catch(() => null);
-	if (!session.catalogue) {
+	session.catalog = await loadCatalog().catch(() => null);
+	if (!session.catalog) {
 		session.prepared = false;
 		return session.panel.setStatus('DELPHI has not finished loading its data. Open this again in a moment.');
 	}
-	if (!isModelSupported())
-		return session.panel.setStatus('This browser has no WebGPU, so direct commands only.');
-	session.panel.setStatus('Loading the local model, first time only.');
-	session.engine = await loadModel(progress_text => session.panel.setStatus(progress_text));
-	session.panel.setStatus(session.engine ? READY_STATUS : DIRECT_ONLY_STATUS);
+	session.panel.setStatus('');
 };
 
 export const init = async container => {
-	const session = { panel: null, catalogue: null, engine: null, pending: null, prepared: false };
+	const session = { panel: null, catalog: null, history: createHistory(), proxy: createProxyClient(), pending: null, candidates: null, prepared: false };
 	session.panel = createPanel(container, {
 		onOpen: () => prepare(session),
-		onSubmit: request_text => handleSubmit(session, request_text)
+		onSubmit: query => handleSubmit(session, query),
+		onConfirm: () => handleConfirm(session),
+		onCancel: () => handleCancel(session)
 	});
-	session.panel.say('Ask me to move the view. Try a gene name, chr2:136500000-136600000, fst, or sort by time.');
+	session.panel.say(GREETING);
 };

@@ -1,89 +1,105 @@
-# The DELPHI assistant
+# The DELPHI navigation assistant
 
-A panel inside DELPHI that turns a plain-language request into a validated
-change to the view. Inference runs on the user's own machine, in the tab, on
-WebGPU. Nothing is sent anywhere.
+Say where you want to look; the browser moves there. Text goes in, a patch to
+`site_options` comes out, and you approve it before it applies.
+
+```
+"show me the lactase region in Finns"
+        |
+        v
+{ populations: ['Finnish'], chr: 'chr2', start: 136045410, end: 137045410 }
+        |
+        v
+  Show Finnish, then go to chr2:136,045,410-137,045,410 (1.0 Mb)   [Go]  [Cancel]
+```
 
 ## How a request travels
 
 ```
 typed text
-  |
-  +-- a number answering a question the assistant asked --> the exact
-  |                                                         candidate held
-  |                                                         in code
-  |
-  +-- parser.js, no model                --> command
-  |
-  +-- model.js, one call, {action, target} --> command
-                                                  |
-                                                  v
-                                       router.js resolves the target
-                                       against the code-held collections
-                                                  |
-                                       resolved ---+--- missed
-                                                  |         |
-                                                  v         v
-                                          actions.js    a question
-                                          validates,    chosen by
-                                          writes,       code from the
-                                          dispatches,   failure type
-                                          verifies
+   |
+   +-- tier 0  parser.js        exact coordinates, gene, population, zoom/pan/back
+   |                            no network call at all
+   |
+   +-- tier 1  proxy KV cache   a query someone already confirmed
+   |
+   +-- tier 2  proxy -> model   constrained to a fixed form, ~200 output tokens
+                    |
+                    v
+              patch.js      resolves names against code-held collections,
+                            computes relative moves, clamps to the chromosome
+                    |
+                    v
+              validate.js   every field checked against hg19 and the catalogue,
+                            unknown keys dropped
+                    |
+                    v
+              preview.js -> [Go] -> apply.js   the only writer of site_options
 ```
 
-The model never supplies a coordinate, a gene position or a population label.
-It classifies the request and copies out a name; code looks the name up.
+The model never supplies coordinates for a named gene. It returns the symbol;
+`assets.js`'s own gene map supplies the position. Model for understanding, our
+table for accuracy, never the reverse.
 
 ## Files
 
 | File | What it is |
 |---|---|
 | `/assistant.js` | the entry module, wired by `data-module="assistant"` in `index.html` |
-| `panel.js` | the panel shell. Text in, text out, `textContent` only |
-| `parser.js` | the deterministic reader that runs before the model |
-| `model.js` | WebLLM, loaded once on first open. The only dynamic import in the assistant |
-| `router.js` | routes a command through the resolvers to the actions |
-| `resolvers.js` | exact-match lookup over the collections cached at load |
-| `metadata_filter.js` | population filtering by numeric field, region or country |
-| `catalogue.js` | loads the collections once, and joins populations to their samples |
-| `actions.js` | the only code that writes `site_options` and dispatches events |
-| `messages.js` | every word the user reads. The model writes none of them |
-| `vocabulary.js` | the closed enums |
-| `state_observer.js`, `state_serializer.js` | pre-existing, unchanged |
-| `FINDINGS.md` | what stage 1 established from the code |
+| `panel.js` | the panel shell: text in, one proposed change out, Go or Cancel |
+| `parser.js` | tier 0, the deterministic reader |
+| `client.js` | the only outbound path, and the only place that knows the proxy exists |
+| `turnstile.js` | the invisible bot check |
+| `patch.js` | request to patch: resolution, relative-move arithmetic, clamping |
+| `validate.js` | the safety layer |
+| `preview.js` | the sentence the user reads before approving |
+| `apply.js` | the only module that writes `site_options` |
+| `resolvers.js` | exact-match lookup, with near misses offered as a question |
+| `catalog.js` | loads the gene map and population list once |
+| `state_slice.js` | the whitelist of fields that may leave the machine |
+| `history.js` | the region stack behind "back" |
+| `config.js`, `messages.js` | the constants and the user-facing copy |
+| `state_observer.js`, `state_serializer.js` | pre-existing scaffolding, unused by this design |
 
-`knowledge/` is stale scaffolding from an earlier design and is imported by
-nothing. See `FINDINGS.md` section 6.
+## What leaves the machine
 
-## What it does
+Only three things, and only on a tier 2 miss: the typed query (capped at 200
+characters), the current `chr`/`start`/`end`/`populations`, and an anonymous
+visitor id. `state_slice.js` is a whitelist by name, so a field added to
+`site_options` later is not sent by accident.
 
-Sets the statistic. Sets the sort field and direction. Jumps to a region or a
-gene. Adds or replaces populations. Filters populations by region, country or a
-numeric metadata field. Adds an annotation track. Answers a question about one
-state field.
-
-It does not answer "what is the value here", does not narrate, and does not
-create populations. Those are decided out of scope in `DECISIONS.md`.
+Never sent: genotypes, allele frequencies, per-sample records, uploaded files,
+or any other `localStorage` key. Logging on the proxy is a hashed query plus
+token counts.
 
 ## Running the tests
 
 There is no test runner in this repository, so the tests are pages. Serve the
 repository root and open:
 
-- `/assistant/tests/index.html` - resolvers and metadata filter, 36 cases
-- `/assistant/tests/actions.html` - actions and routing against real
-  `site_options`, 42 cases
-- `/assistant/tests/panel.html` - the panel shell, 17 cases
+- `/assistant/tests/navigation.html` - parser, patch, validation, preview and
+  apply, 43 cases
+- `/assistant/tests/panel.html` - the panel shell including the Go/Cancel
+  contract, 27 cases
 
-Each prints pass or fail per case and a total. The action tests write
+Each prints pass or fail per case and a total. The navigation tests write
 `localStorage.site_options`, so run them in a tab you do not mind resetting.
 
-## Known limits in this version
+## The proxy
 
-- No capability has a measured success rate yet. The Gate 4a re-run against the
-  current grammar has not happened.
-- One action per request. "Show diversity in Yoruba" sets the statistic and
-  stops.
-- A filter matching more than twelve populations reports the count and does
-  nothing.
-- Model weights are fetched from a pinned URL but are not hash-verified.
+`proxy/` is a separate deployable: the Cloudflare Worker holding the API key,
+the cache, the quotas and the monthly ceiling. It is not part of the static site
+and is excluded from the S3 sync in `.github/workflows/deploy.yml`, so it never
+reaches the public bucket. See `proxy/README.md` for deployment and for the
+three secrets it needs.
+
+## Known limits
+
+- No capability here has a measured accuracy. The ~30-query validation the
+  design asks for before phase 4 has not been run.
+- The proxy has never executed: no API key, no KV namespace, no Turnstile
+  keypair. Treat it as reviewed code, not working code.
+- Until a Turnstile keypair is set, the proxy issues no tokens and the assistant
+  runs on tier 0 alone.
+- "back" only returns to views the assistant itself moved away from; DELPHI
+  reports nothing when the user drags the focal window.

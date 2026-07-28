@@ -1,0 +1,27 @@
+name = "delphi-assistant"
+main = "src/worker.js"
+compatibility_date = "2026-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Placeholder id. Create the namespace with:
+#   wrangler kv namespace create ASSISTANT_KV
+# and paste the id it prints here before deploying.
+[[kv_namespaces]]
+binding = "ASSISTANT_KV"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"
+
+[vars]
+ALLOWED_ORIGINS = "https://delphi.seqmash.com,https://beta2.seqmash.com"
+POPULATION_CATALOG_URL = "https://delphi.seqmash.com/data/modern_populations.json"
+MODEL_ID = "claude-haiku-4-5"
+MONTHLY_CEILING_CENTS = "10000"
+
+# Verify both against the current price list before the first deploy.
+# Figures below are dollars per million tokens for claude-haiku-4-5.
+INPUT_PRICE_PER_MTOK = "1.00"
+OUTPUT_PRICE_PER_MTOK = "5.00"
+
+# Secrets, set with `wrangler secret put NAME` and never committed:
+#   ANTHROPIC_API_KEY       dedicated key for DELPHI, with its own spend limit
+#   TURNSTILE_SECRET_KEY    server half of the Turnstile keypair
+#   TOKEN_SECRET            random 32 bytes, signs the short-lived session token

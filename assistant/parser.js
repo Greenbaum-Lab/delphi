@@ -1,139 +1,83 @@
-const REGION_PATTERN = /(chr[0-9xym]+)\s*:\s*([0-9,]+)(?:\s*-\s*([0-9,]+))?/i;
+import { RELATIVE_MOVES } from '/assistant/config.js';
+import { resolveGene, resolvePopulation } from '/assistant/resolvers.js';
+
+const REGION_PATTERN = /^(chr[0-9xym]+)\s*:\s*([0-9]+)(?:\s*-\s*([0-9]+))?$/i;
 const SCALED_NUMBER = /([0-9]+(?:\.[0-9]+)?)\s*(kb?|mb?)\b/gi;
 const SCALES = { k: 1000, kb: 1000, m: 1000000, mb: 1000000 };
+const ADD_PREFIX = /^(?:add|include|also show|and)\s+/i;
+const LEAD_VERB = /^(?:go\s+to|goto|show(?:\s+me)?|take\s+me\s+to|jump\s+to|move\s+to|switch\s+to|display|select|find)\s+/i;
 
-const MEASURE_WORDS = {
-	heterozygosity: 'heterozygosity',
-	diversity: 'heterozygosity',
-	het: 'heterozygosity',
-	fst: 'fst',
-	differentiation: 'fst',
-	divergence: 'fst',
-	tajima: 'tajimasd',
-	tajimasd: 'tajimasd',
-	fulif: 'fulif'
-};
+const RELATIVE_PHRASES = [
+	[/^(?:zoom\s*in|closer|magnify)$/i, 'zoom_in'],
+	[/^(?:zoom\s*out|wider view|pull back)$/i, 'zoom_out'],
+	[/^(?:pan\s*left|left|move left|earlier)$/i, 'pan_left'],
+	[/^(?:pan\s*right|right|move right|later)$/i, 'pan_right'],
+	[/^(?:widen|show more|broaden|zoom way out)$/i, 'widen'],
+	[/^(?:back|go back|undo|previous|revert)$/i, 'back']
+];
 
-const SORT_WORDS = {
-	time: 'time',
-	date: 'time',
-	age: 'time',
-	distance: 'Distance_from_Africa',
-	'distance from africa': 'Distance_from_Africa',
-	'genetic distance': 'genetic_distance',
-	temperature: 'Temperature_index',
-	precipitation: 'Precipitation_index',
-	rainfall: 'Precipitation_index'
-};
-
-const STATE_WORDS = {
-	statistic: 'measure',
-	measure: 'measure',
-	region: 'region',
-	position: 'region',
-	coordinates: 'region',
-	chromosome: 'chr',
-	zoom: 'zoom',
-	window: 'window',
-	mode: 'mode',
-	sort: 'sort',
-	order: 'sort',
-	population: 'populations',
-	populations: 'populations',
-	annotation: 'annotations',
-	annotations: 'annotations'
-};
-
-const DESCENDING_WORDS = /\b(descending|desc|reverse|reversed|highest|largest|furthest)\b/i;
-const ASCENDING_WORDS = /\b(ascending|asc|lowest|smallest|nearest|closest)\b/i;
-const REPLACE_WORDS = /\b(only|just|instead|replace|switch to)\b/i;
-
-const command = (action, target, direction = null) => ({ action, target, direction });
+const emptyRequest = () => ({ populations: null, chrom: null, start: null, end: null, gene_symbol: null, relative: null, confidence: 'high', rejection_reason: null });
 
 const expandScales = text => text.replace(SCALED_NUMBER, (match, number, unit) => String(Math.round(Number(number) * SCALES[unit.toLowerCase()])));
 
+const stripLeadingVerb = text => text.trim().replace(LEAD_VERB, '').trim();
+
+const parseRelative = text => {
+	const cleaned_text = text.trim();
+	const matched_phrase = RELATIVE_PHRASES.find(([pattern]) => pattern.test(cleaned_text));
+	if (!matched_phrase)
+		return null;
+	return { ...emptyRequest(), relative: matched_phrase[1] };
+};
+
 /**
- * Finds the longest word-table entry present in the text as a whole word.
- * Matching on substrings instead would read "het" out of "whether", so every
- * lookup here is anchored on word boundaries.
+ * Reads an explicit coordinate query. This is the case the UCSC search box has
+ * handled without a model for twenty years, and it stays that way here: no
+ * request of this shape ever reaches the network.
  */
-const matchWordTable = (text, word_table) => {
-	const lowered_text = text.toLowerCase();
-	const matched_word = Object.keys(word_table)
-		.sort((first, second) => second.length - first.length)
-		.find(word => new RegExp(`\\b${word}\\b`).test(lowered_text));
-	return matched_word ? word_table[matched_word] : null;
-};
-
-export const readDirection = text => {
-	if (DESCENDING_WORDS.test(text))
-		return 'desc';
-	return ASCENDING_WORDS.test(text) ? 'asc' : null;
-};
-
-const parseRegionCommand = text => {
-	const region_match = expandScales(text).match(REGION_PATTERN);
+const parseCoordinates = text => {
+	const region_match = expandScales(stripLeadingVerb(text).replace(/,/g, '')).match(REGION_PATTERN);
 	if (!region_match)
 		return null;
-	const start = region_match[2].replace(/,/g, '');
-	const end = region_match[3] === undefined ? start : region_match[3].replace(/,/g, '');
-	return command('go_to_region', `${region_match[1].toLowerCase()}:${start}-${end}`);
+	const start = Number(region_match[2]);
+	const end = region_match[3] === undefined ? start : Number(region_match[3]);
+	return { ...emptyRequest(), chrom: region_match[1].toLowerCase(), start, end };
 };
 
-const parseStateCommand = text => {
-	if (!/^(what|which|where)\b/i.test(text.trim()))
-		return null;
-	const state_field = matchWordTable(text, STATE_WORDS);
-	return state_field ? command('answer_state', state_field) : null;
+const parseGene = (text, catalog) => {
+	const gene_symbol = stripLeadingVerb(text).replace(/\s+gene$/i, '');
+	const resolution = resolveGene(catalog.gene_map, gene_symbol);
+	return resolution.status === 'resolved' ? { ...emptyRequest(), gene_symbol: resolution.entry.gene_symbol } : null;
 };
-
-const parseSortCommand = text => {
-	if (!/\bsort|\border by|\brank\b/i.test(text))
-		return null;
-	const sort_field = matchWordTable(text, SORT_WORDS);
-	return sort_field ? command('set_sort', sort_field, readDirection(text)) : null;
-};
-
-const parseStatisticCommand = text => {
-	const measure = matchWordTable(text, MEASURE_WORDS);
-	return measure ? command('set_statistic', measure) : null;
-};
-
-const parseFilterCommand = text => {
-	const filter_match = text.match(/\b(?:from|in|filter(?:\s+to)?|populations?\s+(?:in|from))\s+(.+)$/i);
-	if (!filter_match)
-		return null;
-	return command('filter_populations', filter_match[1].trim());
-};
-
-const parsePopulationCommand = text => {
-	const population_match = text.match(/\b(?:add|show|include|display|select|replace with|switch to)\s+(.+)$/i);
-	if (!population_match)
-		return null;
-	const action = REPLACE_WORDS.test(text) ? 'replace_populations' : 'add_populations';
-	return command(action, population_match[1].trim());
-};
-
-const parseBareToken = text => {
-	const trimmed_text = text.trim();
-	return /^[A-Za-z0-9_.-]{2,32}$/.test(trimmed_text) ? command('resolve_token', trimmed_text) : null;
-};
-
-const PARSERS = [parseRegionCommand, parseStateCommand, parseSortCommand, parseStatisticCommand, parseBareToken, parseFilterCommand, parsePopulationCommand];
 
 /**
- * Turns a request into a command without a model, or returns null so the caller
- * falls through to one. Every word table here maps onto a closed enum this code
- * owns; no table maps onto a population, gene or annotation name, because those
- * are data and only exact resolution may name them.
+ * Reads a population name, and composes the full desired set when the request
+ * is additive. The patch always carries the whole selection, so adding is done
+ * here in code rather than by asking the model to remember what was selected.
  */
-export const parseCommand = text => {
+const parsePopulation = (text, catalog, state_slice) => {
+	const is_addition = ADD_PREFIX.test(text.trim());
+	const population_label = stripLeadingVerb(text.trim().replace(ADD_PREFIX, ''));
+	const resolution = resolvePopulation(catalog.population_labels, population_label);
+	if (resolution.status !== 'resolved')
+		return null;
+	const selected = is_addition ? [...state_slice.populations, resolution.entry] : [resolution.entry];
+	return { ...emptyRequest(), populations: [...new Set(selected)] };
+};
+
+/**
+ * Tier 0. Resolves a request with no model call at all, or returns null so the
+ * caller falls through to the cache and then the model. Every branch here is a
+ * lookup against a code-held collection or a fixed phrase table, so it cannot
+ * invent a coordinate, a gene or a population.
+ */
+export const parseRequest = (text, catalog, state_slice) => {
 	if (typeof text !== 'string' || text.trim() === '')
 		return null;
-	for (const parser of PARSERS) {
-		const parsed_command = parser(text);
-		if (parsed_command)
-			return parsed_command;
-	}
-	return null;
+	return parseRelative(text)
+		|| parseCoordinates(text)
+		|| parseGene(text, catalog)
+		|| parsePopulation(text, catalog, state_slice);
 };
+
+export const isRelativeMove = move => RELATIVE_MOVES.includes(move);

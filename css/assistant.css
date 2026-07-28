@@ -73,6 +73,52 @@
 	max-width: 100%;
 }
 
+.assistant-preview {
+	margin: 0 10px 8px;
+	padding: 8px 10px;
+	background: var(--bg-subtle);
+	border: 1px solid var(--border-strong);
+	border-left: 3px solid var(--accent);
+	border-radius: 4px;
+}
+
+.assistant-preview[hidden] {
+	display: none;
+}
+
+.assistant-preview-text {
+	font-size: 13px;
+	line-height: 1.4;
+	color: var(--text);
+	margin-bottom: 8px;
+}
+
+.assistant-preview-actions {
+	display: flex;
+	gap: 6px;
+}
+
+.assistant-go, .assistant-cancel {
+	font-family: var(--font);
+	font-size: 13px;
+	border-radius: 4px;
+	padding: 4px 14px;
+	cursor: pointer;
+	border: 1px solid var(--border-strong);
+	background: var(--bg-panel);
+	color: var(--text);
+}
+
+.assistant-go {
+	border-color: var(--accent);
+	color: var(--accent);
+	font-weight: 600;
+}
+
+.assistant-go:hover, .assistant-go:focus-visible, .assistant-cancel:hover, .assistant-cancel:focus-visible {
+	background: var(--bg);
+}
+
 .assistant-status {
 	font-size: 11px;
 	color: var(--text-dim);
