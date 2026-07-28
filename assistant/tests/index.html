@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>DELPHI assistant resolver tests</title>
+	<style>
+		body { font-family: monospace; padding: 16px; }
+		.pass { color: #1c6b3a; }
+		.fail { color: #b0483f; }
+		.summary { margin-top: 12px; font-weight: bold; }
+	</style>
+</head>
+<body>
+<h1>Resolver tests</h1>
+<div data-results></div>
+<script type="module">
+	import { runTests } from '/assistant/tests/resolvers_test.js';
+	window.test_summary = runTests();
+</script>
+</body>
+</html>
