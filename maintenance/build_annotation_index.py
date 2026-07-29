@@ -8,13 +8,28 @@ Build the deployable annotation index from the curated annotation CSV.
 
 Each row becomes one entry, keyed by KEY_COLUMN. The data files are named after
 that key, and the curated columns are copied across as listed in
-METADATA_COLUMNS.
+METADATA_COLUMNS. BUILT_IN_ENTRIES are written as they stand, for annotations
+that are not curated in the CSV.
 '''
 import argparse
 import csv
 import json
 
 KEY_COLUMN = 'longLabel'
+
+BUILT_IN_ENTRIES = {
+	'gencode19_genes': {
+		'type': 'jsonl',
+		'source': 'gencodev19_annotation.jsonl',
+		'index': 'gencodev19_annotation.index.json',
+		'Name': 'GENCODE v19 genes',
+		'Category': 'Genes',
+		'Subcategory': 'Gene models',
+		'Description': 'Gene, transcript and exon models from GENCODE release 19.',
+		'Reference': 'GENCODE: The reference human genome annotation for The ENCODE Project',
+		'Link': 'https://doi.org/10.1101/gr.135350.111'
+	}
+}
 
 METADATA_COLUMNS = {
 	'Name': 'Name',
@@ -49,9 +64,11 @@ def index_entry(row, key):
 
 def build_index(rows):
 	'''
-	Build the whole index, keyed by KEY_COLUMN.
+	Build the whole index from the built-in entries and the CSV rows, keyed by KEY_COLUMN.
 	'''
-	return {row[KEY_COLUMN].strip(): index_entry(row, row[KEY_COLUMN].strip()) for row in rows}
+	index = {key: dict(entry) for key, entry in BUILT_IN_ENTRIES.items()}
+	index.update({row[KEY_COLUMN].strip(): index_entry(row, row[KEY_COLUMN].strip()) for row in rows})
+	return index
 
 
 def main():
