@@ -2,12 +2,24 @@ import { addHooks, errorBox, getOptions } from '/apc/common.js';
 import { addBox } from '/apc/form.js';
 import { getIDBObject, listIDBTable } from '/apc/cache.js';
 import { COLUMN_DESCRIPTIONS } from '/common.js';
-import { getMetadata, listAnnotations, getAnnotationEntry } from '/assets.js';
+import { CONFIG, getMetadata, listAnnotations, getAnnotationEntry } from '/assets.js';
 import { getPopsData, getPopData, addPopulation, deletePopulations } from '/browser/pops.js';
 
 const formatRowCount = (count, noun) => {
 	const label = count === 1 ? noun.replace(/s$/, '') : noun;
 	return `${count} ${label}`;
+};
+
+const urlCellRenderer = (url_field) => params => {
+	const url = params.data[url_field];
+	if (!url)
+		return document.createTextNode(params.value || '');
+	const link = document.createElement('a');
+	link.href = url;
+	link.target = '_blank';
+	link.rel = 'noopener';
+	link.textContent = params.value || url;
+	return link;
 };
 
 const loadTable = async (label, data, buttons = '', columns = [], categorical_columns = [], link_columns = [], select_rows = 'multiRow', selected_rows = {}, row_noun = 'rows') => {
@@ -57,7 +69,7 @@ const loadTable = async (label, data, buttons = '', columns = [], categorical_co
 				field: link_column.label,
 				headerTooltip: column_descriptions[link_column.label],
 				filter: true,
-				cellRenderer: params => {
+				cellRenderer: link_column.url ? urlCellRenderer(link_column.url) : params => {
 					const a = document.createElement('a');
 					a.dataset.linkTable = link_column.table;
 					a.dataset.linkId = params.data[link_column.source];
@@ -222,6 +234,23 @@ const mapSelectFunction = async (container, type, accession_ids) => {
 	}
 };
 
+const getAnnotationIndex = async () => {
+	const response = await fetch(`${CONFIG.S3_BASE_URL}/${CONFIG.INDEX_PATH}`, {cache: 'no-cache'});
+	if (!response.ok)
+		throw new Error(`Failed to fetch annotation index: ${response.status}`);
+	return response.json();
+};
+
+const annotationRow = (annotation, index_entry = {}) => ({
+	...annotation,
+	Name: annotation.label,
+	Category: index_entry.Category || (annotation.user ? 'My uploads' : 'Other'),
+	Subcategory: index_entry.Subcategory || 'Other',
+	Description: index_entry.Description || null,
+	Reference: index_entry.Reference || null,
+	Link: index_entry.Link || null
+});
+
 const showTable = async (table_name, options={}) => {
 	switch(table_name) {
 		case 'samples': {
@@ -250,8 +279,9 @@ const showTable = async (table_name, options={}) => {
 		case 'annotations': {
 			try {
 				const annotation_keys = await listAnnotations();
-				const annotations = await Promise.all(annotation_keys.map(getAnnotationEntry));
-				return loadTable('Annotations', annotations, '<a data-action="select" data-select-col="label" data-subfunction="update-annotations" class="button fright">Add annotations</a><a data-action="upload-annotation" class="button">Upload from computer</a>', ['label', 'source', 'type'], ['source', 'type'], [], 'multiRow', {label: getOptions().annotations}, 'annotations');
+				const [annotations, annotation_index] = await Promise.all([Promise.all(annotation_keys.map(getAnnotationEntry)), getAnnotationIndex()]);
+				const annotation_rows = annotations.map(annotation => annotationRow(annotation, annotation_index[annotation.label]));
+				return loadTable('Annotations', annotation_rows, '<a data-action="select" data-select-col="label" data-subfunction="update-annotations" class="button fright">Add annotations</a><a data-action="upload-annotation" class="button">Upload from computer</a>', ['Name', 'Category', 'Subcategory', 'Description', 'Reference'], ['Category', 'Subcategory'], [{label: 'Reference', url: 'Link'}], 'multiRow', {label: getOptions().annotations}, 'annotations');
 			} catch (e) {
 				console.log(e);
 				return errorBox('No annotations available', '', document.querySelector('[data-module="browser"]'));
