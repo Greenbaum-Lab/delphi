@@ -23,6 +23,7 @@ const STRAND_CHEVRON_HALF_HEIGHT_PX = 3;
 const MIN_ANNOTATION_SPAN = 10_000;
 const MIN_ANNOTATION_PIXELS = 4;
 const MAX_ANNOTATION_VIEW_FRACTION = 0.02;
+const GENE_TRACK_ID = 'gencode19_genes';
 
 let highlighted_gene = null;
 
@@ -96,7 +97,7 @@ const getGeneTrackIndex = (geneName) => {
 	return Math.abs(hash) % GENE_TRACKS;
 };
 
-const drawAnnotation = (svg, annotation_data) => {
+const drawAnnotation = (svg, annotation_data, track_id) => {
 	const options = getOptions();
 
   	const h = +(svg.dataset.height);
@@ -104,7 +105,7 @@ const drawAnnotation = (svg, annotation_data) => {
 	drawer.clear();
 
 	const genes = annotation_data?.raw_data || [];
-	const minimum_span = minimumVisibleSpan(drawer);
+	const minimum_span = track_id === GENE_TRACK_ID ? 0 : minimumVisibleSpan(drawer);
 
 	const regionSpan = options.end - options.start;
 	const coordHeight = 12;
@@ -229,7 +230,7 @@ const hooks = [
       	const track_id = e.target.dataset.source;
 		const annotation_data = await getTracks({chr: options.chr, start: options.start, end: options.end, track_ids: [track_id]});
       	e.target.dispatchEvent(new Event('refreshed'));
-		drawAnnotation(e.target.querySelector('svg'), annotation_data[0]);
+		drawAnnotation(e.target.querySelector('svg'), annotation_data[0], track_id);
 	}],
 	['svg [data-gene]', 'mouseenter', showTooltip],
 	['svg [data-gene]', 'mouseleave', hideTooltip],
