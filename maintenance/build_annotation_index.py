@@ -6,16 +6,16 @@ Build the deployable annotation index from the curated annotation CSV.
         --csv 'delphi annotations.csv' \\
         --output index.json
 
-Each row becomes one entry, keyed by KEY_COLUMN. The data files are named after
-that key, and the curated columns are copied across as listed in
-METADATA_COLUMNS. BUILT_IN_ENTRIES are written as they stand, for annotations
+Each row becomes one entry, keyed by KEY_COLUMN, which holds the basename of the
+annotation files in the bucket. The curated columns are copied across as listed
+in METADATA_COLUMNS. BUILT_IN_ENTRIES are written as they stand, for annotations
 that are not curated in the CSV.
 '''
 import argparse
 import csv
 import json
 
-KEY_COLUMN = 'longLabel'
+KEY_COLUMN = 'File'
 
 BUILT_IN_ENTRIES = {
 	'gencode19_genes': {
