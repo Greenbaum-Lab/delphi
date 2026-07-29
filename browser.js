@@ -1,4 +1,5 @@
 import { addHooks, addModule, errorBox, getOptions } from '/apc/common.js';
+import { roundToTenth } from '/common.js';
 import { getPops, initPopCache, getPopData, pairwiseSort, pairKey } from '/browser/pops.js';
 import { zoomToLevel, updateRegionFromInput, updateRegionInput } from '/browser/helpers.js';
 import { addAnnotation } from '/custom_annotation.js';
@@ -74,10 +75,20 @@ const applyYLimits = () => {
 };
 
 const syncYLimitInputs = () => {
-	const options = getOptions();
-	const override = (options.y_limits || {})[options.measure];
-	document.querySelector('[data-control="ymin"]').value = override ? override[0] : '';
-	document.querySelector('[data-control="ymax"]').value = override ? override[1] : '';
+	const bounds = boundsFor(getOptions().measure);
+	const [min_value, max_value] = bounds ? bounds.split(',') : ['', ''];
+	document.querySelector('[data-control="ymin"]').value = min_value;
+	document.querySelector('[data-control="ymax"]').value = max_value;
+};
+
+const displayedTracksBounds = () => {
+	const tracks = Array.from(document.querySelectorAll('.signal-tracks-container [data-module="track"][data-type="signal"]'));
+	const values = tracks.flatMap(track => track.signal_bins || []).map(bin => bin.value).filter(value => value !== null && !isNaN(value));
+	if (values.length === 0)
+		return null;
+	const min_value = roundToTenth(values.reduce((lowest, value) => Math.min(lowest, value)));
+	const max_value = roundToTenth(values.reduce((highest, value) => Math.max(highest, value)));
+	return min_value < max_value ? [min_value, max_value] : null;
 };
 
 const hooks = [
@@ -285,6 +296,16 @@ const hooks = [
 		getOptions([['y_limits', options.y_limits]]);
 		applyYLimits();
 	}],
+	['[data-action="autoscale-y"]', 'click', e => {
+		const bounds = displayedTracksBounds();
+		if (!bounds)
+			return errorBox('Cannot autoscale', 'No signal range is available. Let the tracks finish loading data before fitting the Y-axis.', document.querySelector('[data-module="browser"]'));
+		const options = getOptions();
+		getOptions([['y_limits', {...options.y_limits, [options.measure]: bounds}]]);
+		e.target.closest('.y-axis-control').classList.remove('invalid');
+		syncYLimitInputs();
+		applyYLimits();
+	}],
 	['[data-action="toggle-guides"]', 'click', e => {
 		const show_guides = !getOptions().show_guides;
 		getOptions([['show_guides', show_guides]]);
@@ -312,6 +333,8 @@ const hooks = [
 		closeMenus(menu);
 		if (opening && menu.dataset.menu === 'export')
 			syncExportMenu();
+		if (opening && menu.dataset.menu === 'more')
+			syncYLimitInputs();
 		panel.toggleAttribute('hidden', !opening);
 		menu.querySelector('.menu-toggle').setAttribute('aria-expanded', String(opening));
 	}],

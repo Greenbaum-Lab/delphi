@@ -16,6 +16,7 @@
 	<symbol id="icon-guides" viewBox="0 0 24 24"><path d="M8 4v16M16 4v16" stroke-dasharray="2.5 2.5"/></symbol>
 	<symbol id="icon-export" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></symbol>
 	<symbol id="icon-reset" viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h9a7 7 0 0 1 0 14H8"/></symbol>
+	<symbol id="icon-autoscale" viewBox="0 0 24 24"><path d="M4 4h16M4 20h16"/><path d="M12 8v8"/><path d="M9 11l3-3 3 3"/><path d="M9 13l3 3 3-3"/></symbol>
 </svg>
 <div class="wrap genome-browser" data-module="browser">
 	<header class="top-bar">
@@ -112,6 +113,9 @@
 						<span class="tooltip-wrap" data-tooltip="Y-axis maximum">
 							<input type="number" step="0.1" data-control="ymax" class="y-limit" placeholder="max" aria-label="Y-axis maximum">
 						</span>
+						<a data-action="autoscale-y" class="icon-btn" data-tooltip="Fit Y-axis to the range of all displayed tracks" aria-label="Autoscale Y-axis">
+							<svg aria-hidden="true"><use href="#icon-autoscale"></use></svg>
+						</a>
 					</div>
 					<div class="more-row">
 						<span class="more-label">Guides</span>
