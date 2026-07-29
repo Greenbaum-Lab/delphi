@@ -2,6 +2,8 @@
 export const hexToRgb = hex => hex.replace('#', '').match(/.{2}/g).map(h => parseInt(h, 16));
 
 export const roundToTenth = (value) => {
+	if (value === 0)
+		return 0;
 	const magnitude = Math.pow(10, Math.floor(Math.log10(Math.abs(value))));
 	return Math.round(value / (magnitude / 10)) * (magnitude / 10);
 };
