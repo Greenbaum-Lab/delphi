@@ -585,6 +585,24 @@ input, select, textarea {
 	flex: 1;
 	align-items: center;
 }
+.track-buttons .hit-nav {
+	display: flex;
+	flex: 1;
+	align-items: center;
+}
+.track-buttons .hit-nav a {
+	justify-content: center;
+}
+.track-buttons .hit-nav svg {
+	width: 14px;
+	height: 14px;
+	stroke: currentColor;
+	fill: none;
+	stroke-width: 2;
+	stroke-linecap: round;
+	stroke-linejoin: round;
+	pointer-events: none;
+}
 .track-move::before {
 	content: '';
 	width: 3px;

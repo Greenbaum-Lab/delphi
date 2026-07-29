@@ -1,5 +1,5 @@
 import { addHooks, addModule, errorBox, getOptions } from '/apc/common.js';
-import { calculateBounds } from '/common.js';
+import { calculateBounds, GENE_ANNOTATION } from '/common.js';
 import { getPops, initPopCache, getPopData, pairwiseSort, pairKey } from '/browser/pops.js';
 import { zoomToLevel, updateRegionFromInput, updateRegionInput } from '/browser/helpers.js';
 import { addAnnotation } from '/custom_annotation.js';
@@ -50,7 +50,7 @@ const DEFAULTS = {
 	window_size: 10000,
 	show_guides: false,
 	populations: [],
-	annotations: ['gencode19_genes'],
+	annotations: [GENE_ANNOTATION],
 	y_limits: {},
 	hidden_pairs: []
 };
