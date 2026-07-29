@@ -10,8 +10,7 @@ Add the curated annotation metadata to the deployable annotation index.
 The CSV describes annotations, the index holds the file locations the browser
 reads, and the two are matched on the column given by --key-column. Every entry
 keeps its existing type, source and index fields and gains the columns listed in
-METADATA_COLUMNS. Rows whose key is absent from the index are reported and
-skipped, since there is no file for the browser to load.
+METADATA_COLUMNS.
 '''
 import argparse
 import csv
@@ -27,15 +26,12 @@ METADATA_COLUMNS = {
 }
 
 
-def read_rows(csv_path, include_duplicates):
+def read_rows(csv_path):
 	'''
-	Read the annotation CSV, dropping rows marked as duplicates unless asked to keep them.
+	Read the annotation CSV.
 	'''
 	with open(csv_path, newline='') as handle:
-		rows = list(csv.DictReader(handle))
-	if include_duplicates:
-		return rows
-	return [row for row in rows if row.get('status', '').strip() != 'duplicate']
+		return list(csv.DictReader(handle))
 
 
 def metadata_fields(row):
@@ -64,18 +60,13 @@ def build_index(index, rows, key_column):
 
 def report(built, matched, unmatched, key_column):
 	'''
-	Print what was written and what still needs attention.
+	Print what was written and which CSV rows found no index entry.
 	'''
-	missing = [key for key in built if 'Category' not in built[key]]
 	print(f'annotations described: {len(matched)} of {len(built)}')
 	if unmatched:
-		print(f'\nCSV rows with no {key_column} in the index (not written):')
+		print(f'\nCSV rows with no {key_column} in the index:')
 		for row in unmatched:
-			print(f'  {row[key_column].strip()} ({row["Name"].strip()})')
-	if missing:
-		print('\nIndex entries with no CSV row (shown as Other in the browser):')
-		for key in missing:
-			print(f'  {key}')
+			print(f'  {row[key_column].strip()}')
 
 
 def main():
@@ -84,11 +75,10 @@ def main():
 	parser.add_argument('--index', required=True, help='current index.json from the bucket')
 	parser.add_argument('--output', required=True, help='index.json to upload')
 	parser.add_argument('--key-column', default='longLabel', help='CSV column matching the index keys')
-	parser.add_argument('--include-duplicates', action='store_true', help='keep rows marked duplicate')
 	args = parser.parse_args()
 	with open(args.index) as handle:
 		index = json.load(handle)
-	rows = read_rows(args.csv, args.include_duplicates)
+	rows = read_rows(args.csv)
 	built, matched, unmatched = build_index(index, rows, args.key_column)
 	with open(args.output, 'w') as handle:
 		json.dump(built, handle, indent=2, ensure_ascii=False)
