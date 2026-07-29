@@ -1,7 +1,7 @@
 import { addHooks, getOptions, shortNotation, mean, round } from '/apc/common.js';
 import { createSVG } from '/apc/plot/static.js';
 import { svg_draw } from '/apc/graphics/core.js';
-import { getAxisLabel, hexToRgb } from '/common.js';
+import { getAxisLabel, hexToRgb, roundToTenth } from '/common.js';
 import { getPopulationSamples, getSignalTrack } from '/assets.js';
 import { getPopData, pairwiseSort, pairKey } from '/browser/pops.js';
 import { generateCoordinateTicks, drawGuides } from '/browser/helpers.js';
@@ -50,11 +50,6 @@ const computeFst = (raw_data_1, raw_data_2) => {
 		fst_values.push(fst);
 	}
 	return fst_values;
-};
-
-const roundToTenth = (value) => {
-	const magnitude = Math.pow(10, Math.floor(Math.log10(Math.abs(value))));
-	return Math.round(value / (magnitude / 10)) * (magnitude / 10);
 };
 
 const calculateBounds = (values, measure) => {
