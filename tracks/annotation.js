@@ -20,6 +20,10 @@ const GENE_VERTICAL_SPACING = 30;
 const GENE_TRACKS = 3;
 const STRAND_CHEVRON_SPACING_PX = 20;
 const STRAND_CHEVRON_HALF_HEIGHT_PX = 3;
+const MIN_ANNOTATION_SPAN = 10_000;
+const MIN_ANNOTATION_PIXELS = 4;
+const MAX_ANNOTATION_VIEW_FRACTION = 0.02;
+const ANNOTATION_GRADIENT_PREFIX = 'annotation_min_span_gradient_';
 
 let highlighted_gene = null;
 
@@ -72,6 +76,40 @@ const drawDetailedGene = (drawer, gene, y, gene_name) => {
 	});
 };
 
+/**
+ * Smallest genomic span a user annotation is rendered at, keeping point-like
+ * features visible. Held at MIN_ANNOTATION_SPAN across most of the zoom range,
+ * bounded by a fraction of the view when zoomed in and by a pixel width when
+ * zoomed out.
+ */
+const minimumVisibleSpan = (drawer) => {
+	const [region_start, region_end] = drawer.bounds[0];
+	const region_span = region_end - region_start;
+	const bases_per_pixel = region_span / drawer.dims[0];
+	return Math.max(MIN_ANNOTATION_PIXELS * bases_per_pixel, Math.min(MIN_ANNOTATION_SPAN, region_span * MAX_ANNOTATION_VIEW_FRACTION));
+};
+
+const gradientId = (track_id) => ANNOTATION_GRADIENT_PREFIX + track_id.replace(/[^a-zA-Z0-9_-]/g, '_');
+
+const addGradientStop = (gradient, offset, color) => {
+	const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+	stop.setAttribute('offset', offset);
+	stop.setAttribute('stop-color', `rgb(${color.join(',')})`);
+	gradient.appendChild(stop);
+};
+
+const defineMinimumSpanGradient = (drawer, gradient_id) => {
+	const gradient = drawer.element('linearGradient', {id: gradient_id});
+	addGradientStop(gradient, '0%', INTRON_COLOR);
+	addGradientStop(gradient, '50%', GENE_COLOR);
+	addGradientStop(gradient, '100%', INTRON_COLOR);
+};
+
+const drawMinimumSpanBlock = (drawer, gene, y, gene_name, minimum_span, gradient_id) => {
+	const center = (gene.coordinates.start + gene.coordinates.end) / 2;
+	drawer.genomicRect(center - minimum_span / 2, minimum_span, y, GENE_HEIGHT, GENE_COLOR, 1, {'data-gene': gene_name, fill: `url(#${gradient_id})`});
+};
+
 const getGeneTrackIndex = (geneName) => {
 	let hash = 0;
 	for (let i = 0; i < geneName.length; i++) {
@@ -81,15 +119,18 @@ const getGeneTrackIndex = (geneName) => {
 	return Math.abs(hash) % GENE_TRACKS;
 };
 
-const drawAnnotation = (svg, annotation_data) => {
+const drawAnnotation = (svg, annotation_data, annotation_entry) => {
 	const options = getOptions();
 
   	const h = +(svg.dataset.height);
 	const drawer = svg_draw(svg, [[options.start, options.end], [0, h]]);
-	drawer.clear();
-	
+	drawer.clear(':scope > *');
+
 	const genes = annotation_data?.raw_data || [];
-	
+	const minimum_span = annotation_entry?.user ? minimumVisibleSpan(drawer) : 0;
+	const gradient_id = gradientId(annotation_entry?.label || '');
+	if (minimum_span > 0) defineMinimumSpanGradient(drawer, gradient_id);
+
 	const regionSpan = options.end - options.start;
 	const coordHeight = 12;
 	const geneTrackY = 2;
@@ -102,7 +143,10 @@ const drawAnnotation = (svg, annotation_data) => {
 		const geneEnd = gene.coordinates.end;
 		const geneName = gene.gene;
 		const y = geneTrackY + getGeneTrackIndex(geneName) * GENE_VERTICAL_SPACING;
-		drawDetailedGene(drawer, gene, y, geneName);
+		if (geneEnd - geneStart < minimum_span)
+			drawMinimumSpanBlock(drawer, gene, y, geneName, minimum_span, gradient_id);
+		else
+			drawDetailedGene(drawer, gene, y, geneName);
 		if (geneName === highlighted_gene) {
 			drawer.genomicRect(geneStart, geneEnd - geneStart, 0, h, HIGHLIGHT_COLOR, 0.3);
 		}
@@ -208,9 +252,11 @@ const hooks = [
 	['[data-module="track"]', 'refresh', async e => {
 		const options = getOptions();
       	const track_id = e.target.dataset.source;
-		const annotation_data = await getTracks({chr: options.chr, start: options.start, end: options.end, track_ids: [track_id]});
+		const annotation_entry = await getAnnotationEntry(track_id);
+		const query_padding = annotation_entry?.user ? MIN_ANNOTATION_SPAN / 2 : 0;
+		const annotation_data = await getTracks({chr: options.chr, start: options.start - query_padding, end: options.end + query_padding, track_ids: [track_id]});
       	e.target.dispatchEvent(new Event('refreshed'));
-		drawAnnotation(e.target.querySelector('svg'), annotation_data[0]);
+		drawAnnotation(e.target.querySelector('svg'), annotation_data[0], annotation_entry);
 	}],
 	['svg [data-gene]', 'mouseenter', showTooltip],
 	['svg [data-gene]', 'mouseleave', hideTooltip],
