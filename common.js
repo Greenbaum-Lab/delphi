@@ -2,8 +2,23 @@
 export const hexToRgb = hex => hex.replace('#', '').match(/.{2}/g).map(h => parseInt(h, 16));
 
 export const roundToTenth = (value) => {
-	const magnitude = Math.pow(10, Math.floor(Math.log10(Math.abs(value))));
-	return Math.round(value / (magnitude / 10)) * (magnitude / 10);
+	if (value === 0)
+		return 0;
+	const step = Math.pow(10, Math.floor(Math.log10(Math.abs(value)))) / 10;
+	return parseFloat((Math.round(value / step) * step).toPrecision(12));
+};
+
+export const calculateBounds = (values, measure) => {
+	if (values.length === 0)
+		return [0, 1];
+	const data_min = values.reduce((lowest, value) => Math.min(lowest, value));
+	const data_max = values.reduce((highest, value) => Math.max(highest, value));
+	if (measure === 'tajimasd' || measure === 'fulif') {
+		const abs_max = Math.max(Math.abs(data_min), Math.abs(data_max));
+		const rounded = roundToTenth(abs_max);
+		return [-rounded, rounded];
+	}
+	return [data_min < 0 ? roundToTenth(data_min) : 0, roundToTenth(data_max)];
 };
 
 export const formatSpan = (span) => {

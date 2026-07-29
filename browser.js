@@ -1,5 +1,5 @@
 import { addHooks, addModule, errorBox, getOptions } from '/apc/common.js';
-import { roundToTenth } from '/common.js';
+import { calculateBounds } from '/common.js';
 import { getPops, initPopCache, getPopData, pairwiseSort, pairKey } from '/browser/pops.js';
 import { zoomToLevel, updateRegionFromInput, updateRegionInput } from '/browser/helpers.js';
 import { addAnnotation } from '/custom_annotation.js';
@@ -81,13 +81,12 @@ const syncYLimitInputs = () => {
 	document.querySelector('[data-control="ymax"]').value = max_value;
 };
 
-const displayedTracksBounds = () => {
+const displayedTracksBounds = (measure) => {
 	const tracks = Array.from(document.querySelectorAll('.signal-tracks-container [data-module="track"][data-type="signal"]'));
 	const values = tracks.flatMap(track => track.signal_bins || []).map(bin => bin.value).filter(value => value !== null && !isNaN(value));
 	if (values.length === 0)
 		return null;
-	const min_value = roundToTenth(values.reduce((lowest, value) => Math.min(lowest, value)));
-	const max_value = roundToTenth(values.reduce((highest, value) => Math.max(highest, value)));
+	const [min_value, max_value] = calculateBounds(values, measure);
 	return min_value < max_value ? [min_value, max_value] : null;
 };
 
@@ -297,10 +296,10 @@ const hooks = [
 		applyYLimits();
 	}],
 	['[data-action="autoscale-y"]', 'click', e => {
-		const bounds = displayedTracksBounds();
-		if (!bounds)
-			return errorBox('Cannot autoscale', 'No signal range is available. Let the tracks finish loading data before fitting the Y-axis.', document.querySelector('[data-module="browser"]'));
 		const options = getOptions();
+		const bounds = displayedTracksBounds(options.measure);
+		if (!bounds)
+			return errorBox('Cannot autofit', 'No signal range is available. Let the tracks finish loading data before fitting the Y-axis.', document.querySelector('[data-module="browser"]'));
 		getOptions([['y_limits', {...options.y_limits, [options.measure]: bounds}]]);
 		e.target.closest('.y-axis-control').classList.remove('invalid');
 		syncYLimitInputs();
