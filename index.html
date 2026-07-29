@@ -17,6 +17,8 @@
 	<symbol id="icon-export" viewBox="0 0 24 24"><path d="M12 3v12M7 10l5 5 5-5"/><path d="M4 21h16"/></symbol>
 	<symbol id="icon-reset" viewBox="0 0 24 24"><path d="M9 14l-5-5 5-5"/><path d="M4 9h9a7 7 0 0 1 0 14H8"/></symbol>
 	<symbol id="icon-autoscale" viewBox="0 0 24 24"><path d="M12 4v16"/><path d="M8 8l4-4 4 4"/><path d="M8 16l4 4 4-4"/></symbol>
+	<symbol id="icon-previous-hit" viewBox="0 0 24 24"><path d="M14 5l-7 7 7 7"/></symbol>
+	<symbol id="icon-next-hit" viewBox="0 0 24 24"><path d="M10 5l7 7-7 7"/></symbol>
 </svg>
 <div class="wrap genome-browser" data-module="browser">
 	<header class="top-bar">
@@ -161,6 +163,10 @@
 				<div class="track-buttons">
 					<a data-action="annotation-display" data-icon="s" data-tooltip="Toggle annotation display style" aria-label="Toggle annotation display style"></a>
 					<a data-action="search-annotation" data-icon="S" data-tooltip="Search in annotation" aria-label="Search in annotation"></a>
+					<span class="hit-nav">
+						<a data-action="previous-hit" data-tooltip="Jump to previous hit in this annotation" aria-label="Jump to previous hit in this annotation"><svg aria-hidden="true"><use href="#icon-previous-hit"></use></svg></a>
+						<a data-action="next-hit" data-tooltip="Jump to next hit in this annotation" aria-label="Jump to next hit in this annotation"><svg aria-hidden="true"><use href="#icon-next-hit"></use></svg></a>
+					</span>
 					<a data-action="remove" data-icon="x" data-tooltip="Remove annotation from display" aria-label="Remove annotation from display"></a>
 				</div>
 				<div class="track-metadata">
