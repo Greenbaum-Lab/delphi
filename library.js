@@ -241,16 +241,6 @@ const getAnnotationIndex = async () => {
 	return response.json();
 };
 
-const annotationRow = (annotation, index_entry = {}) => ({
-	...annotation,
-	Name: annotation.label,
-	Category: index_entry.Category || (annotation.user ? 'My uploads' : 'Other'),
-	Subcategory: index_entry.Subcategory || 'Other',
-	Description: index_entry.Description || null,
-	Reference: index_entry.Reference || null,
-	Link: index_entry.Link || null
-});
-
 const showTable = async (table_name, options={}) => {
 	switch(table_name) {
 		case 'samples': {
@@ -280,7 +270,7 @@ const showTable = async (table_name, options={}) => {
 			try {
 				const annotation_keys = await listAnnotations();
 				const [annotations, annotation_index] = await Promise.all([Promise.all(annotation_keys.map(getAnnotationEntry)), getAnnotationIndex()]);
-				const annotation_rows = annotations.map(annotation => annotationRow(annotation, annotation_index[annotation.label]));
+				const annotation_rows = annotations.map(annotation => ({...annotation, ...annotation_index[annotation.label]}));
 				return loadTable('Annotations', annotation_rows, '<a data-action="select" data-select-col="label" data-subfunction="update-annotations" class="button fright">Add annotations</a><a data-action="upload-annotation" class="button">Upload from computer</a>', ['Name', 'Category', 'Subcategory', 'Description', 'Reference'], ['Category', 'Subcategory'], [{label: 'Reference', url: 'Link'}], 'multiRow', {label: getOptions().annotations}, 'annotations');
 			} catch (e) {
 				console.log(e);
