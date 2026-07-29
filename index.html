@@ -163,10 +163,6 @@
 				<div class="track-buttons">
 					<a data-action="annotation-display" data-icon="s" data-tooltip="Toggle annotation display style" aria-label="Toggle annotation display style"></a>
 					<a data-action="search-annotation" data-icon="S" data-tooltip="Search in annotation" aria-label="Search in annotation"></a>
-					<span class="hit-nav">
-						<a data-action="previous-hit" data-tooltip="Jump to previous hit in this annotation" aria-label="Jump to previous hit in this annotation"><svg aria-hidden="true"><use href="#icon-previous-hit"></use></svg></a>
-						<a data-action="next-hit" data-tooltip="Jump to next hit in this annotation" aria-label="Jump to next hit in this annotation"><svg aria-hidden="true"><use href="#icon-next-hit"></use></svg></a>
-					</span>
 					<a data-action="remove" data-icon="x" data-tooltip="Remove annotation from display" aria-label="Remove annotation from display"></a>
 				</div>
 				<div class="track-metadata">
@@ -175,7 +171,12 @@
 					<div class="track-value"></div>
 				</div>
 			</div>
-			<div class="track-plot-area"></div>
+			<div class="track-plot-area">
+				<span class="hit-nav">
+					<a data-action="previous-hit" data-tooltip="Previous hit" aria-label="Jump to previous hit in this annotation"><svg aria-hidden="true"><use href="#icon-previous-hit"></use></svg></a>
+					<a data-action="next-hit" data-tooltip="Next hit" aria-label="Jump to next hit in this annotation"><svg aria-hidden="true"><use href="#icon-next-hit"></use></svg></a>
+				</span>
+			</div>
 			<div class="track-tooltip"></div>
 		</template>
 	</main>
