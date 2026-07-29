@@ -23,10 +23,6 @@ const remainingChromosomes = (chr, direction) => {
 	return direction > 0 ? CHROMOSOME_ORDER.slice(index + 1) : CHROMOSOME_ORDER.slice(0, index).reverse();
 };
 
-/**
- * Finds the closest feature of an annotation past a genomic position, continuing
- * into following chromosomes once the current one holds no further features.
- */
 const findHit = async (track_id, chr, position, direction) => {
 	const features = await loadChromosomeFeatures(track_id, chr);
 	const feature = findFeatureBeyond(features, position, direction);
@@ -40,13 +36,13 @@ const findHit = async (track_id, chr, position, direction) => {
 	return null;
 };
 
-const centerOnFeature = (chr, feature) => {
-	const options = getOptions();
-	const span = options.end - options.start;
-	const chr_length = CHR_LENGTHS[chr];
+const centeredRegion = (feature, span, chr_length) => {
 	const center = (feature.coordinates.start + feature.coordinates.end) / 2;
 	const start = Math.max(0, Math.min(Math.round(center - span / 2), chr_length - span));
-	const end = Math.min(chr_length, start + span);
+	return {start, end: Math.min(chr_length, start + span)};
+};
+
+const moveToRegion = (chr, start, end, chr_length) => {
 	const viewfinder_bounds = computeViewfinderBounds(start, end, chr_length);
 	getOptions([
 		['chr', chr],
@@ -64,6 +60,8 @@ export const navigateToHit = async (track, direction) => {
 	const hit = await findHit(track.dataset.source, options.chr, view_center, direction);
 	if (!hit)
 		return;
-	centerOnFeature(hit.chr, hit.feature);
+	const chr_length = CHR_LENGTHS[hit.chr];
+	const region = centeredRegion(hit.feature, options.end - options.start, chr_length);
+	moveToRegion(hit.chr, region.start, region.end, chr_length);
 	track.closest('[data-module="browser"]').dispatchEvent(new Event('refresh'));
 };
