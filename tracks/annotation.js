@@ -23,7 +23,7 @@ const STRAND_CHEVRON_HALF_HEIGHT_PX = 3;
 const MIN_ANNOTATION_SPAN = 10_000;
 const MIN_ANNOTATION_PIXELS = 4;
 const MAX_ANNOTATION_VIEW_FRACTION = 0.02;
-const ANNOTATION_GRADIENT_PREFIX = 'annotation_min_span_gradient_';
+const ANNOTATION_GRADIENT_ID = 'annotation_min_span_gradient';
 
 let highlighted_gene = null;
 
@@ -76,12 +76,6 @@ const drawDetailedGene = (drawer, gene, y, gene_name) => {
 	});
 };
 
-/**
- * Smallest genomic span a user annotation is rendered at, keeping point-like
- * features visible. Held at MIN_ANNOTATION_SPAN across most of the zoom range,
- * bounded by a fraction of the view when zoomed in and by a pixel width when
- * zoomed out.
- */
 const minimumVisibleSpan = (drawer) => {
 	const [region_start, region_end] = drawer.bounds[0];
 	const region_span = region_end - region_start;
@@ -89,25 +83,19 @@ const minimumVisibleSpan = (drawer) => {
 	return Math.max(MIN_ANNOTATION_PIXELS * bases_per_pixel, Math.min(MIN_ANNOTATION_SPAN, region_span * MAX_ANNOTATION_VIEW_FRACTION));
 };
 
-const gradientId = (track_id) => ANNOTATION_GRADIENT_PREFIX + track_id.replace(/[^a-zA-Z0-9_-]/g, '_');
-
-const addGradientStop = (gradient, offset, color) => {
-	const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-	stop.setAttribute('offset', offset);
-	stop.setAttribute('stop-color', `rgb(${color.join(',')})`);
-	gradient.appendChild(stop);
+const defineMinimumSpanGradient = (drawer) => {
+	const gradient = drawer.element('linearGradient', {id: ANNOTATION_GRADIENT_ID});
+	[[0, INTRON_COLOR], [50, GENE_COLOR], [100, INTRON_COLOR]].forEach(([offset, color]) => {
+		const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+		stop.setAttribute('offset', `${offset}%`);
+		stop.setAttribute('stop-color', `rgb(${color.join(',')})`);
+		gradient.appendChild(stop);
+	});
 };
 
-const defineMinimumSpanGradient = (drawer, gradient_id) => {
-	const gradient = drawer.element('linearGradient', {id: gradient_id});
-	addGradientStop(gradient, '0%', INTRON_COLOR);
-	addGradientStop(gradient, '50%', GENE_COLOR);
-	addGradientStop(gradient, '100%', INTRON_COLOR);
-};
-
-const drawMinimumSpanBlock = (drawer, gene, y, gene_name, minimum_span, gradient_id) => {
+const drawMinimumSpanBlock = (drawer, gene, y, gene_name, minimum_span) => {
 	const center = (gene.coordinates.start + gene.coordinates.end) / 2;
-	drawer.genomicRect(center - minimum_span / 2, minimum_span, y, GENE_HEIGHT, GENE_COLOR, 1, {'data-gene': gene_name, fill: `url(#${gradient_id})`});
+	drawer.genomicRect(center - minimum_span / 2, minimum_span, y, GENE_HEIGHT, GENE_COLOR, 1, {'data-gene': gene_name, fill: `url(#${ANNOTATION_GRADIENT_ID})`});
 };
 
 const getGeneTrackIndex = (geneName) => {
@@ -128,8 +116,7 @@ const drawAnnotation = (svg, annotation_data, annotation_entry) => {
 
 	const genes = annotation_data?.raw_data || [];
 	const minimum_span = annotation_entry?.user ? minimumVisibleSpan(drawer) : 0;
-	const gradient_id = gradientId(annotation_entry?.label || '');
-	if (minimum_span > 0) defineMinimumSpanGradient(drawer, gradient_id);
+	if (minimum_span > 0) defineMinimumSpanGradient(drawer);
 
 	const regionSpan = options.end - options.start;
 	const coordHeight = 12;
@@ -144,7 +131,7 @@ const drawAnnotation = (svg, annotation_data, annotation_entry) => {
 		const geneName = gene.gene;
 		const y = geneTrackY + getGeneTrackIndex(geneName) * GENE_VERTICAL_SPACING;
 		if (geneEnd - geneStart < minimum_span)
-			drawMinimumSpanBlock(drawer, gene, y, geneName, minimum_span, gradient_id);
+			drawMinimumSpanBlock(drawer, gene, y, geneName, minimum_span);
 		else
 			drawDetailedGene(drawer, gene, y, geneName);
 		if (geneName === highlighted_gene) {
@@ -253,8 +240,7 @@ const hooks = [
 		const options = getOptions();
       	const track_id = e.target.dataset.source;
 		const annotation_entry = await getAnnotationEntry(track_id);
-		const query_padding = annotation_entry?.user ? MIN_ANNOTATION_SPAN / 2 : 0;
-		const annotation_data = await getTracks({chr: options.chr, start: options.start - query_padding, end: options.end + query_padding, track_ids: [track_id]});
+		const annotation_data = await getTracks({chr: options.chr, start: options.start, end: options.end, track_ids: [track_id]});
       	e.target.dispatchEvent(new Event('refreshed'));
 		drawAnnotation(e.target.querySelector('svg'), annotation_data[0], annotation_entry);
 	}],
