@@ -23,7 +23,6 @@ const STRAND_CHEVRON_HALF_HEIGHT_PX = 3;
 const MIN_ANNOTATION_SPAN = 10_000;
 const MIN_ANNOTATION_PIXELS = 4;
 const MAX_ANNOTATION_VIEW_FRACTION = 0.02;
-const ANNOTATION_GRADIENT_ID = 'annotation_min_span_gradient';
 
 let highlighted_gene = null;
 
@@ -83,19 +82,9 @@ const minimumVisibleSpan = (drawer) => {
 	return Math.max(MIN_ANNOTATION_PIXELS * bases_per_pixel, Math.min(MIN_ANNOTATION_SPAN, region_span * MAX_ANNOTATION_VIEW_FRACTION));
 };
 
-const defineMinimumSpanGradient = (drawer) => {
-	const gradient = drawer.element('linearGradient', {id: ANNOTATION_GRADIENT_ID});
-	[[0, INTRON_COLOR], [50, GENE_COLOR], [100, INTRON_COLOR]].forEach(([offset, color]) => {
-		const stop = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
-		stop.setAttribute('offset', `${offset}%`);
-		stop.setAttribute('stop-color', `rgb(${color.join(',')})`);
-		gradient.appendChild(stop);
-	});
-};
-
 const drawMinimumSpanBlock = (drawer, gene, y, gene_name, minimum_span) => {
 	const center = (gene.coordinates.start + gene.coordinates.end) / 2;
-	drawer.genomicRect(center - minimum_span / 2, minimum_span, y, GENE_HEIGHT, GENE_COLOR, 1, {'data-gene': gene_name, fill: `url(#${ANNOTATION_GRADIENT_ID})`});
+	drawer.genomicRect(center - minimum_span / 2, minimum_span, y, GENE_HEIGHT, GENE_COLOR, 1, {'data-gene': gene_name});
 };
 
 const getGeneTrackIndex = (geneName) => {
@@ -112,11 +101,10 @@ const drawAnnotation = (svg, annotation_data, annotation_entry) => {
 
   	const h = +(svg.dataset.height);
 	const drawer = svg_draw(svg, [[options.start, options.end], [0, h]]);
-	drawer.clear(':scope > *');
+	drawer.clear();
 
 	const genes = annotation_data?.raw_data || [];
 	const minimum_span = annotation_entry?.user ? minimumVisibleSpan(drawer) : 0;
-	if (minimum_span > 0) defineMinimumSpanGradient(drawer);
 
 	const regionSpan = options.end - options.start;
 	const coordHeight = 12;
