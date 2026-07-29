@@ -230,7 +230,7 @@ const hooks = [
       	const track_id = e.target.dataset.source;
 		const annotation_data = await getTracks({chr: options.chr, start: options.start, end: options.end, track_ids: [track_id]});
       	e.target.dispatchEvent(new Event('refreshed'));
-		drawAnnotation(e.target.querySelector('.track-plot-area svg'), annotation_data[0]);
+		drawAnnotation(e.target.querySelector('.track-plot-area > svg'), annotation_data[0]);
 	}],
 	['svg [data-gene]', 'mouseenter', showTooltip],
 	['svg [data-gene]', 'mouseleave', hideTooltip],
