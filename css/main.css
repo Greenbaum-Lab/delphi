@@ -11,6 +11,7 @@
 	--data-2: #6b5b8a;
 	--tab-modern: #c9d9d6;
 	--tab-adna: #e8c79c;
+	--icon: #276399;
 	--text: #1b2430;
 	--text-dim: #57626f;
 	--text-faint: #b7bdc2;
@@ -294,7 +295,7 @@ input, select, textarea {
 .tracks-controls [data-icon]:empty {
 	font-size: 22px;
 	line-height: 22px;
-	color: #276399;
+	color: var(--icon);
 }
 
 .tracks-controls .sort-container [data-icon] {
@@ -449,6 +450,10 @@ input, select, textarea {
 	align-items: center;
 	gap: 8px;
 	padding: 4px 2px;
+}
+
+.menu-panel .icon-btn:not(.active) {
+	color: var(--icon);
 }
 
 .more-row select {
