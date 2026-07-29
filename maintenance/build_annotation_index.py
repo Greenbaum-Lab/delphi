@@ -1,20 +1,20 @@
 #!/usr/bin/env python3
 '''
-Add the curated annotation metadata to the deployable annotation index.
+Build the deployable annotation index from the curated annotation CSV.
 
     python build_annotation_index.py \\
         --csv 'delphi annotations.csv' \\
-        --index index.json \\
-        --output index.new.json
+        --output index.json
 
-The CSV describes annotations, the index holds the file locations the browser
-reads, and the two are matched on the column given by --key-column. Every entry
-keeps its existing type, source and index fields and gains the columns listed in
+Each row becomes one entry, keyed by KEY_COLUMN. The data files are named after
+that key, and the curated columns are copied across as listed in
 METADATA_COLUMNS.
 '''
 import argparse
 import csv
 import json
+
+KEY_COLUMN = 'longLabel'
 
 METADATA_COLUMNS = {
 	'Name': 'Name',
@@ -34,55 +34,35 @@ def read_rows(csv_path):
 		return list(csv.DictReader(handle))
 
 
-def metadata_fields(row):
+def index_entry(row, key):
 	'''
-	Map the CSV columns onto the field names the browser reads.
+	Build one index entry from a CSV row.
 	'''
-	return {field: row[column].strip() for column, field in METADATA_COLUMNS.items()}
+	entry = {
+		'type': 'jsonl',
+		'source': f'{key}.jsonl',
+		'index': f'{key}.index.json'
+	}
+	entry.update({field: row[column].strip() for column, field in METADATA_COLUMNS.items()})
+	return entry
 
 
-def build_index(index, rows, key_column):
+def build_index(rows):
 	'''
-	Return the index with metadata added, plus the keys that matched and the rows that did not.
+	Build the whole index, keyed by KEY_COLUMN.
 	'''
-	built = {key: dict(entry) for key, entry in index.items()}
-	matched = []
-	unmatched = []
-	for row in rows:
-		key = row[key_column].strip()
-		if key not in built:
-			unmatched.append(row)
-			continue
-		built[key].update(metadata_fields(row))
-		matched.append(key)
-	return built, matched, unmatched
-
-
-def report(built, matched, unmatched, key_column):
-	'''
-	Print what was written and which CSV rows found no index entry.
-	'''
-	print(f'annotations described: {len(matched)} of {len(built)}')
-	if unmatched:
-		print(f'\nCSV rows with no {key_column} in the index:')
-		for row in unmatched:
-			print(f'  {row[key_column].strip()}')
+	return {row[KEY_COLUMN].strip(): index_entry(row, row[KEY_COLUMN].strip()) for row in rows}
 
 
 def main():
-	parser = argparse.ArgumentParser(description='Add annotation metadata to the annotation index')
+	parser = argparse.ArgumentParser(description='Build the annotation index from the curated CSV')
 	parser.add_argument('--csv', required=True, help='curated annotation CSV')
-	parser.add_argument('--index', required=True, help='current index.json from the bucket')
 	parser.add_argument('--output', required=True, help='index.json to upload')
-	parser.add_argument('--key-column', default='longLabel', help='CSV column matching the index keys')
 	args = parser.parse_args()
-	with open(args.index) as handle:
-		index = json.load(handle)
-	rows = read_rows(args.csv)
-	built, matched, unmatched = build_index(index, rows, args.key_column)
+	index = build_index(read_rows(args.csv))
 	with open(args.output, 'w') as handle:
-		json.dump(built, handle, indent=2, ensure_ascii=False)
-	report(built, matched, unmatched, args.key_column)
+		json.dump(index, handle, indent=2, ensure_ascii=False)
+	print(f'annotations written: {len(index)}')
 
 
 if __name__ == '__main__':
