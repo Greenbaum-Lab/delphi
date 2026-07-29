@@ -243,7 +243,7 @@ const getAnnotationIndex = async () => {
 
 const annotationRow = (annotation, index_entry = {}) => ({
 	...annotation,
-	Name: annotation.label,
+	Name: index_entry.Name || annotation.label,
 	Category: index_entry.Category || (annotation.user ? 'My uploads' : 'Other'),
 	Subcategory: index_entry.Subcategory || 'Other',
 	Description: index_entry.Description || null,
