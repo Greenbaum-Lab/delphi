@@ -687,8 +687,6 @@ input, select, textarea {
 	bottom: 0;
 	min-width: 2px;
 	background: color-mix(in srgb, var(--accent) 14%, transparent);
-	border-left: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
-	border-right: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
 	pointer-events: none;
 	display: none;
 }

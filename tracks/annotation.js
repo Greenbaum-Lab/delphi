@@ -59,6 +59,13 @@ const drawFeatureRect = (drawer, start, end, y, gene_attributes, minimum_span) =
 	drawer.genomicRect(center - span / 2, span, y, GENE_HEIGHT, GENE_COLOR, 1, gene_attributes);
 };
 
+const drawGeneHitArea = (drawer, gene, y, gene_attributes, minimum_span) => {
+	'Cover the whole drawn extent of a gene with a transparent rect, so pointers hit the gene over its introns too.';
+	const span = Math.max(gene.coordinates.end - gene.coordinates.start, minimum_span);
+	const center = (gene.coordinates.start + gene.coordinates.end) / 2;
+	drawer.genomicRect(center - span / 2, span, y, GENE_HEIGHT, GENE_COLOR, 0, gene_attributes);
+};
+
 const drawDetailedGene = (drawer, gene, y, gene_attributes, minimum_span) => {
 	const exons = gene.exons || [];
 	const introns = gene.introns || [];
@@ -121,7 +128,9 @@ const drawAnnotation = (svg, annotation_data, track_id) => {
 		const geneEnd = gene.coordinates.end;
 		const geneName = gene.gene;
 		const y = geneTrackY + getGeneTrackIndex(geneName) * GENE_VERTICAL_SPACING;
-		drawDetailedGene(drawer, gene, y, geneAttributes(gene), minimum_span);
+		const gene_attributes = geneAttributes(gene);
+		drawDetailedGene(drawer, gene, y, gene_attributes, minimum_span);
+		drawGeneHitArea(drawer, gene, y, gene_attributes, minimum_span);
 		if (geneName === highlighted_gene) {
 			drawer.genomicRect(geneStart, geneEnd - geneStart, 0, h, HIGHLIGHT_COLOR, 0.3);
 		}
