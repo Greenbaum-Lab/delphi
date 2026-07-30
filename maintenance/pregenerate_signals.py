@@ -10,9 +10,12 @@ matching CONFIG.GNOMAD_STAT_COLUMNS in assets.js. Rows are either fixed-size
 windows indexed from position 0, or the elements of an annotation file.
 
 Populations are named by the FID field of the .fam, and the populations file
-selects which of them to generate. A population the fileset does not contain is
-reported and skipped, so the same populations file can be run against several
-filesets.
+selects which of them to generate. Filesets disagree on those names, so
+--population-field names the entry field holding the FID for the fileset in
+hand, while output files are always named from aadr_population, which is the
+name the browser requests. A population the fileset does not contain, or one
+the populations file gives no name for, is skipped, so the same populations
+file can be run against several filesets.
 
 Output layout, where the label names the genotype source so that one population
 computed from different filesets lands in different files:
@@ -32,6 +35,7 @@ Example:
 	python pregenerate_signals.py \
 		--bed-prefix /data/gnomad/gnomad_v3 \
 		--populations ./build/modern_populations.json \
+		--population-field gnomad_population \
 		--output-label gnomad \
 		--window-size 10000 \
 		--output-dir ./build
@@ -82,28 +86,32 @@ def population_file_name(label):
 	return label
 
 
-def load_population_labels(populations_path):
+def load_population_labels(populations_path, population_field):
 	'''
-	Read the population labels to generate from a populations file.
+	Map each population to generate from its FID in the fileset to its file name.
 
-	Accepts the modern_populations.json shape, a list of objects carrying
-	aadr_population (the FID as it appears in the fileset) and falling back to
-	population. Order is preserved and duplicates are dropped.
+	population_field names the entry field holding the FID, which differs between
+	genotype sources, while the file name always comes from aadr_population, so
+	one population keeps a single name across every source directory and the
+	browser can request it without knowing which source it came from. Entries
+	without the field name no population in this fileset and are skipped. Order
+	is preserved and duplicates are dropped.
 	'''
 	entries = json.loads(pathlib.Path(populations_path).read_text(encoding='utf-8'))
 	if not isinstance(entries, list):
 		raise ValueError('populations file must contain a list of population entries')
-	labels = []
+	file_names = {}
+	claimed_by = {}
 	for entry in entries:
-		if isinstance(entry, str):
-			label = entry
-		else:
-			label = entry.get('aadr_population') or entry.get('population')
-		if not label:
-			raise ValueError(f'population entry without aadr_population or population: {entry}')
-		if label not in labels:
-			labels.append(label)
-	return labels
+		source_label = entry.get(population_field)
+		if not source_label or source_label in file_names:
+			continue
+		file_name = population_file_name(entry['aadr_population'])
+		if file_name in claimed_by:
+			raise ValueError(f'{claimed_by[file_name]} and {source_label} would both be written to {file_name}')
+		claimed_by[file_name] = source_label
+		file_names[source_label] = file_name
+	return file_names
 
 
 def build_population_indices(fam_path, requested_labels):
@@ -378,7 +386,7 @@ def process_elements(bed_file, sample_rows, population_arrays, population_labels
 	return accumulator, row_count
 
 
-def write_signal_files(output_directory, accumulator, population_labels, row_count, tag):
+def write_signal_files(output_directory, accumulator, population_labels, file_names, row_count, tag):
 	'''
 	Write one table per population plus the SNP count sidecar.
 
@@ -391,7 +399,7 @@ def write_signal_files(output_directory, accumulator, population_labels, row_cou
 		table[:, RATE_COLUMNS:STAT_COLUMNS] = 0.0
 		for row_index, row in accumulator.rows[label].items():
 			table[row_index] = row
-		np.save(output_directory / f'{population_file_name(label)}_{tag}.npy', table)
+		np.save(output_directory / f'{file_names[label]}_{tag}.npy', table)
 
 	snp_counts = np.zeros(row_count, dtype=np.int32)
 	for row_index, count in accumulator.snp_counts.items():
@@ -417,8 +425,8 @@ def generate(args):
 		raise RuntimeError('CuPy backend requested but CuPy is not importable')
 	print(f'array backend: {backend_name}')
 
-	requested_labels = load_population_labels(args.populations)
-	population_arrays, population_labels, sample_rows = build_population_indices(f'{args.bed_prefix}.fam', requested_labels)
+	file_names = load_population_labels(args.populations, args.population_field)
+	population_arrays, population_labels, sample_rows = build_population_indices(f'{args.bed_prefix}.fam', list(file_names))
 	if not population_labels:
 		print('no requested population is present in the fileset, nothing to generate')
 		return
@@ -456,7 +464,7 @@ def generate(args):
 				bed_file, sample_rows, population_arrays, population_labels,
 				positions_all, variant_indices_all, elements, args.block_size
 			)
-			write_signal_files(output_directory, accumulator, population_labels, row_count, tag)
+			write_signal_files(output_directory, accumulator, population_labels, file_names, row_count, tag)
 			write_element_labels(output_directory, elements, tag)
 		else:
 			print(f'{tag}: {positions_all.size} variants')
@@ -464,9 +472,9 @@ def generate(args):
 				bed_file, sample_rows, population_arrays, population_labels,
 				positions_all, variant_indices_all, args.window_size, args.block_size
 			)
-			write_signal_files(output_directory, accumulator, population_labels, row_count, tag)
+			write_signal_files(output_directory, accumulator, population_labels, file_names, row_count, tag)
 
-	summary_path = write_summary(output_directory, [population_file_name(label) for label in population_labels])
+	summary_path = write_summary(output_directory, [file_names[label] for label in population_labels])
 	print(f'wrote signal files to {output_directory}')
 	print(f'wrote reference statistics to {summary_path}')
 
@@ -475,6 +483,7 @@ def main():
 	parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 	parser.add_argument('--bed-prefix', required=True, help='Root of the .bed/.bim/.fam fileset')
 	parser.add_argument('--populations', required=True, help='Populations file selecting which FIDs to generate')
+	parser.add_argument('--population-field', default='aadr_population', help='Populations file field holding the FID in this fileset (default: aadr_population)')
 	parser.add_argument('--output-label', required=True, help='Name of the genotype source, used as the output directory (e.g. gnomad, AADR)')
 	parser.add_argument('--output-dir', required=True, help='Directory to write the generated tracks to')
 	rows = parser.add_mutually_exclusive_group(required=True)

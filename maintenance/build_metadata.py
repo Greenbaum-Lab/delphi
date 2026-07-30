@@ -24,7 +24,9 @@ Stages, in order:
   4. apply_gnomad_filename_overrides - repoint aadr_population (and matching
                                samples' Group_Name) for the handful of populations
                                whose gnomAD .npy files use the UI label instead
-                               of the usual aadr_population-derived filename
+                               of the usual aadr_population-derived filename.
+                               Superseded by the gnomad_population field; remove
+                               this stage once the gnomAD tables are regenerated
   5. simplify_metadata        - keep + rename fields to the app's schema
   6. validate_population_coverage - drop (with a warning) any population whose
                                aadr_population still has no matching Group_Name
@@ -285,6 +287,20 @@ GNOMAD_FILENAME_OVERRIDES = {
 
 
 def apply_gnomad_filename_overrides(metadata_records, population_entries, overrides=GNOMAD_FILENAME_OVERRIDES):
+	'''
+	Repoint aadr_population at the name the gnomAD file already has.
+
+	REMOVE THIS STAGE once the gnomAD tables are regenerated. It exists only
+	because the populations file had no field naming a population in the gnomAD
+	fileset, so the one field that did name it, aadr_population, was overwritten
+	to match the file on S3. The gnomad_population field carries that name now,
+	pregenerate_signals.py reads it with --population-field, and the tables it
+	writes are named from aadr_population like every other source, so nothing
+	needs repointing. Until then the two are inconsistent: leaving this stage in
+	after regenerating would point the browser at files that no longer exist,
+	and taking it out before regenerating would point it at files not yet
+	renamed.
+	'''
 	for population in population_entries:
 		new_aadr_population = overrides.get(population.get('population'))
 		if new_aadr_population is None:
