@@ -1,7 +1,7 @@
 import { addHooks, getOptions, shortNotation, mean, round } from '/apc/common.js';
 import { createSVG } from '/apc/plot/static.js';
 import { svg_draw } from '/apc/graphics/core.js';
-import { getAxisLabel, hexToRgb } from '/common.js';
+import { getAxisLabel, hexToRgb, calculateBounds } from '/common.js';
 import { getPopulationSamples, getSignalTrack } from '/assets.js';
 import { getPopData, pairwiseSort, pairKey } from '/browser/pops.js';
 import { generateCoordinateTicks, drawGuides } from '/browser/helpers.js';
@@ -50,31 +50,6 @@ const computeFst = (raw_data_1, raw_data_2) => {
 		fst_values.push(fst);
 	}
 	return fst_values;
-};
-
-const roundToTenth = (value) => {
-	const magnitude = Math.pow(10, Math.floor(Math.log10(Math.abs(value))));
-	return Math.round(value / (magnitude / 10)) * (magnitude / 10);
-};
-
-const calculateBounds = (values, measure) => {
-	if (values.length === 0) {
-		return [0, 1];
-	}
-	
-	const data_min = Math.min(...values);
-	const data_max = Math.max(...values);
-	
-	if (measure === 'tajimasd' || measure === 'fulif') {
-		const abs_max = Math.max(Math.abs(data_min), Math.abs(data_max));
-		const rounded = roundToTenth(abs_max);
-		return [-rounded, rounded];
-	}
-	
-	const min_bound = data_min < 0 ? roundToTenth(data_min) : 0;
-	const max_bound = roundToTenth(data_max);
-	
-	return [min_bound, max_bound];
 };
 
 const drawGridlines = (drawer, min_value, max_value) => {

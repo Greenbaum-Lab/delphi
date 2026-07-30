@@ -2,9 +2,10 @@ import { addHooks, getOptions } from '/apc/common.js';
 import { svg_draw } from '/apc/graphics/core.js';
 import { createSVG } from '/apc/plot/static.js';
 import { getTracks, loadGeneMap, getAnnotationEntry } from '/assets.js';
-import { CHR_LENGTHS, hexToRgb } from '/common.js';
+import { CHR_LENGTHS, GENE_ANNOTATION, hexToRgb } from '/common.js';
 import { formatRegionString } from '/browser/region.js';
 import { updateRegionInput, generateCoordinateTicks, drawGuides, showHoverLine, hideHoverLine } from '/browser/helpers.js';
+import { navigateToHit } from '/browser/annotation_nav.js';
 
 const cssVars = getComputedStyle(document.documentElement);
 const getVar = (name) => cssVars.getPropertyValue(name).trim();
@@ -237,6 +238,12 @@ const hooks = [
 	['svg, svg *', 'mousemove', e => showHoverLine(e.clientX)],
 	['[data-module="track"]', 'mouseleave', hideHoverLine],
 	['[data-module="track"]', 'search', handleSearch],
+	['[data-action="previous-hit"]', 'click', e => {
+		navigateToHit(e.target.closest('[data-module="track"]'), -1);
+	}],
+	['[data-action="next-hit"]', 'click', e => {
+		navigateToHit(e.target.closest('[data-module="track"]'), 1);
+	}],
 	['[data-action="remove"]', 'click', e => {
 		const track = e.target.closest('[data-module="track"]');
 		getOptions([['annotations', getOptions().annotations.filter(label => label !== track.dataset.source)]]);
@@ -250,6 +257,8 @@ export const init = async (container) => {
 	const template = document.getElementById('annotation-track-template');
 	const clone = template.content.cloneNode(true);
 	container.append(clone);
+	if (track_id === GENE_ANNOTATION)
+		container.querySelector('.hit-nav').remove();
 	container.setAttribute('draggable', true);
 	const plot_area = container.querySelector('.track-plot-area');
 	const ratio = plot_area.offsetHeight / plot_area.offsetWidth;
