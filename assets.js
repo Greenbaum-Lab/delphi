@@ -199,11 +199,15 @@ const getPrecomputedTrack = async ({ source, chr, start, end, population, window
 	const start_index = Math.floor(start / window_size);
 	const end_index = Math.ceil(end / window_size);
 	const sliced_data = full_data.slice(start_index, end_index);
+	// A dense float32 table can only mark a missing window with NaN, so it is
+	// normalised to null here and nothing downstream of assets sees a NaN. The
+	// Lambda path already returns null for the same thing.
+	const measured = value => (value === undefined || isNaN(value)) ? null : value;
 	let measure_data;
 	if (measure === 'raw') {
-		measure_data = sliced_data.map(row => [row.ac, row.an, row.het_obs]);
+		measure_data = sliced_data.map(row => [measured(row.ac), measured(row.an), measured(row.het_obs)]);
 	} else {
-		measure_data = sliced_data.map(row => row[measure]);
+		measure_data = sliced_data.map(row => measured(row[measure]));
 	}
 	return {
 		data: measure_data,
