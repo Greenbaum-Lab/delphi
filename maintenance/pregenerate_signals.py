@@ -200,21 +200,16 @@ def accumulate_row(accumulator, label, row_index, statistics):
 	'''
 	Store one row of statistics for a population.
 
-	Preserves the reference behaviour that a rate which cannot be computed leaves
-	the seeded zero in place rather than a NaN, so an empty window reads as zero
-	rather than missing. The snp_counts sidecar distinguishes the two.
+	A rate that cannot be computed is stored as NaN rather than zero, so the
+	browser masks the window from the table alone and does not have to read the
+	SNP counts to tell no coverage from a genuine zero. The reference kept a
+	seeded zero here, which it could not avoid: it revisited windows across
+	overlapping blocks, whereas each row is computed exactly once here.
+
+	The three sums stay zero when a row is empty, which is what a sum over no
+	variants is, and what the browser's FST already treats as no data.
 	'''
-	heterozygosity, tajimasd, fulif, ac_sum, an_sum, het_obs_sum = statistics
-	row = accumulator.rows[label].setdefault(row_index, [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-	if not np.isnan(heterozygosity):
-		row[0] = heterozygosity
-	if not np.isnan(tajimasd):
-		row[1] = tajimasd
-	if not np.isnan(fulif):
-		row[2] = fulif
-	row[3] = ac_sum
-	row[4] = an_sum
-	row[5] = het_obs_sum
+	accumulator.rows[label][row_index] = list(statistics)
 
 
 def load_genotypes(bed_file, sample_rows, variant_indices):
@@ -386,8 +381,8 @@ def write_signal_files(output_directory, accumulator, population_labels, row_cou
 	'''
 	Write one table per population plus the SNP count sidecar.
 
-	Rates are seeded with NaN and sums with zero, so a row never reached keeps
-	NaN in the first three columns, matching the reference output.
+	Rates are seeded with NaN and sums with zero, so a row never reached reads the
+	same as a row with no variants in it.
 	'''
 	for label in population_labels:
 		table = np.empty((row_count, STAT_COLUMNS), dtype=np.float32)

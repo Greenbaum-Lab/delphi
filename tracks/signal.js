@@ -217,7 +217,11 @@ const hooks = [
 		const plot_style = track.dataset.style || 'binned';
 		const bounds = track.dataset.bounds ? track.dataset.bounds.split(',').map(v => +v) : null;
 		drawSignal(svg, bins, track_response.start, track_response.end, plot_style, bounds);
-		const mean_signal = mean(values);
+		// Windows with no coverage arrive as NaN from a pregenerated table and as null
+		// from the Lambda; averaging over them would make the whole track NaN, or count
+		// a gap as a zero.
+		const measured_values = values.filter(value => value !== null && !isNaN(value));
+		const mean_signal = measured_values.length > 0 ? mean(measured_values) : 0;
 		if (options.sort === 'signal')
 			track.querySelector('.track-value').textContent = `Mean: ${round(mean_signal, 3)}`;
 		clearTimeout(loading_timeout);
