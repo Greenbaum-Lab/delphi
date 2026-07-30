@@ -10,20 +10,17 @@ export const CONFIG = {
 	INDEX_PATH: 'index.json',
 	LAMBDA_BUFFER_BASES: 1000000,
 	MIN_FETCH_WINDOWS: 20,
-	// Directory of pregenerated tracks per mode. The mode selects the genotype
-	// source, so every population of a view is measured on the same panel.
 	SOURCE_DIRECTORIES: { gnomad: 'gnomad', adna: 'AADR' },
+	SUMMARY_FILE: 'percentiles.json',
 	IDB_NAME: 'delphi',
 	IDB_LAMBDA_TABLE: 'lambda_cache',
 	IDB_GNOMAD_TABLE: 'gnomad_cache',
 	IDB_POPULATIONS_TABLE: 'populations',
 	IDB_ANNOTATIONS_TABLE: 'annotations',
+	IDB_REFERENCE_TABLE: 'signal_reference',
 	GNOMAD_STAT_COLUMNS: ['heterozygosity', 'tajimasd', 'fulif', 'ac', 'an', 'het_obs'],
 };
 
-// Lambda cache keys are ['pop', population, chr, window_size, bin_start, bin_end].
-// The window size sits ahead of the bin bounds so that a range query over a region
-// returns bins of one size only.
 const BIN_START_INDEX = 4;
 
 const MEASURE_INDEX = {
@@ -38,6 +35,7 @@ const geneNameMaps = new Map();
 
 const lambdaBatchQueue = [];
 const precomputedMemoryCache = new Map();
+const summaryCaches = new Map();
 const inflightLambdaFetches = new Map();
 let lambdaBatchTimer = null;
 
@@ -66,9 +64,6 @@ const initializeAnnotationsTable = async () => {
 };
 
 export const clearStaleLambdaCache = async () => {
-	// Lambda cache keys gained the window size, so entries written before that are
-	// indistinguishable from 10 kb bins under a range query. They carry one key
-	// element fewer, which is enough to recognise and drop them.
 	const keys = await listIDBTable(CONFIG.IDB_NAME, CONFIG.IDB_LAMBDA_TABLE);
 	const stale_keys = keys.filter(key => key.length < BIN_START_INDEX + 2);
 	if (stale_keys.length === 0)
@@ -186,12 +181,36 @@ const getPrecomputedChromosome = (source, population, chr, window_size) => {
 		await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_GNOMAD_TABLE, idb_key, parsed_data);
 		return parsed_data;
 	})();
-	// Caching the in-flight load, as loadAnnotationData does, so tracks sharing a
-	// population download the file once. Dropped on failure so a later track retries
-	// rather than inheriting the error.
 	precomputedMemoryCache.set(cache_key, load_promise);
 	load_promise.catch(() => precomputedMemoryCache.delete(cache_key));
 	return load_promise;
+};
+
+const getSignalSummary = (source, window_size) => {
+	const cache_key = `${source}_${window_size}`;
+	if (summaryCaches.has(cache_key)) {
+		return summaryCaches.get(cache_key);
+	}
+	const load_promise = fetch(`${CONFIG.S3_BASE_URL}/${source}/${window_size}/${CONFIG.SUMMARY_FILE}`)
+		.then(response => response.ok ? response.json() : null);
+	summaryCaches.set(cache_key, load_promise);
+	load_promise.catch(() => summaryCaches.delete(cache_key));
+	return load_promise;
+};
+
+export const getPregeneratedReference = async (population, measure, window_size) => {
+	/*
+	Mean and 95 percent interval measured across the whole pregenerated table of a
+	population, or null where no table exists, as for a population the user
+	assembled.
+	*/
+	const population_data = await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_POPULATIONS_TABLE, population);
+	if (population_data.Dataset === 'User')
+		return null;
+	const source = CONFIG.SOURCE_DIRECTORIES[getOptions().mode];
+	const summary = await getSignalSummary(source, window_size);
+	const file_name = population_data.aadr_population.replace(/\.(DG)$/, '');
+	return summary && summary[file_name] && summary[file_name][measure] || null;
 };
 
 const getPrecomputedTrack = async ({ source, chr, start, end, population, window_size, measure }) => {
@@ -199,9 +218,6 @@ const getPrecomputedTrack = async ({ source, chr, start, end, population, window
 	const start_index = Math.floor(start / window_size);
 	const end_index = Math.ceil(end / window_size);
 	const sliced_data = full_data.slice(start_index, end_index);
-	// A dense float32 table can only mark a missing window with NaN, so it is
-	// normalised to null here and nothing downstream of assets sees a NaN. The
-	// Lambda path already returns null for the same thing.
 	const measured = value => (value === undefined || isNaN(value)) ? null : value;
 	let measure_data;
 	if (measure === 'raw') {
@@ -325,8 +341,6 @@ const processBatch = async () => {
 
 const queueLambdaRequest = (chr, start, end, measure, populations, window_size) => {
 	return new Promise((resolve, reject) => {
-		// One invocation carries a single window size, so a size change flushes the
-		// pending batch the same way a chromosome change does.
 		const can_batch = lambdaBatchQueue.length === 0 || (lambdaBatchQueue[0].chr === chr && lambdaBatchQueue[0].window_size === window_size);
 
 		if (!can_batch) {
@@ -428,9 +442,6 @@ export const getLambdaTrack = async ({ chr, start, end, measure, populations, wi
 	const buffered_end = end + CONFIG.LAMBDA_BUFFER_BASES;
 	const required_bins = calculateBins(buffered_start, buffered_end, window_size);
 	const population_labels = Object.keys(populations);
-	// Resolved concurrently so every population of a track reaches the batch queue within
-	// the same debounce window. Awaiting them in sequence held back the second population
-	// of each pairwise track until the first had returned, splitting off a second invocation.
 	const results = await Promise.all(population_labels.map(async population_label => {
 		const lower_bound = ['pop', population_label, chr, window_size, required_bins[0].start, 0];
 		const upper_bound = ['pop', population_label, chr, window_size, required_bins[required_bins.length - 1].end, Infinity];
@@ -490,9 +501,6 @@ export const getSignalTrack = async ({ chr, start, end, measure, populations, wi
 	const population_data = Object.fromEntries(await Promise.all(population_labels.map(async population =>
 		[population, await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_POPULATIONS_TABLE, population)]
 	)));
-	// The mode decides which pregenerated source a track reads, so every population of
-	// a view is measured on the same panel. Only populations the user assembled have no
-	// pregenerated track, and those alone are computed on the fly.
 	const on_the_fly = population_labels.filter(population => population_data[population].Dataset === 'User');
 	const pregenerated = population_labels.filter(population => population_data[population].Dataset !== 'User');
 	const [lambda_tracks, precomputed_tracks] = await Promise.all([

@@ -485,6 +485,21 @@ input, select, textarea {
 	color: var(--text-dim);
 }
 
+.more-text-toggle {
+	cursor: pointer;
+}
+
+.more-text-toggle.active {
+	color: var(--accent);
+	font-weight: 600;
+}
+
+.reference-note {
+	margin-left: 3px;
+	color: var(--text-dim);
+	cursor: help;
+}
+
 .more-divider {
 	height: 1px;
 	background: var(--border);

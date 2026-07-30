@@ -51,6 +51,7 @@ const DEFAULTS = {
 	sort_dir: 'asc',
 	window_size: 10000,
 	show_guides: false,
+	show_percentiles: false,
 	populations: [],
 	annotations: [GENE_ANNOTATION],
 	y_limits: {},
@@ -316,6 +317,12 @@ const hooks = [
 		syncYLimitInputs();
 		applyYLimits();
 	}],
+	['[data-action="toggle-percentiles"]', 'click', e => {
+		const show_percentiles = !getOptions().show_percentiles;
+		getOptions([['show_percentiles', show_percentiles]]);
+		document.querySelector('[data-action="toggle-percentiles"]').classList.toggle('active', show_percentiles);
+		e.target.closest('[data-module="browser"]').dispatchEvent(new Event('refresh'));
+	}],
 	['[data-action="toggle-guides"]', 'click', e => {
 		const show_guides = !getOptions().show_guides;
 		getOptions([['show_guides', show_guides]]);
@@ -330,6 +337,7 @@ const hooks = [
 		document.querySelector('.y-axis-control').classList.remove('invalid');
 		syncYLimitInputs();
 		document.querySelector('[data-action="toggle-guides"]').classList.toggle('active', DEFAULTS.show_guides);
+		document.querySelector('[data-action="toggle-percentiles"]').classList.toggle('active', DEFAULTS.show_percentiles);
 		updateRegionInput(DEFAULTS.chr, DEFAULTS.start, DEFAULTS.end);
 		e.target.closest('[data-module="browser"]').dispatchEvent(new Event('update'));
 	}],
@@ -378,6 +386,7 @@ export const init = async (container) => {
 
 	container.querySelector('[data-module="track"][data-type="viewfinder"]').dataset.source = options.annotations[0];
 	document.querySelector('[data-action="toggle-guides"]').classList.toggle('active', options.show_guides);
+	document.querySelector('[data-action="toggle-percentiles"]').classList.toggle('active', options.show_percentiles);
 	
 	updateRegionInput(options.chr, options.start, options.end);
 	addHooks(window, hooks);

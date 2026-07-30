@@ -51,6 +51,7 @@ from bed_reader import open_bed
 
 import pop_measures
 from pop_measures import compute_pop_stats_for_block, compute_pop_stats_for_window
+from signal_summary import write_summary
 
 STAT_COLUMNS = 6
 RATE_COLUMNS = 3
@@ -465,7 +466,9 @@ def generate(args):
 			)
 			write_signal_files(output_directory, accumulator, population_labels, row_count, tag)
 
+	summary_path = write_summary(output_directory, [population_file_name(label) for label in population_labels])
 	print(f'wrote signal files to {output_directory}')
+	print(f'wrote reference statistics to {summary_path}')
 
 
 def main():
