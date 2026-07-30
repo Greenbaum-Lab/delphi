@@ -5,6 +5,7 @@ import { zoomToLevel, updateRegionFromInput, updateRegionInput } from '/browser/
 import { addAnnotation } from '/custom_annotation.js';
 import { exportMetadata, exportPositionalData, isPairwiseView } from '/browser/export.js';
 import { renderGeneBand } from '/browser/gene_band.js';
+import { getTracks } from '/assets.js';
 
 const syncSortDropdown = (is_pairwise, current_sort) => {
 	const selector = is_pairwise ? '.sort-selector-pairwise' : '.sort-selector';
@@ -54,6 +55,14 @@ const DEFAULTS = {
 	annotations: [GENE_ANNOTATION],
 	y_limits: {},
 	hidden_pairs: []
+};
+
+const loadStartupData = async (options) => {
+	'Load the populations and the annotation gene models the page opens with, so nothing is reachable before it can be drawn.';
+	await initPopCache();
+	await Promise.allSettled(options.annotations.map(track_id =>
+		getTracks({chr: options.chr, start: options.start, end: options.end, track_ids: [track_id]})
+	));
 };
 
 const defaultBounds = (measure) => {
@@ -363,7 +372,7 @@ export const init = async (container) => {
 	syncYLimitInputs();
 	const is_pairwise = options.measure === 'fst';
 	syncSortDropdown(is_pairwise, options.sort);
-	await initPopCache();
+	await loadStartupData(options);
 	container.querySelector('.mode').innerHTML = options.mode === 'adna' ? '<a class="adna" data-icon="t" title="Data will be generated on the file using AADR genotypes">aDNA</a>' : '<a data-icon="I" title="Data will be generated using genotypes from gnomAD v3.1.2">gnomAD</a>';
 
 	container.querySelector('[data-module="track"][data-type="viewfinder"]').dataset.source = options.annotations[0];
