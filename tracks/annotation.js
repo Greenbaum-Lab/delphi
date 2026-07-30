@@ -24,7 +24,6 @@ const STRAND_CHEVRON_HALF_HEIGHT_PX = 3;
 const MIN_ANNOTATION_SPAN = 10_000;
 const MIN_ANNOTATION_PIXELS = 4;
 const MAX_ANNOTATION_VIEW_FRACTION = 0.02;
-const GENE_TRACK_ID = 'gencode19_genes';
 
 let highlighted_gene = null;
 
@@ -47,15 +46,19 @@ const drawStrandChevrons = (drawer, intron_start, intron_end, center_y, strand, 
 	}
 };
 
-const drawDetailedGene = (drawer, gene, y, gene_name) => {
+const drawFeatureRect = (drawer, start, end, y, gene_name, minimum_span) => {
+	const span = Math.max(end - start, minimum_span);
+	const center = (Number(start) + Number(end)) / 2;
+	drawer.genomicRect(center - span / 2, span, y, GENE_HEIGHT, GENE_COLOR, 1, {'data-gene': gene_name});
+};
+
+const drawDetailedGene = (drawer, gene, y, gene_name, minimum_span) => {
 	const exons = gene.exons || [];
 	const introns = gene.introns || [];
 	const strand = gene.strand;
-	
+
 	if (exons.length === 0) {
-		const geneStart = gene.coordinates.start;
-		const geneEnd = gene.coordinates.end;
-		drawer.genomicRect(geneStart, geneEnd - geneStart, y, GENE_HEIGHT, GENE_COLOR, 1, {'data-gene': gene_name});
+		drawFeatureRect(drawer, gene.coordinates.start, gene.coordinates.end, y, gene_name, minimum_span);
 		return;
 	}
 	
@@ -70,11 +73,7 @@ const drawDetailedGene = (drawer, gene, y, gene_name) => {
 		}
 	});
 	
-	exons.forEach(exon => {
-		const exonStart = exon[0];
-		const exonEnd = exon[1];
-		drawer.genomicRect(exonStart, exonEnd - exonStart, y, GENE_HEIGHT, GENE_COLOR, 1, {'data-gene': gene_name});
-	});
+	exons.forEach(exon => drawFeatureRect(drawer, exon[0], exon[1], y, gene_name, minimum_span));
 };
 
 const minimumVisibleSpan = (drawer) => {
@@ -82,11 +81,6 @@ const minimumVisibleSpan = (drawer) => {
 	const region_span = region_end - region_start;
 	const bases_per_pixel = region_span / drawer.dims[0];
 	return Math.max(MIN_ANNOTATION_PIXELS * bases_per_pixel, Math.min(MIN_ANNOTATION_SPAN, region_span * MAX_ANNOTATION_VIEW_FRACTION));
-};
-
-const drawMinimumSpanBlock = (drawer, gene, y, gene_name, minimum_span) => {
-	const center = (gene.coordinates.start + gene.coordinates.end) / 2;
-	drawer.genomicRect(center - minimum_span / 2, minimum_span, y, GENE_HEIGHT, GENE_COLOR, 1, {'data-gene': gene_name});
 };
 
 const getGeneTrackIndex = (geneName) => {
@@ -106,7 +100,7 @@ const drawAnnotation = (svg, annotation_data, track_id) => {
 	drawer.clear();
 
 	const genes = annotation_data?.raw_data || [];
-	const minimum_span = track_id === GENE_TRACK_ID ? 0 : minimumVisibleSpan(drawer);
+	const minimum_span = track_id === GENE_ANNOTATION ? 0 : minimumVisibleSpan(drawer);
 
 	const regionSpan = options.end - options.start;
 	const coordHeight = 12;
@@ -120,10 +114,7 @@ const drawAnnotation = (svg, annotation_data, track_id) => {
 		const geneEnd = gene.coordinates.end;
 		const geneName = gene.gene;
 		const y = geneTrackY + getGeneTrackIndex(geneName) * GENE_VERTICAL_SPACING;
-		if (geneEnd - geneStart < minimum_span)
-			drawMinimumSpanBlock(drawer, gene, y, geneName, minimum_span);
-		else
-			drawDetailedGene(drawer, gene, y, geneName);
+		drawDetailedGene(drawer, gene, y, geneName, minimum_span);
 		if (geneName === highlighted_gene) {
 			drawer.genomicRect(geneStart, geneEnd - geneStart, 0, h, HIGHLIGHT_COLOR, 0.3);
 		}
@@ -231,7 +222,7 @@ const hooks = [
       	const track_id = e.target.dataset.source;
 		const annotation_data = await getTracks({chr: options.chr, start: options.start, end: options.end, track_ids: [track_id]});
       	e.target.dispatchEvent(new Event('refreshed'));
-		drawAnnotation(e.target.querySelector('svg'), annotation_data[0], track_id);
+		drawAnnotation(e.target.querySelector('.track-plot-area > svg'), annotation_data[0], track_id);
 	}],
 	['svg [data-gene]', 'mouseenter', showTooltip],
 	['svg [data-gene]', 'mouseleave', hideTooltip],
