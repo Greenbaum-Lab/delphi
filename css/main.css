@@ -1045,9 +1045,24 @@ body.loading .loading-overlay {
 	font-weight: 300;
 	margin: 0 0 8px;
 }
+.text h4 {
+	font-size: 18px;
+	font-weight: 400;
+	margin: 0 0 6px;
+}
 .text p {
 	line-height: 1.6;
 	margin: 0 0 20px;
+}
+.text ul {
+	line-height: 1.6;
+	margin: 0 0 20px;
+	padding-left: 20px;
+}
+.text img.screenshot {
+	width: 100%;
+	height: auto;
+	display: block;
 }
 .text .figure {
 	margin: 0 0 20px;
