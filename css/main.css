@@ -681,6 +681,22 @@ input, select, textarea {
 	display: block;
 }
 
+[data-module="track"] .track-plot-area .gene-band {
+	position: absolute;
+	top: 0;
+	bottom: 0;
+	min-width: 2px;
+	background: color-mix(in srgb, var(--accent) 14%, transparent);
+	border-left: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+	border-right: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
+	pointer-events: none;
+	display: none;
+}
+
+[data-module="track"] .track-plot-area .gene-band.show {
+	display: block;
+}
+
 .drop-above {
 	margin-top: 20px;
 }
