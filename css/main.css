@@ -308,6 +308,21 @@ input, select, textarea {
     padding: 4px 4px;
 }
 
+.new-population-control {
+	position: relative;
+}
+
+.new-population-plus {
+	position: absolute;
+	top: -1px;
+	right: -3px;
+	font-size: 14px;
+	line-height: 1;
+	font-weight: 600;
+	color: var(--icon);
+	pointer-events: none;
+}
+
 .icon-btn {
 	position: relative;
 	display: inline-flex;
