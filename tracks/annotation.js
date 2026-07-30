@@ -132,15 +132,6 @@ const drawAnnotation = (svg, annotation_data, track_id) => {
 				const labelX = ((((geneStart + geneEnd) / 2) - options.start) / regionSpan) * drawer.dims[0];
 				const textY = y + GENE_HEIGHT + 14;
 				
-				const tempText = drawer.text(geneName, labelX, textY, {
-					'class': 'gene-label',
-					'text-anchor': 'middle'
-				});
-				
-				const bbox = tempText.getBBox();
-				const padding = [5, 1];
-				drawer.rect(bbox.x - padding[0], bbox.y - padding[1], bbox.width + 2 * padding[0], bbox.height + 2 * padding[1], [255, 255, 255], 1, {'class': 'gene-label-bg'});
-				
 				drawer.text(geneName, labelX, textY, {
 					'class': 'gene-label',
 					'text-anchor': 'middle'
