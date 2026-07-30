@@ -85,7 +85,7 @@ const minimumVisibleSpan = (drawer) => {
 };
 
 const drawMinimumSpanBlock = (drawer, gene, y, gene_name, minimum_span) => {
-	const center = (gene.coordinates.start + gene.coordinates.end) / 2;
+	const center = (Number(gene.coordinates.start) + Number(gene.coordinates.end)) / 2;
 	drawer.genomicRect(center - minimum_span / 2, minimum_span, y, GENE_HEIGHT, GENE_COLOR, 1, {'data-gene': gene_name});
 };
 
