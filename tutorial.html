@@ -5,14 +5,6 @@
 	<link rel="stylesheet" type="text/css" href="/css/main.css">
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width,initial-scale=1.0">
-	<style>
-	.text img.screenshot{
-		width:100%;
-		height:auto;
-		display:block;
-	}
-</style>
-
 </head>
 <body>
 <div class="wrap narrow">
@@ -21,68 +13,126 @@
 	<div class="text">
 		<div class="section">
 			<h2>Introduction</h2>
-			<p><b>DELPHI</b> (DNA Explorer for Locus-based Population History Insights) is a web-based genome browser designed for exploring population genetics in modern and ancient humans. <b>DELPHI</b> computes population genetic statistics on-the-fly based on your selections, giving you flexibility to compare populations and explore genetic variation across the human genome. The server comes preloaded with ancient genomes from the <a href="https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/FFIDCW" target="_blank">Allen Ancient DNA Resource (AADR)</a>, modern genomes from <a href="https://gnomad.broadinstitute.org/downloads#v3" target="_blank">gnomAD v3.1.12</a> (harmonised HGDP and the 1000 Genomes Project database). Samples are aligned to the hg37 reference genome and gene annotation is from <a href="https://www.gencodegenes.org/human/release_19.html" target="_blank">genecode v19</a>. </p>
-			<p>Navigation is similar to other genome browsers. To jump to a specific location, type coordinates in the query box at the top (e.g., chr1:5000000-7000000) or just type gene name. You can zoom in and out using <code>Ctrl+scroll</code> on any track, or by double-clicking on a region of interest (shift+double click to zoom out). The visible annotation region is determined by the blue rectangle at the top. You can resize and drag it to adjust the window you want to examine. You can also click and drag the annotation track to pan left or right. As you drag, all tracks update together.</p>
-		<img src="/images/buttons.png" alt="Getting started" class="screenshot">
+			<p><b>DELPHI</b> (DNA Explorer for Locus-based Population History Insights) is a web-based genome browser designed for exploring population genetics in modern and ancient humans. <b>DELPHI</b> computes population genetic statistics on-the-fly based on your selections, giving you flexibility to compare populations and explore genetic variation across the human genome. The server comes preloaded with ancient genomes from the <a href="https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/FFIDCW" target="_blank">Allen Ancient DNA Resource (AADR)</a>, modern genomes from <a href="https://gnomad.broadinstitute.org/downloads#v3" target="_blank">gnomAD v3.1.2</a> (harmonised HGDP and the 1000 Genomes Project database) and gene annotation from <a href="https://www.gencodegenes.org/human/release_19.html" target="_blank">GENCODE v19</a>.</p>
+			<p>Everything in <b>DELPHI</b> is aligned to the hg37 (hg19) reference genome. This is deliberate: the AADR and most published ancient DNA work are distributed and reported on hg37, so you can cross-reference <b>DELPHI</b> against existing datasets and literature without lifting coordinates over.</p>
+		</div>
+
+		<div class="section">
+			<h2>Navigating</h2>
+			<p>Navigation is similar to other genome browsers. To jump to a specific location, type coordinates in the query box at the top (e.g., chr1:5000000-7000000, commas are fine) or just type a gene name. Typing a single position opens a small window around it. When you search for a gene, <b>DELPHI</b> centres on it and highlights it for a few seconds.</p>
+			<p>You can zoom in and out using <code>Ctrl+scroll</code> on any track, or by double-clicking on a region of interest (shift+double click to zoom out). The visible annotation region is determined by the blue rectangle at the top. You can resize and drag it to adjust the window you want to examine. You can also click and drag the annotation track to pan left or right. As you drag, all tracks update together.</p>
+			<img src="/images/buttons.png" alt="Getting started" class="screenshot">
 		</div>
 
 		<div class="section">
 			<h2>Selecting populations</h2>
-			<p>Click the Populations button in the top navigation bar to open the population selector. The population list shows all available populations with their metadata. Becuase there are currently no established clustering methods designed for aDNA, predefined ancient populations were simply clustered by time and geography and are provided mainly to get you started without a background in ancient DNA. To gain full flexibilty, you can click on "Add population" and define custom populations based on sample IDs or metadata filters. For example, you can group all female samples younger than 500 by marking in the 'Genetic_Sex' column 'contains==F' and in the 'Date' column 'less than==500'. After you click "Create population" you will see your new population in the main population selection pop-under Dataset==USER. Click "Update populations" when finished.</p>
+			<p>Click the Populations button in the row of controls below the annotation track to open the population selector. The population list shows all available populations with their metadata, and you can filter and sort on any column before choosing. Because there are currently no established clustering methods designed for aDNA, predefined ancient populations were simply clustered by time and geography and are provided mainly to get you started without a background in ancient DNA. Click "Update" when finished, and a track appears for each population you selected.</p>
 			<img src="/images/pop_select.png" alt="Population selector interface" class="screenshot" style="margin-bottom:20px;">
+			<p>To gain full flexibility, you can define custom populations from the sample table. Filter the samples on any metadata column, select the ones you want, type a name and click "Create population". For example, you can group all female samples younger than 500 by marking in the 'Genetic_Sex' column 'contains==F' and in the 'Date' column 'less than==500'. Your new population then shows up in the population list with Dataset==User, alongside the predefined ones.</p>
 			<img src="/images/pop_create.png" alt="Assemble populations" class="screenshot">
 		</div>
 
 		<div class="section">
+			<h2>Genomic signals</h2>
+			<p>Choose what genetic signal to visualize using the Measure dropdown below the annotation track. All measures are computed per-SNP and returned in non-overlapping bins of minimum 10kb (per-SNP plots become visually cluttered and noisy).</p>
+
+			<h3>Per-population signals</h3>
+
+			<h4>Heterozygosity</h4>
+			<p>Expected heterozygosity measures the genetic diversity within a population by quantifying the probability that two randomly chosen alleles at a locus differ from each other. Higher heterozygosity indicates greater genetic diversity. <b>DELPHI</b> computes expected heterozygosity as 2pq, where p is the allele frequency and q = 1-p, calculated separately for each SNP. Allele counts (AC) and allele numbers (AN) are derived from the genotype data for each population, accounting for missing data. The per-SNP heterozygosity values are then aggregated into windows using the mean value across all variants in each window.</p>
+
+			<h4>Tajima's D</h4>
+			<p>Tajima's D is a statistical test that compares the average number of pairwise differences between sequences to the number of segregating sites. It is used to detect deviations from neutral evolution. Negative values suggest an excess of rare alleles (population expansion or purifying selection), while positive values indicate an excess of intermediate-frequency alleles (balancing selection or population contraction). <b>DELPHI</b> computes Tajima's D using standard population genetic formulas, comparing observed genetic diversity patterns to neutral expectations.</p>
+
+			<h4>Fu and Li's F*</h4>
+			<p>Fu and Li's F* is a site-frequency-spectrum neutrality test that contrasts nucleotide diversity (<i>&pi;</i>) with the number of singleton variants (<i>&eta;<sub>s</sub></i>) among segregating sites (<i>S</i>). Because ancestral states are not required, <b>DELPHI</b> computes the no-outgroup version (F*) using minor-allele singletons. Negative values indicate an excess of singletons relative to <i>&pi;</i> (often consistent with recent population expansion or purifying/background selection), whereas positive values indicate a deficit of singletons (e.g., population contraction or balancing selection). <b>DELPHI</b> derives allele counts and allele numbers per SNP from the genotype data (accounting for missingness), defines singletons as variants with minor allele count = 1, and computes F* from window-level aggregates; windows with fewer than 3 segregating sites are left empty.</p>
+
+			<h3>Pairwise signals</h3>
+
+			<h4>FST</h4>
+			<p>Fst measures genetic differentiation between populations by quantifying the proportion of total genetic variance that is due to population structure. Values range from 0 (no differentiation) to 1 (complete differentiation). Higher Fst values indicate greater genetic distance between populations. <b>DELPHI</b> computes Fst per-SNP using Weir and Cockerham's method, which accounts for differences in sample sizes and provides unbiased estimates. The estimator can return small negative values when differentiation is close to zero; these are clamped to 0. Allele frequencies are calculated for each population from the genotype data, and Fst is computed by comparing the variance in allele frequencies between populations relative to the total variance. Values are then aggregated into windows by averaging across SNPs.</p>
+			<p>Selecting FST switches the display to pairwise mode: instead of one track per population, you get one track for every pair of selected populations. Removing a pair with the x button hides only that pair, and it stays hidden until you reset.</p>
+		</div>
+
+		<div class="section">
+			<h2>Resolution</h2>
+			<p>To control the resolution, you can choose the window size of the plots under Window size in the display options menu (10 kb, 100 kb or 1 Mb). The larger the window, the smoother the signal.</p>
+		</div>
+
+		<div class="section">
 			<h2>Metadata</h2>
-			<p>Samples and populations in DELPHI have rich metadata information. You can use it to define populations and sort the population signal tracks. Population-level metadata is computed for the median of samples. The metadata include:</p>
+			<p>Samples and populations in DELPHI have rich metadata information. You can use it to define populations and sort the population signal tracks. Population-level metadata is the mean across the population's samples. The metadata include:</p>
 			<ul>
 				<li>Geographic coordinates (latitude and longitude ranges)</li>
 				<li>Waypoint distance (distance by migratory routes, excluding large bodies of water)</li>
 				<li>Date (0 for modern samples)</li>
 				<li>Climate variables from <a href="https://www.chelsa-climate.org/models/chelsa-trace21k" target="_blank">CHELSA-TraCE21k</a>, a high-resolution climate data set for the global land surface area covering both modern and historical bioclimatic layers. We use a PCA-based summary data with PC1 reflects temperature-related variation and PC2 primarily reflects precipitation-related variation.</li>
 				<li>Genetic similarity. Based on UKBiobank PCA distance.</li>
-				<li>Sociocultural transitions. The onset of the Neolithic Revolution and the rise of urbanized societies. Taken from the <a href="https://dataverse.harvard.edu/dataverse/ArchaeoGLOBE" target="_blank">ArchaeoGLOBE</a> database. </li>
+				<li>Sociocultural transitions. The onset of the Neolithic Revolution and the rise of urbanized societies. Taken from the <a href="https://dataverse.harvard.edu/dataverse/ArchaeoGLOBE" target="_blank">ArchaeoGLOBE</a> database.</li>
 			</ul>
+			<p>Individual samples carry more fields than the population summary, including genetic sex, country and region, and further archaeological variables such as foraging and pastoralism onset. You can see all of them in the sample table, and filter on any of them when building a custom population.</p>
 			<img src="/images/tracks.png" alt="Tracks" class="screenshot" style="margin-top:20px;">
-
 		</div>
 
 		<div class="section">
-			<h2>Genomic signals</h2>
-			<p>Choose what genetic signal to visualize using the Measure dropdown below the annotation track. Most measures are computed per-SNP and returned in non-overlapping bins of minimum 10kb (per-SNP plots become visually cluttered and noisy). To control the resolution, you can choose the window size of the plots. The larger the window, the smoother the signal.</p>
-
-			<h3>Per-population signals</h3>
-
-			<h3>Heterozygosity</h3>
-			<p>Expected heterozygosity measures the genetic diversity within a population by quantifying the probability that two randomly chosen alleles at a locus differ from each other. Higher heterozygosity indicates greater genetic diversity. <b>DELPHI</b> computes expected heterozygosity as 2pq, where p is the allele frequency and q = 1-p, calculated separately for each SNP. Allele counts (AC) and allele numbers (AN) are derived from the genotype data for each population, accounting for missing data. The per-SNP heterozygosity values are then aggregated into windows using the mean value across all variants in each window.</p>
-
-			<h3>Tajima's D</h3>
-			<p>Tajima's D is a statistical test that compares the average number of pairwise differences between sequences to the number of segregating sites. It is used to detect deviations from neutral evolution. Negative values suggest an excess of rare alleles (population expansion or purifying selection), while positive values indicate an excess of intermediate-frequency alleles (balancing selection or population contraction). <b>DELPHI</b> computes Tajima's D using standard population genetic formulas, comparing observed genetic diversity patterns to neutral expectations.</p>
-			
-			<h3>Fu and Li's F*</h3>
-			<p>Fu and Li’s F* is a site-frequency-spectrum neutrality test that contrasts nucleotide diversity (<i>&pi;</i>) with the number of singleton variants (<i>&eta;<sub>s</sub></i>) among segregating sites (<i>S</i>). Because ancestral states are not required, <b>DELPHI</b> computes the no-outgroup version (F*) using minor-allele singletons. Negative values indicate an excess of singletons relative to <i>&pi;</i> (often consistent with recent population expansion or purifying/background selection), whereas positive values indicate a deficit of singletons (e.g., population contraction or balancing selection). <b>DELPHI</b> derives allele counts and allele numbers per SNP from the genotype data (accounting for missingness), defines singletons as variants with minor allele count = 1, and computes F* from window-level aggregates; windows with fewer than 3 segregating sites return missing values.</p>
-
-			<h3>Pairwise signals</h3>
-
-			<h3>FST</h3>
-			<p>Fst measures genetic differentiation between populations by quantifying the proportion of total genetic variance that is due to population structure. Values range from 0 (no differentiation) to 1 (complete differentiation). Higher Fst values indicate greater genetic distance between populations. <b>DELPHI</b> computes Fst per-SNP using Weir and Cockerham's method, which accounts for differences in sample sizes and provides unbiased estimates. Allele frequencies are calculated for each population from the genotype data, and Fst is computed by comparing the variance in allele frequencies between populations relative to the total variance. Values are then aggregated into windows by averaging across SNPs.
-			</p>
-			
-			<p>With multiple populations selected, you will have multiple data tracks displayed simultaneously. By default, tracks appear alphabetically. To identify potential explanatory variables, you can sort tracks based on various metadata. Once you've identified regions of interest, click the Export button to download your current view as a tabular file (CSV format). The export includes genomic coordinates, measure values for each population or population pair, and population labels. You can then perform statistical tests, make publication-quality plots, or integrate with other data in your downstream analysis pipeline.
-			</p>
-				
+			<h2>Ordering tracks</h2>
+			<p>With multiple populations selected, you will have multiple data tracks displayed simultaneously. By default, tracks appear alphabetically. To identify potential explanatory variables, you can sort tracks based on various metadata using the Sort dropdown, and flip between ascending and descending with the button next to it.</p>
+			<p>Sorting by Signal orders the tracks by their mean value in the region you are looking at, and prints that mean next to each track label. In FST view the dropdown offers pairwise metrics instead: temporal distance, waypoint distance, genetic distance, temperature and precipitation difference between the two populations of each pair.</p>
+			<p>You can also arrange tracks by hand: grab the handle on the left edge of a track and drag it where you want it.</p>
 		</div>
-		
-		<div class="section">
-	<h2>Adding annotations</h2>
-	<p>Click the <b>Add annotation</b> button to load a custom annotation track in <b>GFF</b> or <b>GTF</b> format. These files store genomic features as intervals with attributes, and can represent, for example, transposable elements/repeats, promoters/enhancers, non-coding RNAs, CpG islands/UTRs, variant or CNV intervals, conserved elements, or experimental peak tracks (e.g., ChIP-seq). Uploaded tracks appear below the default annotation tracks and are rendered automatically while you navigate and zoom, helping you interpret population-genetic signals in the context of specific genomic features.</p>
-</div>
 
+		<div class="section">
+			<h2>Track buttons</h2>
+			<p>Each track has three buttons on its left margin:</p>
+			<ul>
+				<li><b>Show individuals</b> opens the table of samples that make up the population.</li>
+				<li><b>Pin</b> moves the track up next to the annotation tracks, where it stays in view while you scroll through the rest.</li>
+				<li><b>Remove</b> takes the track off the display. For a single population this removes it from your selection; for a pair it hides just that pair.</li>
+			</ul>
+		</div>
+
+		<div class="section">
+			<h2>Exporting</h2>
+			<p>Once you've identified regions of interest, click the Export button to download what you see as a tabular file (tab-separated). There are two exports:</p>
+			<ul>
+				<li><b>Export data</b> writes one row per bin in the current window, with the genomic position in the first column and one column per displayed track (population, or population pair in FST view).</li>
+				<li><b>Export metadata</b> writes one row per displayed population with all of its metadata, or in FST view one row per pair with the pairwise distances between them.</li>
+			</ul>
+			<p>You can then perform statistical tests, make publication-quality plots, or integrate with other data in your downstream analysis pipeline.</p>
+		</div>
+
+		<div class="section">
+			<h2>Adding annotations</h2>
+			<p>Click the <b>Add annotations</b> button to open the annotation catalog. Select the tracks you want to display, or click "Upload from computer" to load your own in <b>GTF</b>, <b>GFF3</b> or <b>BED</b> format. These files store genomic features as intervals with attributes, and can represent, for example, transposable elements/repeats, promoters/enhancers, non-coding RNAs, CpG islands/UTRs, variant or CNV intervals, conserved elements, or experimental peak tracks (e.g., ChIP-seq). Uploaded tracks appear below the default annotation tracks and are rendered automatically while you navigate and zoom, helping you interpret population-genetic signals in the context of specific genomic features. They are stored in your browser, so they are still there when you come back.</p>
+			<p>Annotation tracks other than the gene track have arrows on the right for jumping to the previous or next feature outside the current view, which saves hunting for sparse features by hand. The x button removes a track from the display.</p>
+		</div>
+
+		<div class="section">
+			<h2>Working with genes</h2>
+			<p>The gene track draws exons, introns and strand direction, and adds gene names once you are zoomed in below 1 Mb. Hovering a gene shows its name as a link to its GeneCards entry.</p>
+			<p>Pressing on a gene bands it: a vertical stripe marks its extent across every track at once, so you can see where a signal sits relative to the gene. Press it again to clear the band.</p>
+		</div>
+
+		<div class="section">
+			<h2>Display options</h2>
+			<p>The display options menu holds the rest of the view settings:</p>
+			<ul>
+				<li><b>Display style</b> cycles the plots between binned bars, a line and a scatter.</li>
+				<li><b>Y-axis</b> takes a minimum and maximum to fix the scale, which is what you want when comparing tracks. Autofit sets the range from the data currently on screen, and clearing both fields returns to automatic scaling. Limits are remembered per measure.</li>
+				<li><b>Guides</b> draws vertical lines across all tracks so you can line up a position by eye.</li>
+				<li><b>Track size</b> makes tracks taller or shorter.</li>
+				<li><b>Reset</b> returns every control to its default.</li>
+			</ul>
+		</div>
+
+		<div class="section">
+			<h2>Behind the scenes</h2>
+			<p>The label next to the logo tells you which of the two compute paths you are on. With modern gnomAD populations only, <b>DELPHI</b> reads precomputed statistics and plots them immediately. As soon as an ancient or custom population is in the selection, the statistics are computed on demand in the cloud over the selected samples, so the first view of a region takes a moment. Results are cached in your browser as they arrive, so panning back over a region, or returning to it in a later session, is instant.</p>
+			<p>Your selections and view settings are saved locally as well, which is why <b>DELPHI</b> opens where you left it. Reset clears them.</p>
+		</div>
 	</div>
 </div>
 
 <script async src="/toc.js"></script>
 </body>
 </html>
-
