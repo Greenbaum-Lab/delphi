@@ -6,6 +6,7 @@ import { CHR_LENGTHS, GENE_ANNOTATION, hexToRgb } from '/common.js';
 import { formatRegionString } from '/browser/region.js';
 import { updateRegionInput, generateCoordinateTicks, drawGuides, showHoverLine, hideHoverLine } from '/browser/helpers.js';
 import { navigateToHit } from '/browser/annotation_nav.js';
+import { toggleGeneBand } from '/browser/gene_band.js';
 
 const cssVars = getComputedStyle(document.documentElement);
 const getVar = (name) => cssVars.getPropertyValue(name).trim();
@@ -27,7 +28,13 @@ const MAX_ANNOTATION_VIEW_FRACTION = 0.02;
 
 let highlighted_gene = null;
 
-const drawStrandChevrons = (drawer, intron_start, intron_end, center_y, strand, gene_name) => {
+const geneAttributes = (gene) => ({
+	'data-gene': gene.gene,
+	'data-gene-start': gene.coordinates.start,
+	'data-gene-end': gene.coordinates.end
+});
+
+const drawStrandChevrons = (drawer, intron_start, intron_end, center_y, strand, gene_attributes) => {
 	const [region_start, region_end] = drawer.bounds[0];
 	const pixels_per_base = drawer.dims[0] / (region_end - region_start);
 	const start_px = (intron_start - region_start) * pixels_per_base;
@@ -42,23 +49,23 @@ const drawStrandChevrons = (drawer, intron_start, intron_end, center_y, strand, 
 			[base_px, center_y - STRAND_CHEVRON_HALF_HEIGHT_PX],
 			[base_px + tip_dx, center_y],
 			[base_px, center_y + STRAND_CHEVRON_HALF_HEIGHT_PX]
-		], INTRON_COLOR, 1, {'data-gene': gene_name});
+		], INTRON_COLOR, 1, gene_attributes);
 	}
 };
 
-const drawFeatureRect = (drawer, start, end, y, gene_name, minimum_span) => {
+const drawFeatureRect = (drawer, start, end, y, gene_attributes, minimum_span) => {
 	const span = Math.max(end - start, minimum_span);
 	const center = (Number(start) + Number(end)) / 2;
-	drawer.genomicRect(center - span / 2, span, y, GENE_HEIGHT, GENE_COLOR, 1, {'data-gene': gene_name});
+	drawer.genomicRect(center - span / 2, span, y, GENE_HEIGHT, GENE_COLOR, 1, gene_attributes);
 };
 
-const drawDetailedGene = (drawer, gene, y, gene_name, minimum_span) => {
+const drawDetailedGene = (drawer, gene, y, gene_attributes, minimum_span) => {
 	const exons = gene.exons || [];
 	const introns = gene.introns || [];
 	const strand = gene.strand;
 
 	if (exons.length === 0) {
-		drawFeatureRect(drawer, gene.coordinates.start, gene.coordinates.end, y, gene_name, minimum_span);
+		drawFeatureRect(drawer, gene.coordinates.start, gene.coordinates.end, y, gene_attributes, minimum_span);
 		return;
 	}
 	
@@ -67,13 +74,13 @@ const drawDetailedGene = (drawer, gene, y, gene_name, minimum_span) => {
 	introns.forEach(intron => {
 		const intronStart = intron[0];
 		const intronEnd = intron[1];
-		drawer.genomicRect(intronStart, intronEnd - intronStart, centerY-1, 2, INTRON_COLOR, 1, {'data-gene': gene_name});
+		drawer.genomicRect(intronStart, intronEnd - intronStart, centerY-1, 2, INTRON_COLOR, 1, gene_attributes);
 		if (strand === '+' || strand === '-') {
-			drawStrandChevrons(drawer, intronStart, intronEnd, centerY, strand, gene_name);
+			drawStrandChevrons(drawer, intronStart, intronEnd, centerY, strand, gene_attributes);
 		}
 	});
-	
-	exons.forEach(exon => drawFeatureRect(drawer, exon[0], exon[1], y, gene_name, minimum_span));
+
+	exons.forEach(exon => drawFeatureRect(drawer, exon[0], exon[1], y, gene_attributes, minimum_span));
 };
 
 const minimumVisibleSpan = (drawer) => {
@@ -114,7 +121,7 @@ const drawAnnotation = (svg, annotation_data, track_id) => {
 		const geneEnd = gene.coordinates.end;
 		const geneName = gene.gene;
 		const y = geneTrackY + getGeneTrackIndex(geneName) * GENE_VERTICAL_SPACING;
-		drawDetailedGene(drawer, gene, y, geneName, minimum_span);
+		drawDetailedGene(drawer, gene, y, geneAttributes(gene), minimum_span);
 		if (geneName === highlighted_gene) {
 			drawer.genomicRect(geneStart, geneEnd - geneStart, 0, h, HIGHLIGHT_COLOR, 0.3);
 		}
@@ -226,6 +233,7 @@ const hooks = [
 	}],
 	['svg [data-gene]', 'mouseenter', showTooltip],
 	['svg [data-gene]', 'mouseleave', hideTooltip],
+	['svg [data-gene]', 'mousedown', e => toggleGeneBand(e.target.dataset.gene, +e.target.dataset.geneStart, +e.target.dataset.geneEnd)],
 	['svg, svg *', 'mousemove', e => showHoverLine(e.clientX)],
 	['[data-module="track"]', 'mouseleave', hideHoverLine],
 	['[data-module="track"]', 'search', handleSearch],

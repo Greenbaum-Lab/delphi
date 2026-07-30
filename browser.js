@@ -4,6 +4,7 @@ import { getPops, initPopCache, getPopData, pairwiseSort, pairKey } from '/brows
 import { zoomToLevel, updateRegionFromInput, updateRegionInput } from '/browser/helpers.js';
 import { addAnnotation } from '/custom_annotation.js';
 import { exportMetadata, exportPositionalData, isPairwiseView } from '/browser/export.js';
+import { renderGeneBand } from '/browser/gene_band.js';
 
 const syncSortDropdown = (is_pairwise, current_sort) => {
 	const selector = is_pairwise ? '.sort-selector-pairwise' : '.sort-selector';
@@ -113,6 +114,7 @@ const hooks = [
 			}
 		}
     }],
+	['[data-module="browser"]', 'refresh', e => renderGeneBand()],
 	['[data-module="browser"]', 'update', async e => {
 		const container = e.target.querySelector('.signal-tracks-container');
 		const tracks = Array.from(container.querySelectorAll('[data-module="track"][data-type="signal"]'));
