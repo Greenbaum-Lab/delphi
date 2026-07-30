@@ -12,7 +12,7 @@
 
 	<div class="text">
 		<div class="section">
-			<p><b>DELPHI</b> (DNA Explorer for Locus-based Population History Insights) is a web-based genome browser designed for exploring population genetics in modern and ancient humans. <b>DELPHI</b> computes population genetic statistics on-the-fly based on your selections, giving you flexibility to compare populations and explore genetic variation across the human genome. The server comes preloaded with ancient genomes from the <a href="https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/FFIDCW" target="_blank">Allen Ancient DNA Resource (AADR)</a>, modern genomes from <a href="https://gnomad.broadinstitute.org/downloads#v3" target="_blank">gnomAD v3.1.2</a> (harmonised HGDP and the 1000 Genomes Project database) and gene annotation from <a href="https://www.gencodegenes.org/human/release_19.html" target="_blank">GENCODE v19</a>. <b>DELPHI</b> is aligned to the hg37 (hg19) reference genome for ancient DNA (aDNA) compatibility.</p>
+			<p><b>DELPHI</b> (DNA Explorer for Locus-based Population History Insights) is a web-based genome browser designed for exploring population genetics in modern and ancient humans. <b>DELPHI</b> computes population genetic statistics on-the-fly based on your selections, giving you flexibility to compare populations and explore genetic variation across the human genome. The server comes preloaded with ancient genomes from the <a href="https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/FFIDCW" target="_blank">Allen Ancient DNA Resource (AADR)</a>, modern genomes from <a href="https://gnomad.broadinstitute.org/downloads#v3" target="_blank">gnomAD v3.1.2</a> (harmonised HGDP and the 1000 Genomes Project database) and gene annotation from <a href="https://www.gencodegenes.org/human/release_19.html" target="_blank">GENCODE v19</a>. <b>DELPHI</b> is aligned to the hg19 (GRCh37) reference genome for ancient DNA (aDNA) compatibility.</p>
 		</div>
 
 		<div class="section">
@@ -23,15 +23,15 @@
 
 		<div class="section">
 			<h2>Selecting populations</h2>
-			<p>Click the Populations icon to open the population list showing all available populations with their metadata, and filter on any column before choosing. Because there are currently no established clustering methods designed for aDNA, predefined ancient populations were simply clustered by time and geography and are provided to get you started.</p>
+			<p>Click <span data-icon="I"></span> to open the population list showing all available populations with their metadata, and filter on any column before choosing. Because there are currently no established clustering methods designed for aDNA, predefined ancient populations were simply clustered by time and geography and are provided to get you started.</p>
 			<img src="/images/pop_select.png" alt="Population selector interface" class="screenshot" style="margin-bottom:20px;">
-			<p>For full flexibility, you can define custom populations by clicking the population+ icon and filtering the samples by country/time/genetic distance or whatever metadata you'd like. For example, you can group all female samples younger than 500 by marking in the 'Genetic_Sex' column 'contains==F' and in the 'Date' column 'less than==500'. Your new population then shows up at the buttom of the population list with the label you gave it.</p>
+			<p>For full flexibility, you can define custom populations by clicking <span data-icon="I"></span>+ and filtering the samples by country/time/genetic distance or whatever metadata you'd like. For example, you can group all female samples younger than 500 by marking in the 'Genetic_Sex' column 'contains==F' and in the 'Date' column 'less than==500'. Your new population then shows up at the bottom of the population list with the label you gave it.</p>
 			<img src="/images/pop_create.png" alt="Assemble populations" class="screenshot">
 		</div>
 
 		<div class="section">
 			<h2>Genomic signals</h2>
-			<p>You can change the population genetic statistics shown in the appropriate dropdown. All measures are computed per-SNP and returned in non-overlapping bins of 10kb/100kb/1MB.</p>
+			<p>You can change the population genetic statistics shown in the appropriate dropdown. All measures are computed per-SNP and returned in non-overlapping bins of 10 kb, 100 kb or 1 Mb.</p>
 
 			<h4>Heterozygosity</h4>
 			<p>Expected heterozygosity measures the genetic diversity within a population by quantifying the probability that two randomly chosen alleles at a locus differ from each other. Higher heterozygosity indicates greater genetic diversity. <b>DELPHI</b> computes expected heterozygosity as 2pq, where p is the allele frequency and q = 1-p, calculated separately for each SNP. Allele counts (AC) and allele numbers (AN) are derived from the genotype data for each population, accounting for missing data. The per-SNP heterozygosity values are then aggregated into windows using the mean value across all variants in each window.</p>
@@ -43,18 +43,18 @@
 			<p>Fu and Li's F* is a site-frequency-spectrum neutrality test that contrasts nucleotide diversity (<i>&pi;</i>) with the number of singleton variants (<i>&eta;<sub>s</sub></i>) among segregating sites (<i>S</i>). Because ancestral states are not required, <b>DELPHI</b> computes the no-outgroup version (F*) using minor-allele singletons. Negative values indicate an excess of singletons relative to <i>&pi;</i> (positive selection or population expansion), whereas positive values indicate a deficit of singletons (balancing selection or population contraction). <b>DELPHI</b> derives allele counts and allele numbers per SNP from the genotype data (accounting for missingness), defines singletons as variants with minor allele count = 1, and computes F* from window-level aggregates; windows with fewer than 3 segregating sites are left empty.</p>
 
 			<h4>FST</h4>
-			<p>Fst is a population pariwise statistocs that measures genetic differentiation between populations by quantifying the proportion of total genetic variance that is due to population structure. Values range from 0 (no differentiation) to 1 (complete differentiation). Higher Fst values indicate greater genetic distance between populations. <b>DELPHI</b> computes Fst per-SNP using Weir and Cockerham's method, which accounts for differences in sample sizes and provides unbiased estimates. The estimator can return negative values which are clamped to 0. Allele frequencies are calculated for each population from the genotype data, and Fst is computed by comparing the variance in allele frequencies between populations relative to the total variance. Values are then aggregated into windows by averaging across SNPs.</p>
+			<p>Fst is a pairwise statistic that measures genetic differentiation between populations by quantifying the proportion of total genetic variance that is due to population structure. Values range from 0 (no differentiation) to 1 (complete differentiation). Higher Fst values indicate greater genetic distance between populations. <b>DELPHI</b> computes Fst per-SNP using Weir and Cockerham's method, which accounts for differences in sample sizes and provides unbiased estimates. The estimator can return negative values which are clamped to 0. Allele frequencies are calculated for each population from the genotype data, and Fst is computed by comparing the variance in allele frequencies between populations relative to the total variance. Values are then aggregated into windows by averaging across SNPs.</p>
 		</div>
 
 		<div class="section">
 			<h2>Metadata</h2>
-			<p>Samples and populations in DELPHI have rich metadata information that enables you to interpret results on the spot. You can use it to sort the population tracks and define populations . The metadata include:</p>
+			<p>Samples and populations in DELPHI have rich metadata information that enables you to interpret results on the spot. You can use it to sort the population tracks and define populations. The metadata include:</p>
 			<ul>
 				<li>Geographic coordinates (latitude and longitude ranges)</li>
 				<li>Waypoint distance from Africa (distance by migratory routes, excluding large bodies of water)</li>
 				<li>Date (0 for modern samples)</li>
-				<li>Climate variables from <a href="https://www.chelsa-climate.org/models/chelsa-trace21k" target="_blank">CHELSA-TraCE21k</a>, a high-resolution climate dataset. We use a PCA-based summary data with PC1 reflects temperature-related variation and PC2 reflects precipitation-related variation.</li>
-				<li>Genetic similarity. Based on UKBiobank PCA distance.</li>
+				<li>Climate variables from <a href="https://www.chelsa-climate.org/models/chelsa-trace21k" target="_blank">CHELSA-TraCE21k</a>, a high-resolution climate dataset. We use a PCA-based summary in which PC1 reflects temperature-related variation and PC2 reflects precipitation-related variation.</li>
+				<li>Genetic similarity. Based on UK Biobank PCA distance.</li>
 				<li>Sociocultural transitions. The onset of the Neolithic Revolution and the rise of urbanized societies. Taken from the <a href="https://dataverse.harvard.edu/dataverse/ArchaeoGLOBE" target="_blank">ArchaeoGLOBE</a> database.</li>
 			</ul>
 			<p>With multiple populations selected, you will have multiple data tracks displayed simultaneously. To identify potential explanatory variables, you can sort tracks based on various metadata using the Sort dropdown.</p>
@@ -65,22 +65,25 @@
 
 		<div class="section">
 			<h2>Adding annotations</h2>
-			<p><b>DELPHI</b> has a large catalog of built-in curated annotations that help you integrate all relvant information into a single exploratory tool. CLick the  Add annotations icon to open the annotation catalog. Filter ans select the tracks you want to display, or click "Upload from computer" to load your own in <b>GTF</b>, <b>GFF3</b> or <b>BED</b> format. These files can represent, for example, transposable elements/repeats, promoters/enhancers, non-coding RNAs, CpG islands/UTRs, variant or CNV intervals, conserved elements, or experimental peak tracks (e.g., ChIP-seq). Uploaded tracks are added to the annotation list and are stored in your browser, so they are still there when you come back.</p>
-			<p>Annotation tracks have arrows on the sides for jumping across hits outside the current view, which saves hunting for sparse features by hand.</p>
+			<p><b>DELPHI</b> has a large catalog of built-in curated annotations that help you integrate all relevant information into a single exploratory tool. Click <span data-icon="P"></span> to open the annotation catalog. Filter and select the tracks you want to display, or click "Upload from computer" to load your own in <b>GTF</b>, <b>GFF3</b> or <b>BED</b> format. These files can represent, for example, transposable elements/repeats, promoters/enhancers, non-coding RNAs, CpG islands/UTRs, variant or CNV intervals, conserved elements, or experimental peak tracks (e.g., ChIP-seq). Uploaded tracks are added to the annotation list and are stored in your browser, so they are still there when you come back. Annotation tracks have arrows on the sides for jumping across hits outside the current view, which saves hunting for sparse features by hand.</p>
 		</div>
 
 		<div class="section">
 			<h2>Extra features</h2>
 			<ul>
-				<li><b>Browser mode</b> Check the label next to the logo. With modern gnomAD populations only, <b>DELPHI</b> is computed on full genotypes. When ancient populations are introduced, the statistics are computed on the 1240k snp panel, and the data is sparser.</li>
-				<li><b>Export data</b> You can export a tsv file of the (i) </b>data</b>, which writes one row per bin with the genomic position in the first column and one column per displayed track, or the <b>metadata</b>, which writes one row per displayed population with all of its metadata.</li>
+				<li><b>Browser mode</b> is shown by the label next to the logo. With modern gnomAD populations only, <b>DELPHI</b> is computed on full genotypes. When ancient populations are introduced, the statistics are computed on the 1240K SNP panel, and the data is sparser.</li>
+				<li><b>Export</b> writes a tsv file of the data, one row per bin with the genomic position in the first column and one column per displayed track, or of the metadata, one row per displayed population with all of its metadata.</li>
+				<li><b>Window size</b> sets the bin size of the plots.</li>
 				<li><b>Display style</b> cycles the plots between binned bars, a line and a scatter.</li>
-				<li><b>Y-axis</b> Autofit the Y-axis or manually fix the scale.</li>
+				<li><b>Y-axis</b> autofits to the data or takes a scale you fix manually.</li>
 				<li><b>Guides</b> draws vertical lines across all tracks.</li>
 				<li><b>Track size</b> makes tracks taller or shorter.</li>
+				<li><b>Gene banding</b> marks a gene across all tracks when you click it.</li>
 				<li><b>Reset</b> returns every control to its default.</li>
 			</ul>
 		</div>
+	</div>
+</div>
 
 <script async src="/toc.js"></script>
 </body>
