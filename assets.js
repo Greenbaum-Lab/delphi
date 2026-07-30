@@ -9,8 +9,10 @@ export const CONFIG = {
 	BED: 'poseidon/Poseidon_AADR_v62/Poseidon_AADR_v62',
 	INDEX_PATH: 'index.json',
 	LAMBDA_BUFFER_BASES: 1000000,
-	LAMBDA_WINDOW_SIZE: 10000,
 	MIN_FETCH_WINDOWS: 20,
+	// Directory of pregenerated tracks per mode. The mode selects the genotype
+	// source, so every population of a view is measured on the same panel.
+	SOURCE_DIRECTORIES: { gnomad: 'gnomad', adna: 'AADR' },
 	IDB_NAME: 'delphi',
 	IDB_LAMBDA_TABLE: 'lambda_cache',
 	IDB_GNOMAD_TABLE: 'gnomad_cache',
@@ -18,6 +20,11 @@ export const CONFIG = {
 	IDB_ANNOTATIONS_TABLE: 'annotations',
 	GNOMAD_STAT_COLUMNS: ['heterozygosity', 'tajimasd', 'fulif', 'ac', 'an', 'het_obs'],
 };
+
+// Lambda cache keys are ['pop', population, chr, window_size, bin_start, bin_end].
+// The window size sits ahead of the bin bounds so that a range query over a region
+// returns bins of one size only.
+const BIN_START_INDEX = 4;
 
 const MEASURE_INDEX = {
 	'heterozygosity': 0,
@@ -30,7 +37,7 @@ const annotationCaches = new Map();
 const geneNameMaps = new Map();
 
 const lambdaBatchQueue = [];
-const gnomadMemoryCache = new Map();
+const precomputedMemoryCache = new Map();
 const inflightLambdaFetches = new Map();
 let lambdaBatchTimer = null;
 
@@ -56,6 +63,19 @@ const initializeAnnotationsTable = async () => {
 			});
 		}
 	}
+};
+
+export const clearStaleLambdaCache = async () => {
+	// Lambda cache keys gained the window size, so entries written before that are
+	// indistinguishable from 10 kb bins under a range query. They carry one key
+	// element fewer, which is enough to recognise and drop them.
+	const keys = await listIDBTable(CONFIG.IDB_NAME, CONFIG.IDB_LAMBDA_TABLE);
+	const stale_keys = keys.filter(key => key.length < BIN_START_INDEX + 2);
+	if (stale_keys.length === 0)
+		return 0;
+	console.log(`[cache] dropping ${stale_keys.length} lambda_cache entries written before window sizes were keyed`);
+	await Promise.all(stale_keys.map(key => deleteIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_LAMBDA_TABLE, key)));
+	return stale_keys.length;
 };
 
 export const getAnnotationEntry = async (track_id) => {
@@ -141,25 +161,25 @@ const parseNumpyFloat32 = (array_buffer) => {
 };
 
 const findMissingBins = (required_bins, cached_bins) => {
-	const cached_starts = new Set(cached_bins.map(b => b.key[3]));
+	const cached_starts = new Set(cached_bins.map(b => b.key[BIN_START_INDEX]));
 	return required_bins.filter(bin => !cached_starts.has(bin.start));
 };
 
-const getGnomadChromosome = (population, chr, window_size) => {
-	const cache_key = `${population}_${chr}_${window_size}`;
-	if (gnomadMemoryCache.has(cache_key)) {
-		return gnomadMemoryCache.get(cache_key);
+const getPrecomputedChromosome = (source, population, chr, window_size) => {
+	const cache_key = `${source}_${population}_${chr}_${window_size}`;
+	if (precomputedMemoryCache.has(cache_key)) {
+		return precomputedMemoryCache.get(cache_key);
 	}
 	const load_promise = (async () => {
-		const idb_key = [population, chr, window_size];
+		const idb_key = [source, population, chr, window_size];
 		const cached = await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_GNOMAD_TABLE, idb_key);
 		if (cached && Array.isArray(cached)) {
 			return cached;
 		}
-		const url = `${CONFIG.S3_BASE_URL}/gnomad/${window_size}/${population}_${chr}.npy`;
+		const url = `${CONFIG.S3_BASE_URL}/${source}/${window_size}/${population}_${chr}.npy`;
 		const response = await fetch(url);
 		if (!response.ok) {
-			throw new Error(`Failed to fetch gnomAD data: ${response.status}`);
+			throw new Error(`Failed to fetch ${source} data: ${response.status}`);
 		}
 		const array_buffer = await response.arrayBuffer();
 		const parsed_data = parseNumpyFloat32(array_buffer);
@@ -169,13 +189,13 @@ const getGnomadChromosome = (population, chr, window_size) => {
 	// Caching the in-flight load, as loadAnnotationData does, so tracks sharing a
 	// population download the file once. Dropped on failure so a later track retries
 	// rather than inheriting the error.
-	gnomadMemoryCache.set(cache_key, load_promise);
-	load_promise.catch(() => gnomadMemoryCache.delete(cache_key));
+	precomputedMemoryCache.set(cache_key, load_promise);
+	load_promise.catch(() => precomputedMemoryCache.delete(cache_key));
 	return load_promise;
 };
 
-const getGnomadTrack = async ({ chr, start, end, population, window_size, measure }) => {
-	const full_data = await getGnomadChromosome(population, chr, window_size);
+const getPrecomputedTrack = async ({ source, chr, start, end, population, window_size, measure }) => {
+	const full_data = await getPrecomputedChromosome(source, population, chr, window_size);
 	const start_index = Math.floor(start / window_size);
 	const end_index = Math.ceil(end / window_size);
 	const sliced_data = full_data.slice(start_index, end_index);
@@ -225,7 +245,7 @@ const fetchJSONL = async (source) => {
 	return await response.text();
 };
 
-const fetchFromLambda = async (chr, start, end, measure, population_samples) => {
+const fetchFromLambda = async (chr, start, end, measure, population_samples, window_size) => {
 	const subsets = population_samples.map(pop_data => ({
 		label: pop_data.label,
 		samples: pop_data.samples
@@ -242,7 +262,7 @@ const fetchFromLambda = async (chr, start, end, measure, population_samples) => 
 				start,
 				end
 			}],
-			window_size: CONFIG.LAMBDA_WINDOW_SIZE
+			window_size: window_size
 		}
 	};
 
@@ -264,7 +284,7 @@ const processBatch = async () => {
 	const batch = lambdaBatchQueue.splice(0);
 	lambdaBatchTimer = null;
 	if (batch.length === 0) return;
-	const { chr, measure } = batch[0];
+	const { chr, measure, window_size } = batch[0];
 	const union_start = Math.min(...batch.map(request => request.start));
 	const union_end = Math.max(...batch.map(request => request.end));
 	const all_populations = {};
@@ -276,15 +296,15 @@ const processBatch = async () => {
 			label,
 			samples
 		}));
-		const tracks = await fetchFromLambda(chr, union_start, union_end, measure, population_samples);
-		const bins = calculateBins(union_start, union_end, CONFIG.LAMBDA_WINDOW_SIZE);
+		const tracks = await fetchFromLambda(chr, union_start, union_end, measure, population_samples, window_size);
+		const bins = calculateBins(union_start, union_end, window_size);
 		const store_promises = [];
 		for (const track of tracks) {
 			const population_label = track.population;
 			const track_data = track.data;
 			for (let i = 0; i < bins.length && i < track_data.length; i++) {
 				const bin = bins[i];
-				const key = ['pop', population_label, chr, bin.start, bin.end];
+				const key = ['pop', population_label, chr, window_size, bin.start, bin.end];
 				store_promises.push(
 					getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_LAMBDA_TABLE, key, track_data[i])
 				);
@@ -299,9 +319,11 @@ const processBatch = async () => {
 	}
 };
 
-const queueLambdaRequest = (chr, start, end, measure, populations) => {
+const queueLambdaRequest = (chr, start, end, measure, populations, window_size) => {
 	return new Promise((resolve, reject) => {
-		const can_batch = lambdaBatchQueue.length === 0 || lambdaBatchQueue[0].chr === chr;
+		// One invocation carries a single window size, so a size change flushes the
+		// pending batch the same way a chromosome change does.
+		const can_batch = lambdaBatchQueue.length === 0 || (lambdaBatchQueue[0].chr === chr && lambdaBatchQueue[0].window_size === window_size);
 
 		if (!can_batch) {
 			clearTimeout(lambdaBatchTimer);
@@ -309,7 +331,7 @@ const queueLambdaRequest = (chr, start, end, measure, populations) => {
 		}
 
 		lambdaBatchQueue.push({
-			chr, start, end, measure: 'pop', populations,
+			chr, start, end, measure: 'pop', populations, window_size,
 			requested_measure: measure,
 			resolve,
 			reject
@@ -397,17 +419,17 @@ export const getTracks = async ({ chr, start, end, track_ids, window_size }) => 
 	return filtered_results;
 };
 
-export const getLambdaTrack = async ({ chr, start, end, measure, populations }) => {
+export const getLambdaTrack = async ({ chr, start, end, measure, populations, window_size }) => {
 	const buffered_start = Math.max(0, start - CONFIG.LAMBDA_BUFFER_BASES);
 	const buffered_end = end + CONFIG.LAMBDA_BUFFER_BASES;
-	const required_bins = calculateBins(buffered_start, buffered_end, CONFIG.LAMBDA_WINDOW_SIZE);
+	const required_bins = calculateBins(buffered_start, buffered_end, window_size);
 	const population_labels = Object.keys(populations);
 	// Resolved concurrently so every population of a track reaches the batch queue within
 	// the same debounce window. Awaiting them in sequence held back the second population
 	// of each pairwise track until the first had returned, splitting off a second invocation.
 	const results = await Promise.all(population_labels.map(async population_label => {
-		const lower_bound = ['pop', population_label, chr, required_bins[0].start, 0];
-		const upper_bound = ['pop', population_label, chr, required_bins[required_bins.length - 1].end, Infinity];
+		const lower_bound = ['pop', population_label, chr, window_size, required_bins[0].start, 0];
+		const upper_bound = ['pop', population_label, chr, window_size, required_bins[required_bins.length - 1].end, Infinity];
 		const cached_bins = await queryIDBRange(CONFIG.IDB_NAME, CONFIG.IDB_LAMBDA_TABLE, lower_bound, upper_bound);
 		const missing_bins = findMissingBins(required_bins, cached_bins);
 		if (missing_bins.length > 0) {
@@ -416,14 +438,14 @@ export const getLambdaTrack = async ({ chr, start, end, measure, populations }) 
 			if (should_fetch) {
 				const missing_start = missing_bins[0].start;
 				const missing_end = missing_bins[missing_bins.length - 1].end;
-				const inflight_key = `${chr}:${population_label}`;
+				const inflight_key = `${chr}:${window_size}:${population_label}`;
 				const inflight = inflightLambdaFetches.get(inflight_key);
 				let fetch_promise;
 				if (inflight && inflight.start <= missing_start && inflight.end >= missing_end) {
 					fetch_promise = inflight.promise;
 				} else {
 					const entry = { start: missing_start, end: missing_end };
-					entry.promise = queueLambdaRequest(chr, missing_start, missing_end, measure, { [population_label]: populations[population_label] })
+					entry.promise = queueLambdaRequest(chr, missing_start, missing_end, measure, { [population_label]: populations[population_label] }, window_size)
 						.finally(() => {
 							if (inflightLambdaFetches.get(inflight_key) === entry)
 								inflightLambdaFetches.delete(inflight_key);
@@ -434,11 +456,11 @@ export const getLambdaTrack = async ({ chr, start, end, measure, populations }) 
 				await fetch_promise;
 			}
 		}
-		const visible_bins = calculateBins(start, end, CONFIG.LAMBDA_WINDOW_SIZE);
-		const visible_lower = ['pop', population_label, chr, visible_bins[0].start, 0];
-		const visible_upper = ['pop', population_label, chr, visible_bins[visible_bins.length - 1].end, Infinity];
+		const visible_bins = calculateBins(start, end, window_size);
+		const visible_lower = ['pop', population_label, chr, window_size, visible_bins[0].start, 0];
+		const visible_upper = ['pop', population_label, chr, window_size, visible_bins[visible_bins.length - 1].end, Infinity];
 		const final_bins = await queryIDBRange(CONFIG.IDB_NAME, CONFIG.IDB_LAMBDA_TABLE, visible_lower, visible_upper);
-		const sorted_bins = final_bins.sort((a, b) => a.key[3] - b.key[3]);
+		const sorted_bins = final_bins.sort((a, b) => a.key[BIN_START_INDEX] - b.key[BIN_START_INDEX]);
 		const raw_bins_data = sorted_bins.map(bin => bin.value);
 		let bins_data;
 		if (measure === 'raw') {
@@ -449,7 +471,7 @@ export const getLambdaTrack = async ({ chr, start, end, measure, populations }) 
 		}
 		return [population_label, {
 			data: bins_data,
-			window_size: CONFIG.LAMBDA_WINDOW_SIZE,
+			window_size: window_size,
 			start: visible_bins[0].start,
 			end: visible_bins[visible_bins.length - 1].end
 		}];
@@ -459,19 +481,27 @@ export const getLambdaTrack = async ({ chr, start, end, measure, populations }) 
 
 export const getSignalTrack = async ({ chr, start, end, measure, populations, window_size }) => {
 	const options = getOptions();
-	if (options.mode === 'gnomad') {
-		const population_labels = Object.keys(populations);
-		// Resolved concurrently for the same reason as the Lambda path: a track waited on
-		// each of its own populations in turn, so a pairwise track spent two serial .npy
-		// round-trips before it could draw.
-		const tracks = await Promise.all(population_labels.map(async population => {
-			const pop_data = await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_POPULATIONS_TABLE, population);
-			const gnomad_label = pop_data.aadr_population.replace(/\.(DG)$/, '');
-			return [population, await getGnomadTrack({ chr, start, end, population: gnomad_label, window_size, measure })];
-		}));
-		return Object.fromEntries(tracks);
-	}
-	return await getLambdaTrack({ chr, start, end, measure, populations });
+	const source = CONFIG.SOURCE_DIRECTORIES[options.mode];
+	const population_labels = Object.keys(populations);
+	const population_data = Object.fromEntries(await Promise.all(population_labels.map(async population =>
+		[population, await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_POPULATIONS_TABLE, population)]
+	)));
+	// The mode decides which pregenerated source a track reads, so every population of
+	// a view is measured on the same panel. Only populations the user assembled have no
+	// pregenerated track, and those alone are computed on the fly.
+	const on_the_fly = population_labels.filter(population => population_data[population].Dataset === 'User');
+	const pregenerated = population_labels.filter(population => population_data[population].Dataset !== 'User');
+	const [lambda_tracks, precomputed_tracks] = await Promise.all([
+		on_the_fly.length === 0 ? {} : getLambdaTrack({
+			chr, start, end, measure, window_size,
+			populations: Object.fromEntries(on_the_fly.map(population => [population, populations[population]]))
+		}),
+		Promise.all(pregenerated.map(async population => {
+			const source_label = population_data[population].aadr_population.replace(/\.(DG)$/, '');
+			return [population, await getPrecomputedTrack({ source, chr, start, end, population: source_label, window_size, measure })];
+		}))
+	]);
+	return Object.assign({}, lambda_tracks, Object.fromEntries(precomputed_tracks));
 };
 
 export const loadGeneMap = async ({ track_id }) => {
