@@ -2,13 +2,15 @@ import { addHooks, getOptions, shortNotation, mean, round } from '/apc/common.js
 import { createSVG } from '/apc/plot/static.js';
 import { svg_draw } from '/apc/graphics/core.js';
 import { getAxisLabel, hexToRgb, calculateBounds } from '/common.js';
-import { getPopulationSamples, getSignalTrack } from '/assets.js';
+import { getPopulationSamples, getSignalTrack, getPregeneratedReference } from '/assets.js';
+import { referenceKey, updateReference } from '/browser/reference.js';
 import { getPopData, pairwiseSort, pairKey } from '/browser/pops.js';
 import { generateCoordinateTicks, drawGuides } from '/browser/helpers.js';
 
 const cssVars = getComputedStyle(document.documentElement);
 const getVar = (name) => cssVars.getPropertyValue(name).trim();
 const SIGNAL_COLOR = hexToRgb(getVar('--data-2'));
+const REFERENCE_COLOR = [0, 0, 0];
 
 const sort_labels = {time: 'Time', Latitude: 'Latitude', Longitude: 'Longitude', Distance_from_Africa: 'Distance from Africa', Temperature_index: 'Temperature', Precipitation_index: 'Precipitation', Urbanization_onset: 'Urbanization', Agriculture_extensiveness: 'Neolithic', signal: 'Signal'};
 const sort_units = {time: ' years', Latitude: '°', Longitude: '°', Distance_from_Africa: 'km', Urbanization_onset: 'BP', Agriculture_extensiveness: 'BP'}
@@ -101,7 +103,23 @@ const drawTicks = (drawer, min_value, max_value) => {
 	drawTickLabel(drawer, String(rounded_min), 5, h - 6);
 };
 
-const drawSignal = (svg, data, data_start, data_end, plot_style, bounds) => {
+const drawReference = (drawer, reference, min_value, max_value) => {
+	const height = drawer.dims[1];
+	const value_span = max_value - min_value;
+	const line_y = value => height * (1 - ((value - min_value) / value_span));
+	[['mean', ''], ['lower', '3 3'], ['upper', '3 3']].forEach(([bound, dash]) => {
+		const value = reference[bound];
+		if (value < min_value || value > max_value)
+			return;
+		const line = drawer.genomicLine(drawer.bounds[0][0], drawer.bounds[0][1], line_y(value), line_y(value), REFERENCE_COLOR, 0.45);
+		if (dash)
+			line.setAttribute('stroke-dasharray', dash);
+	});
+};
+
+const binOpacity = (value, reference) => reference && value >= reference.lower && value <= reference.upper ? 0.7 : 1;
+
+const drawSignal = (svg, data, data_start, data_end, plot_style, bounds, reference) => {
 	const options = getOptions();
 	let min_value, max_value, zero_baseline;
 	if (bounds) {
@@ -134,7 +152,7 @@ const drawSignal = (svg, data, data_start, data_end, plot_style, bounds) => {
 			data.forEach(bin => {
 				if (!isNaN(bin.value) && bin.value !== null) {
 					const x = (bin.start + bin.end) / 2;
-					drawer.point([x, bin.value], SIGNAL_COLOR, 3, 0.6);
+					drawer.point([x, bin.value], SIGNAL_COLOR, 3, binOpacity(bin.value, reference) - 0.3);
 				}
 			});
 			break;
@@ -146,7 +164,7 @@ const drawSignal = (svg, data, data_start, data_end, plot_style, bounds) => {
 					const value_y = h * (1 - ((bin.value - min_value) / value_span));
 					const bar_y = Math.min(zero_y, value_y);
 					const bar_height = Math.abs(value_y - zero_y);
-					drawer.genomicRect(bin.start, bin.end - bin.start, bar_y, bar_height, SIGNAL_COLOR, 1, {'data-value': bin.value});
+					drawer.genomicRect(bin.start, bin.end - bin.start, bar_y, bar_height, SIGNAL_COLOR, binOpacity(bin.value, reference), {'data-value': bin.value});
 				}
 			});
 	}
@@ -157,7 +175,36 @@ const drawSignal = (svg, data, data_start, data_end, plot_style, bounds) => {
 			drawer.genomicRect(bin.start, bin.end - bin.start, 0, h, mask_color, 0.5);
 	});
 
+	if (reference)
+		drawReference(drawer, reference, min_value, max_value);
+
 	drawTicks(drawer, min_value, max_value);
+};
+
+const trackReference = async (populations, measure, bins) => {
+	/*
+	The reference a track draws its mean and 95 percent interval from. A single
+	pregenerated population has one measured across its whole table; anything else,
+	a pair or a population the user assembled, accumulates an estimate from the
+	bins browsed so far.
+	*/
+	const options = getOptions();
+	if (populations.length === 1) {
+		const pregenerated = await getPregeneratedReference(populations[0], measure, options.window_size);
+		if (pregenerated)
+			return { ...pregenerated, pregenerated: true };
+	}
+	const key = referenceKey(options.mode, options.window_size, measure, populations.join(';'));
+	const estimate = await updateReference(key, options.chr, bins);
+	return estimate && { ...estimate, pregenerated: false };
+};
+
+const showReferenceNote = (track, reference) => {
+	const note = track.querySelector('.reference-note');
+	const estimated = Boolean(reference) && !reference.pregenerated;
+	note.toggleAttribute('hidden', !estimated);
+	if (estimated)
+		note.title = `Interval estimated from ${reference.n} windows loaded so far, not from the whole genome`;
 };
 
 const showTooltip = (e) => {
@@ -193,6 +240,7 @@ const hooks = [
 		});
 		if (!response) {
 			track.signal_bins = null;
+			track.signal_reference = null;
 			clearTimeout(loading_timeout);
 			track.classList.remove('loading');
 			track.dispatchEvent(new Event('refreshed'));
@@ -212,12 +260,16 @@ const hooks = [
 			const bin_start = track_response.start + (i * track_response.window_size);
 			bins.push({ start: bin_start, end: bin_start + track_response.window_size, value: values[i] });
 		}
-		track.signal_bins = bins; // Kept for data export, which mirrors what is drawn
+		track.signal_bins = bins;
+		const reference = await trackReference(populations, track_measure, bins);
+		track.signal_reference = reference;
 		const svg = track.querySelector('svg');
 		const plot_style = track.dataset.style || 'binned';
 		const bounds = track.dataset.bounds ? track.dataset.bounds.split(',').map(v => +v) : null;
-		drawSignal(svg, bins, track_response.start, track_response.end, plot_style, bounds);
-		const mean_signal = mean(values);
+		drawSignal(svg, bins, track_response.start, track_response.end, plot_style, bounds, options.show_percentiles ? reference : null);
+		showReferenceNote(track, options.show_percentiles ? reference : null);
+		const measured_values = values.filter(value => value !== null);
+		const mean_signal = measured_values.length > 0 ? mean(measured_values) : 0;
 		if (options.sort === 'signal')
 			track.querySelector('.track-value').textContent = `Mean: ${round(mean_signal, 3)}`;
 		clearTimeout(loading_timeout);

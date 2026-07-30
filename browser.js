@@ -5,7 +5,7 @@ import { zoomToLevel, updateRegionFromInput, updateRegionInput } from '/browser/
 import { addAnnotation } from '/custom_annotation.js';
 import { exportMetadata, exportPositionalData, isPairwiseView } from '/browser/export.js';
 import { renderGeneBand } from '/browser/gene_band.js';
-import { getTracks } from '/assets.js';
+import { getTracks, clearStaleLambdaCache } from '/assets.js';
 
 const syncSortDropdown = (is_pairwise, current_sort) => {
 	const selector = is_pairwise ? '.sort-selector-pairwise' : '.sort-selector';
@@ -51,6 +51,7 @@ const DEFAULTS = {
 	sort_dir: 'asc',
 	window_size: 10000,
 	show_guides: false,
+	show_percentiles: false,
 	populations: [],
 	annotations: [GENE_ANNOTATION],
 	y_limits: {},
@@ -140,7 +141,7 @@ const hooks = [
 		));
 		const populations_metadata = await Promise.all(options.populations.map(getPopData));
 		options.mode = populations_metadata.filter(population => population.Dataset === 'User' || population.Dataset === 'AADR').length > 0 ? 'adna' : 'gnomad';
-		document.querySelector('.mode').innerHTML = options.mode === 'adna' ? '<a class="adna" data-icon="t" title="Data will be generated on the file using AADR genotypes">aDNA</a>' : '<a data-icon="I" title="Data will be generated using genotypes from gnomAD v3.1.2">gnomAD</a>'; // Temporarily here
+		document.querySelector('.mode').innerHTML = options.mode === 'adna' ? '<a class="adna" data-icon="t" title="Data measured on the AADR 1240K panel; populations you assemble are computed on demand">aDNA</a>' : '<a data-icon="I" title="Data measured on the gnomAD v3.1.2 callset">gnomAD</a>'; // Temporarily here
 		getOptions([['mode', options.mode]]);
 		if (options.populations.length > 0 && container.querySelector('.empty-state'))
 			container.querySelector('.empty-state').remove();
@@ -316,6 +317,12 @@ const hooks = [
 		syncYLimitInputs();
 		applyYLimits();
 	}],
+	['[data-action="toggle-percentiles"]', 'click', e => {
+		const show_percentiles = !getOptions().show_percentiles;
+		getOptions([['show_percentiles', show_percentiles]]);
+		document.querySelector('[data-action="toggle-percentiles"]').classList.toggle('active', show_percentiles);
+		e.target.closest('[data-module="browser"]').dispatchEvent(new Event('refresh'));
+	}],
 	['[data-action="toggle-guides"]', 'click', e => {
 		const show_guides = !getOptions().show_guides;
 		getOptions([['show_guides', show_guides]]);
@@ -330,6 +337,7 @@ const hooks = [
 		document.querySelector('.y-axis-control').classList.remove('invalid');
 		syncYLimitInputs();
 		document.querySelector('[data-action="toggle-guides"]').classList.toggle('active', DEFAULTS.show_guides);
+		document.querySelector('[data-action="toggle-percentiles"]').classList.toggle('active', DEFAULTS.show_percentiles);
 		updateRegionInput(DEFAULTS.chr, DEFAULTS.start, DEFAULTS.end);
 		e.target.closest('[data-module="browser"]').dispatchEvent(new Event('update'));
 	}],
@@ -372,11 +380,13 @@ export const init = async (container) => {
 	syncYLimitInputs();
 	const is_pairwise = options.measure === 'fst';
 	syncSortDropdown(is_pairwise, options.sort);
+	await clearStaleLambdaCache();
 	await loadStartupData(options);
-	container.querySelector('.mode').innerHTML = options.mode === 'adna' ? '<a class="adna" data-icon="t" title="Data will be generated on the file using AADR genotypes">aDNA</a>' : '<a data-icon="I" title="Data will be generated using genotypes from gnomAD v3.1.2">gnomAD</a>';
+	container.querySelector('.mode').innerHTML = options.mode === 'adna' ? '<a class="adna" data-icon="t" title="Data measured on the AADR 1240K panel; populations you assemble are computed on demand">aDNA</a>' : '<a data-icon="I" title="Data measured on the gnomAD v3.1.2 callset">gnomAD</a>';
 
 	container.querySelector('[data-module="track"][data-type="viewfinder"]').dataset.source = options.annotations[0];
 	document.querySelector('[data-action="toggle-guides"]').classList.toggle('active', options.show_guides);
+	document.querySelector('[data-action="toggle-percentiles"]').classList.toggle('active', options.show_percentiles);
 	
 	updateRegionInput(options.chr, options.start, options.end);
 	addHooks(window, hooks);
