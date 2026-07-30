@@ -47,83 +47,40 @@
 		</div>
 
 		<div class="section">
-			<h2>Resolution</h2>
-			<p>To control the resolution, you can choose the window size of the plots under Window size in the display options menu (10 kb, 100 kb or 1 Mb). The larger the window, the smoother the signal.</p>
-		</div>
-
-		<div class="section">
 			<h2>Metadata</h2>
-			<p>Samples and populations in DELPHI have rich metadata information. You can use it to define populations and sort the population signal tracks. Population-level metadata is the mean across the population's samples. The metadata include:</p>
+			<p>Samples and populations in DELPHI have rich metadata information that enables you to interpret results on the spot. You can use it to sort the population tracks and define populations . The metadata include:</p>
 			<ul>
 				<li>Geographic coordinates (latitude and longitude ranges)</li>
-				<li>Waypoint distance (distance by migratory routes, excluding large bodies of water)</li>
+				<li>Waypoint distance from Africa (distance by migratory routes, excluding large bodies of water)</li>
 				<li>Date (0 for modern samples)</li>
-				<li>Climate variables from <a href="https://www.chelsa-climate.org/models/chelsa-trace21k" target="_blank">CHELSA-TraCE21k</a>, a high-resolution climate data set for the global land surface area covering both modern and historical bioclimatic layers. We use a PCA-based summary data with PC1 reflects temperature-related variation and PC2 primarily reflects precipitation-related variation.</li>
+				<li>Climate variables from <a href="https://www.chelsa-climate.org/models/chelsa-trace21k" target="_blank">CHELSA-TraCE21k</a>, a high-resolution climate dataset. We use a PCA-based summary data with PC1 reflects temperature-related variation and PC2 reflects precipitation-related variation.</li>
 				<li>Genetic similarity. Based on UKBiobank PCA distance.</li>
 				<li>Sociocultural transitions. The onset of the Neolithic Revolution and the rise of urbanized societies. Taken from the <a href="https://dataverse.harvard.edu/dataverse/ArchaeoGLOBE" target="_blank">ArchaeoGLOBE</a> database.</li>
 			</ul>
-			<p>Individual samples carry more fields than the population summary, including genetic sex, country and region, and further archaeological variables such as foraging and pastoralism onset. You can see all of them in the sample table, and filter on any of them when building a custom population.</p>
+			<p>With multiple populations selected, you will have multiple data tracks displayed simultaneously. To identify potential explanatory variables, you can sort tracks based on various metadata using the Sort dropdown.</p>
+			<p>You can also grab the handle on the left edge of a track and drag it where you want it.</p>
+			<p>Individual samples carry more fields than the population summary, including genetic sex, country, and further sociocultural variables such as foraging and pastoralism onset.</p>
 			<img src="/images/tracks.png" alt="Tracks" class="screenshot" style="margin-top:20px;">
 		</div>
 
 		<div class="section">
-			<h2>Ordering tracks</h2>
-			<p>With multiple populations selected, you will have multiple data tracks displayed simultaneously. By default, tracks appear alphabetically. To identify potential explanatory variables, you can sort tracks based on various metadata using the Sort dropdown, and flip between ascending and descending with the button next to it.</p>
-			<p>Sorting by Signal orders the tracks by their mean value in the region you are looking at, and prints that mean next to each track label. In FST view the dropdown offers pairwise metrics instead: temporal distance, waypoint distance, genetic distance, temperature and precipitation difference between the two populations of each pair.</p>
-			<p>You can also arrange tracks by hand: grab the handle on the left edge of a track and drag it where you want it.</p>
-		</div>
-
-		<div class="section">
-			<h2>Track buttons</h2>
-			<p>Each track has three buttons on its left margin:</p>
-			<ul>
-				<li><b>Show individuals</b> opens the table of samples that make up the population.</li>
-				<li><b>Pin</b> moves the track up next to the annotation tracks, where it stays in view while you scroll through the rest.</li>
-				<li><b>Remove</b> takes the track off the display. For a single population this removes it from your selection; for a pair it hides just that pair.</li>
-			</ul>
-		</div>
-
-		<div class="section">
-			<h2>Exporting</h2>
-			<p>Once you've identified regions of interest, click the Export button to download what you see as a tabular file (tab-separated). There are two exports:</p>
-			<ul>
-				<li><b>Export data</b> writes one row per bin in the current window, with the genomic position in the first column and one column per displayed track (population, or population pair in FST view).</li>
-				<li><b>Export metadata</b> writes one row per displayed population with all of its metadata, or in FST view one row per pair with the pairwise distances between them.</li>
-			</ul>
-			<p>You can then perform statistical tests, make publication-quality plots, or integrate with other data in your downstream analysis pipeline.</p>
-		</div>
-
-		<div class="section">
 			<h2>Adding annotations</h2>
-			<p>Click the <b>Add annotations</b> button to open the annotation catalog. Select the tracks you want to display, or click "Upload from computer" to load your own in <b>GTF</b>, <b>GFF3</b> or <b>BED</b> format. These files store genomic features as intervals with attributes, and can represent, for example, transposable elements/repeats, promoters/enhancers, non-coding RNAs, CpG islands/UTRs, variant or CNV intervals, conserved elements, or experimental peak tracks (e.g., ChIP-seq). Uploaded tracks appear below the default annotation tracks and are rendered automatically while you navigate and zoom, helping you interpret population-genetic signals in the context of specific genomic features. They are stored in your browser, so they are still there when you come back.</p>
-			<p>Annotation tracks other than the gene track have arrows on the right for jumping to the previous or next feature outside the current view, which saves hunting for sparse features by hand. The x button removes a track from the display.</p>
+			<p><b>DELPHI</b> has a large catalog of built-in curated annotations that help you integrate all relvant information into a single exploratory tool. CLick the  Add annotations icon to open the annotation catalog. Filter ans select the tracks you want to display, or click "Upload from computer" to load your own in <b>GTF</b>, <b>GFF3</b> or <b>BED</b> format. These files can represent, for example, transposable elements/repeats, promoters/enhancers, non-coding RNAs, CpG islands/UTRs, variant or CNV intervals, conserved elements, or experimental peak tracks (e.g., ChIP-seq). Uploaded tracks are added to the annotation list and are stored in your browser, so they are still there when you come back.</p>
+			<p>Annotation tracks have arrows on the sides for jumping across hits outside the current view, which saves hunting for sparse features by hand.</p>
 		</div>
 
 		<div class="section">
-			<h2>Working with genes</h2>
-			<p>The gene track draws exons, introns and strand direction, and adds gene names once you are zoomed in below 1 Mb. Hovering a gene shows its name as a link to its GeneCards entry.</p>
-			<p>Pressing on a gene bands it: a vertical stripe marks its extent across every track at once, so you can see where a signal sits relative to the gene. Press it again to clear the band.</p>
-		</div>
-
-		<div class="section">
-			<h2>Display options</h2>
-			<p>The display options menu holds the rest of the view settings:</p>
+			<h2>Extra features</h2>
 			<ul>
+				<li><b>Browser mode</b> Check the label next to the logo. With modern gnomAD populations only, <b>DELPHI</b> is computed on full genotypes. When ancient populations are introduced, the statistics are computed on the 1240k snp panel, and the data is sparser.</li>
+				<li><b>Export data</b> You can export a tsv file of the (i) </b>data</b>, which writes one row per bin with the genomic position in the first column and one column per displayed track, or the <b>metadata</b>, which writes one row per displayed population with all of its metadata.</li>
 				<li><b>Display style</b> cycles the plots between binned bars, a line and a scatter.</li>
-				<li><b>Y-axis</b> takes a minimum and maximum to fix the scale, which is what you want when comparing tracks. Autofit sets the range from the data currently on screen, and clearing both fields returns to automatic scaling. Limits are remembered per measure.</li>
-				<li><b>Guides</b> draws vertical lines across all tracks so you can line up a position by eye.</li>
+				<li><b>Y-axis</b> Autofit the Y-axis or manually fix the scale.</li>
+				<li><b>Guides</b> draws vertical lines across all tracks.</li>
 				<li><b>Track size</b> makes tracks taller or shorter.</li>
 				<li><b>Reset</b> returns every control to its default.</li>
 			</ul>
 		</div>
-
-		<div class="section">
-			<h2>Behind the scenes</h2>
-			<p>The label next to the logo tells you which of the two compute paths you are on. With modern gnomAD populations only, <b>DELPHI</b> reads precomputed statistics and plots them immediately. As soon as an ancient or custom population is in the selection, the statistics are computed on demand in the cloud over the selected samples, so the first view of a region takes a moment. Results are cached in your browser as they arrive, so panning back over a region, or returning to it in a later session, is instant.</p>
-			<p>Your selections and view settings are saved locally as well, which is why <b>DELPHI</b> opens where you left it. Reset clears them.</p>
-		</div>
-	</div>
-</div>
 
 <script async src="/toc.js"></script>
 </body>
