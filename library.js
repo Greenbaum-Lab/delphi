@@ -213,7 +213,7 @@ const mapSelectFunction = async (container, type, accession_ids) => {
 			const label = container.querySelector('input[name="population_label"]').value;
 			if (!label || accession_ids.length < 2 || accession_ids.length > 5000)
 				return false;
-			await addPopulation(label, 'User', '', accession_ids);
+			await addPopulation(label, 'User', accession_ids);
 			document.querySelector('[data-module="browser"]').dispatchEvent(new Event('populations-changed'));
 			return true;
 		}
