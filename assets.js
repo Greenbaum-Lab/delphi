@@ -12,6 +12,7 @@ export const CONFIG = {
 	MIN_FETCH_WINDOWS: 20,
 	SOURCE_DIRECTORIES: { gnomad: 'gnomad', adna: 'AADR' },
 	SUMMARY_FILE: 'percentiles.json',
+	POPULATIONS_FILE: 'populations.json',
 	IDB_NAME: 'delphi',
 	IDB_LAMBDA_TABLE: 'lambda_cache',
 	IDB_GNOMAD_TABLE: 'gnomad_cache',
@@ -205,12 +206,11 @@ export const getPregeneratedReference = async (population, measure, window_size)
 	assembled.
 	*/
 	const population_data = await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_POPULATIONS_TABLE, population);
-	if (population_data.Dataset === 'User')
+	if (!population_data.file_name)
 		return null;
 	const source = CONFIG.SOURCE_DIRECTORIES[getOptions().mode];
 	const summary = await getSignalSummary(source, window_size);
-	const file_name = population_data.aadr_population.replace(/\.(DG)$/, '');
-	return summary && summary[file_name] && summary[file_name][measure] || null;
+	return summary && summary[population_data.file_name] && summary[population_data.file_name][measure] || null;
 };
 
 const getPrecomputedTrack = async ({ source, chr, start, end, population, window_size, measure }) => {
@@ -497,10 +497,11 @@ export const getLambdaTrack = async ({ chr, start, end, measure, populations, wi
 export const getSignalTrack = async ({ chr, start, end, measure, populations, window_size }) => {
 	const options = getOptions();
 	const source = CONFIG.SOURCE_DIRECTORIES[options.mode];
-	const population_labels = Object.keys(populations);
-	const population_data = Object.fromEntries(await Promise.all(population_labels.map(async population =>
+	const requested_populations = Object.keys(populations);
+	const population_data = Object.fromEntries(await Promise.all(requested_populations.map(async population =>
 		[population, await getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_POPULATIONS_TABLE, population)]
 	)));
+	const population_labels = requested_populations.filter(population => population_data[population]);
 	const on_the_fly = population_labels.filter(population => population_data[population].Dataset === 'User');
 	const pregenerated = population_labels.filter(population => population_data[population].Dataset !== 'User');
 	const [lambda_tracks, precomputed_tracks] = await Promise.all([
@@ -509,8 +510,7 @@ export const getSignalTrack = async ({ chr, start, end, measure, populations, wi
 			populations: Object.fromEntries(on_the_fly.map(population => [population, populations[population]]))
 		}),
 		Promise.all(pregenerated.map(async population => {
-			const source_label = population_data[population].aadr_population.replace(/\.(DG)$/, '');
-			return [population, await getPrecomputedTrack({ source, chr, start, end, population: source_label, window_size, measure })];
+			return [population, await getPrecomputedTrack({ source, chr, start, end, population: population_data[population].file_name, window_size, measure })];
 		}))
 	]);
 	return Object.assign({}, lambda_tracks, Object.fromEntries(precomputed_tracks));

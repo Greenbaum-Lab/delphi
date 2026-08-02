@@ -139,7 +139,7 @@ const hooks = [
 				errorBox('Failed to load annotation', `Could not load annotation track "${label}": ${error.message}`, annotation_container);
 			})
 		));
-		const populations_metadata = await Promise.all(options.populations.map(getPopData));
+		const populations_metadata = (await Promise.all(options.populations.map(getPopData))).filter(Boolean);
 		options.mode = populations_metadata.filter(population => population.Dataset === 'User' || population.Dataset === 'AADR').length > 0 ? 'adna' : 'gnomad';
 		document.querySelector('.mode').innerHTML = options.mode === 'adna' ? '<a class="adna" data-icon="t" title="Data measured on the AADR 1240K panel; populations you assemble are computed on demand">aDNA</a>' : '<a data-icon="I" title="Data measured on the gnomAD v3.1.2 callset">gnomAD</a>'; // Temporarily here
 		getOptions([['mode', options.mode]]);

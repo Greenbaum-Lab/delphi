@@ -45,10 +45,12 @@ def sample_markers(group_name, target_method):
 	Base name and the markers that would keep a sample out of a population.
 
 	A sample genotyped by another method than the one the population is named
-	for is marked, so that admitting it stays a deliberate choice.
+	for is marked, so that admitting it stays a deliberate choice. A sample
+	carrying no method at all names no other method: its group name is simply
+	unlabelled, which the metadata build used to repair by rewriting the name.
 	'''
 	base, method, markers = split_group_name(group_name)
-	if method != target_method:
+	if method and target_method and method != target_method:
 		markers = markers | {'other_genotyping'}
 	return base, markers
 

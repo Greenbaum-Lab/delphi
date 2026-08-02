@@ -21,9 +21,10 @@ export const getPopsData = async () => {
 	return populations.map(population => Object.assign({}, population, {samples: population.subset.length}));
 };
 
-export const addPopulation = async (label, dataset, group_name = '', sample_ids = []) => {
+export const addPopulation = async (label, dataset, sample_ids, file_name = null) => {
 	const african_populations = ['BantuKenya', 'BantuSouthAfrica', 'Biaka', 'Mandenka', 'Mbuti', 'San', 'Yoruba', 'ASW', 'ACB', 'ESN', 'GWD', 'LWK', 'MSL', 'YRI'];
-	const samples = await getMetadata().then(samples => samples.filter(sample => (sample_ids.length === 0 || sample_ids.includes(sample.Poseidon_ID)) && (group_name === '' || group_name === sample.Group_Name)));
+	const roster = new Set(sample_ids);
+	const samples = await getMetadata().then(samples => samples.filter(sample => roster.has(sample.Poseidon_ID)));
 	const population = {
 		label,
 		time: Math.round(nanmean(getCol(samples, 'Date'))),
@@ -37,7 +38,7 @@ export const addPopulation = async (label, dataset, group_name = '', sample_ids 
 		Genetic_distance_PC1: round(nanmean(getCol(samples, 'Genetic_distance_PC1')), 3),
 		Genetic_distance_PC2: round(nanmean(getCol(samples, 'Genetic_distance_PC2')), 3),
 		Dataset: dataset,
-		aadr_population: group_name,
+		file_name,
 		subset: getCol(samples, 'Poseidon_ID')
 	};
 	return getIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_POPULATIONS_TABLE, label, population);
@@ -162,12 +163,43 @@ const euclideanDistance = (pos1, pos2) => {
 	return Math.sqrt(pos1.reduce((sum, val, i) => sum + Math.pow(val - pos2[i], 2), 0));
 };
 
-export const initPopCache = async () => {
-	const population_map = await fetch('/data/modern_populations.json').then(res => res.json());
-	const existing_pops = await getPops();
-	for (const population of population_map) {
-		if (!existing_pops.includes(population.population))
-			await addPopulation(population.population, population.dataset, population.aadr_population);
-	}
+const definitionRoster = definition => definition.samples.AADR || [];
+
+const populationIsStale = (stored, definition) => !stored ||
+	stored.file_name !== definition.file_name ||
+	stored.subset.length !== definitionRoster(definition).length;
+
+const removeUndefinedPopulations = async (definitions) => {
+	/*
+	Drop stored populations no definition names any more.
+
+	A population the user assembled is theirs and is never dropped. Every other
+	one comes from the definitions file, so a label that has left it, as the
+	region and time binned names did, would otherwise linger with no table
+	behind it and no way to remove it.
+	*/
+	const defined = new Set(definitions.map(definition => definition.label));
+	const stored = await getPops();
+	const population_data = await Promise.all(stored.map(getPopData));
+	const removable = stored.filter((label, index) => population_data[index].Dataset !== 'User' && !defined.has(label));
+	if (removable.length === 0)
+		return;
+	const selected_populations = getOptions().populations;
+	getOptions([['populations', selected_populations.filter(population => !removable.includes(population.replace(/^.*?\/([^\/]+)$/, '$1')))]]);
+	await Promise.all(removable.map(label => deleteIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_POPULATIONS_TABLE, label)));
 };
 
+export const initPopCache = async () => {
+	/*
+	Materialise every defined population from its roster.
+
+	A population is rewritten only when its roster or its table name has moved,
+	so a warm start writes nothing, while one stored before rosters existed is
+	replaced rather than left pointing at a table name it no longer carries.
+	*/
+	const definitions = await fetch(`${CONFIG.S3_BASE_URL}/${CONFIG.POPULATIONS_FILE}`).then(response => response.json());
+	await removeUndefinedPopulations(definitions);
+	const stored = await Promise.all(definitions.map(definition => getPopData(definition.label)));
+	await Promise.all(definitions.map((definition, index) => populationIsStale(stored[index], definition) ?
+		addPopulation(definition.label, definition.dataset, definitionRoster(definition), definition.file_name) : null));
+};
