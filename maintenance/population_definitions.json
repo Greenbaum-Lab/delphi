@@ -518,7 +518,7 @@
   "aadr_population": "IBS.DG"
  },
  {
-  "label": "Toscani",
+  "label": "Tuscan-1KGP",
   "source": "curated",
   "dataset": "1KGP",
   "gnomad_population": "TSI",
