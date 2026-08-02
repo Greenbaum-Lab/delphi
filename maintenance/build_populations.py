@@ -145,6 +145,22 @@ def resolve_polygon(entry, samples, bin_size, minimum_samples):
 	return populations
 
 
+def report_coverage(ancient, populations):
+	'''
+	Report the dated samples no polygon population holds.
+
+	A sample is missed either because it falls outside every ring or because its
+	bin was too small to keep, and either way it is invisible in the browser, so
+	the count belongs in the run output rather than in a later investigation.
+	'''
+	placed = {
+		sample_id for population in populations if population['source'] == 'polygon'
+		for sample_id in population['samples']['AADR']
+	}
+	missed = [sample for sample in ancient if sample['Poseidon_ID'] not in placed]
+	print(f'  {len(placed)} dated samples placed, {len(missed)} in no population')
+
+
 def build(args):
 	'''Resolve every definition and write the rosters as one file.'''
 	definitions = json.loads(pathlib.Path(args.definitions).read_text(encoding='utf-8'))
@@ -163,6 +179,7 @@ def build(args):
 	for entry in definitions:
 		if entry['source'] == 'polygon':
 			populations.extend(resolve_polygon(entry, ancient, args.bin_size, args.min_samples))
+	report_coverage(ancient, populations)
 
 	output_path = pathlib.Path(args.output)
 	output_path.parent.mkdir(parents=True, exist_ok=True)
