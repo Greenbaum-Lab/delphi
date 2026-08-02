@@ -133,9 +133,8 @@ def bin_population(entry, bin_index, roster, bin_size):
 	}
 
 
-def resolve_polygon(entry, samples, bin_size, minimum_samples):
+def resolve_bins(entry, inside, bin_size, minimum_samples):
 	'''One population per time bin holding enough samples inside the ring.'''
-	inside = polygon_samples(entry['polygon'], samples)
 	bins = bin_samples(inside, bin_size)
 	populations = [
 		bin_population(entry, bin_index, bins[bin_index], bin_size)
@@ -145,20 +144,21 @@ def resolve_polygon(entry, samples, bin_size, minimum_samples):
 	return populations
 
 
-def report_coverage(ancient, populations):
+def report_coverage(ancient, populations, inside_any):
 	'''
 	Report the dated samples no polygon population holds.
 
 	A sample is missed either because it falls outside every ring or because its
-	bin was too small to keep, and either way it is invisible in the browser, so
-	the count belongs in the run output rather than in a later investigation.
+	bin held too few samples to keep, and the two call for different fixes: the
+	first wants the rings redrawn, the second a coarser bin or a lower floor.
 	'''
 	placed = {
 		sample_id for population in populations if population['source'] == 'polygon'
 		for sample_id in population['samples']['AADR']
 	}
-	missed = [sample for sample in ancient if sample['Poseidon_ID'] not in placed]
-	print(f'  {len(placed)} dated samples placed, {len(missed)} in no population')
+	outside = [sample for sample in ancient if sample['Poseidon_ID'] not in inside_any]
+	dropped = [sample for sample in ancient if sample['Poseidon_ID'] in inside_any and sample['Poseidon_ID'] not in placed]
+	print(f'  {len(placed)} dated samples placed, {len(outside)} outside every ring, {len(dropped)} in a bin too small to keep')
 
 
 def build(args):
@@ -176,10 +176,14 @@ def build(args):
 	]
 	ancient = dated_samples(samples, admitted)
 	print(f'polygon populations, from {len(ancient)} dated samples')
+	inside_any = set()
 	for entry in definitions:
-		if entry['source'] == 'polygon':
-			populations.extend(resolve_polygon(entry, ancient, args.bin_size, args.min_samples))
-	report_coverage(ancient, populations)
+		if entry['source'] != 'polygon':
+			continue
+		inside = polygon_samples(entry['polygon'], ancient)
+		inside_any.update(sample['Poseidon_ID'] for sample in inside)
+		populations.extend(resolve_bins(entry, inside, args.bin_size, args.min_samples))
+	report_coverage(ancient, populations, inside_any)
 
 	output_path = pathlib.Path(args.output)
 	output_path.parent.mkdir(parents=True, exist_ok=True)
