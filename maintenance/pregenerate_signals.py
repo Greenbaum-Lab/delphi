@@ -9,13 +9,12 @@ one file per population per chromosome, with columns
 matching CONFIG.GNOMAD_STAT_COLUMNS in assets.js. Rows are either fixed-size
 windows indexed from position 0, or the elements of an annotation file.
 
-Populations are named by the FID field of the .fam, and the populations file
-selects which of them to generate. Filesets disagree on those names, so
---population-field names the entry field holding the FID for the fileset in
-hand, while output files are always named from aadr_population, which is the
-name the browser requests. A population the fileset does not contain, or one
-the populations file gives no name for, is skipped, so the same populations
-file can be run against several filesets.
+Populations come from the resolved populations file, each carrying the roster
+of individuals it holds in every genotype source. The roster for --output-label
+is matched against the IID field of the .fam, so family IDs are never read and
+the same file drives a run over any fileset. Rosters may overlap, and a sample
+belonging to several populations is read once and counted in each. A population
+the fileset holds no sample of is skipped.
 
 Output layout, where the label names the genotype source so that one population
 computed from different filesets lands in different files:
@@ -34,8 +33,7 @@ Example:
 
 	python pregenerate_signals.py \
 		--bed-prefix /data/gnomad/gnomad_v3 \
-		--populations ./build/modern_populations.json \
-		--population-field gnomad_population \
+		--populations ./build/populations.json \
 		--output-label gnomad \
 		--window-size 10000 \
 		--output-dir ./build
@@ -74,80 +72,73 @@ def chromosome_tag(name):
 	return f'chr{chromosome_key(name)}'
 
 
-def population_file_name(label):
+def load_population_rosters(populations_path, source):
 	'''
-	File stem for a population.
+	File name and sample roster of each population present in a genotype source.
 
-	assets.js strips a trailing ".DG" from aadr_population before building the
-	URL, so the generated file has to be stripped the same way to be reachable.
+	A population the source holds no roster for names nothing in this fileset
+	and is left out, so one resolved file drives a run over any of them.
 	'''
-	if label.endswith('.DG'):
-		return label[:-3]
-	return label
-
-
-def load_population_labels(populations_path, population_field):
-	'''
-	Map each population to generate from its FID in the fileset to its file name.
-
-	population_field names the entry field holding the FID, which differs between
-	genotype sources, while the file name always comes from aadr_population, so
-	one population keeps a single name across every source directory and the
-	browser can request it without knowing which source it came from. Entries
-	without the field name no population in this fileset and are skipped. Order
-	is preserved and duplicates are dropped.
-	'''
-	entries = json.loads(pathlib.Path(populations_path).read_text(encoding='utf-8'))
-	if not isinstance(entries, list):
-		raise ValueError('populations file must contain a list of population entries')
-	file_names = {}
-	claimed_by = {}
-	for entry in entries:
-		source_label = entry.get(population_field)
-		if not source_label or source_label in file_names:
+	populations = json.loads(pathlib.Path(populations_path).read_text(encoding='utf-8'))
+	rosters = []
+	claimed = set()
+	for population in populations:
+		roster = population['samples'].get(source)
+		if not roster:
 			continue
-		file_name = population_file_name(entry['aadr_population'])
-		if file_name in claimed_by:
-			raise ValueError(f'{claimed_by[file_name]} and {source_label} would both be written to {file_name}')
-		claimed_by[file_name] = source_label
-		file_names[source_label] = file_name
-	return file_names
+		if population['file_name'] in claimed:
+			raise ValueError(f'two populations would both be written to {population["file_name"]}')
+		claimed.add(population['file_name'])
+		rosters.append((population['file_name'], roster))
+	return rosters
 
 
-def build_population_indices(fam_path, requested_labels):
+def report_rosters(rosters, present_rows):
+	'''Report the populations a fileset holds partly or not at all.'''
+	partial = [
+		(file_name, len(roster) - len(rows))
+		for (file_name, roster), (_, rows) in zip(rosters, present_rows) if 0 < len(rows) < len(roster)
+	]
+	empty = [file_name for file_name, rows in present_rows if not rows]
+	if partial:
+		largest = sorted(partial, key=lambda item: -item[1])[:5]
+		print(f'{len(partial)} population(s) partly present, largest gaps: ' + ', '.join(f'{name} missing {count}' for name, count in largest))
+	if empty:
+		print(f'skipping {len(empty)} population(s) with no sample in the fileset: {", ".join(empty)}')
+
+
+def build_population_indices(fam_path, rosters):
 	'''
-	Map each requested population to its rows in the fileset, grouping samples by
-	the FID field.
+	Map each population to its rows in the fileset, by sample ID.
 
-	Returns (population_arrays, population_labels, selected_sample_rows). Labels
-	absent from the fileset are dropped and reported. Only the samples of the
-	populations that were found are selected, so a populations file covering a
-	fraction of a large fileset does not pay for reading the rest, and the
-	returned index arrays address rows of that selection.
+	Returns (population_arrays, population_labels, selected_sample_rows). Only
+	the samples some roster names are read, so a roster covering a fraction of a
+	large fileset does not pay for the rest, and the returned index arrays
+	address rows of that selection. Rosters may overlap and the same row then
+	appears in several of the arrays.
 	'''
 	fam = pd.read_csv(fam_path, sep=r'\s+', header=None, usecols=[0, 1], names=['fid', 'iid'], dtype={'fid': str, 'iid': str})
-	rows_by_population = {}
-	for row_index, family_id in enumerate(fam['fid'].values):
-		rows_by_population.setdefault(family_id, []).append(row_index)
+	row_of_sample = {sample_id: row for row, sample_id in enumerate(fam['iid'].values)}
+	present_rows = [
+		(file_name, [row_of_sample[sample_id] for sample_id in roster if sample_id in row_of_sample])
+		for file_name, roster in rosters
+	]
+	report_rosters(rosters, present_rows)
 
-	present_labels = [label for label in requested_labels if label in rows_by_population]
-	missing_labels = [label for label in requested_labels if label not in rows_by_population]
-	if missing_labels:
-		missing_text = ', '.join(missing_labels)
-		print(f'skipping {len(missing_labels)} population(s) not present in the fileset: {missing_text}')
-	if not present_labels:
+	kept = [(file_name, rows) for file_name, rows in present_rows if rows]
+	if not kept:
 		return [], [], np.zeros(0, dtype=np.int32)
 
-	selected_rows = sorted({row for label in present_labels for row in rows_by_population[label]})
+	selected_rows = sorted({row for _, rows in kept for row in rows})
 	selected_sample_rows = np.array(selected_rows, dtype=np.int32)
 	position_of_row = {row: position for position, row in enumerate(selected_rows)}
 
 	array_module = pop_measures.get_array_module()
 	population_arrays = [
-		array_module.asarray([position_of_row[row] for row in rows_by_population[label]], dtype=array_module.int32)
-		for label in present_labels
+		array_module.asarray([position_of_row[row] for row in rows], dtype=array_module.int32)
+		for _, rows in kept
 	]
-	return population_arrays, present_labels, selected_sample_rows
+	return population_arrays, [file_name for file_name, _ in kept], selected_sample_rows
 
 
 def load_variants(bed_prefix):
@@ -386,7 +377,7 @@ def process_elements(bed_file, sample_rows, population_arrays, population_labels
 	return accumulator, row_count
 
 
-def write_signal_files(output_directory, accumulator, population_labels, file_names, row_count, tag):
+def write_signal_files(output_directory, accumulator, population_labels, row_count, tag):
 	'''
 	Write one table per population plus the SNP count sidecar.
 
@@ -399,7 +390,7 @@ def write_signal_files(output_directory, accumulator, population_labels, file_na
 		table[:, RATE_COLUMNS:STAT_COLUMNS] = 0.0
 		for row_index, row in accumulator.rows[label].items():
 			table[row_index] = row
-		np.save(output_directory / f'{file_names[label]}_{tag}.npy', table)
+		np.save(output_directory / f'{label}_{tag}.npy', table)
 
 	snp_counts = np.zeros(row_count, dtype=np.int32)
 	for row_index, count in accumulator.snp_counts.items():
@@ -425,8 +416,8 @@ def generate(args):
 		raise RuntimeError('CuPy backend requested but CuPy is not importable')
 	print(f'array backend: {backend_name}')
 
-	file_names = load_population_labels(args.populations, args.population_field)
-	population_arrays, population_labels, sample_rows = build_population_indices(f'{args.bed_prefix}.fam', list(file_names))
+	rosters = load_population_rosters(args.populations, args.output_label)
+	population_arrays, population_labels, sample_rows = build_population_indices(f'{args.bed_prefix}.fam', rosters)
 	if not population_labels:
 		print('no requested population is present in the fileset, nothing to generate')
 		return
@@ -464,7 +455,7 @@ def generate(args):
 				bed_file, sample_rows, population_arrays, population_labels,
 				positions_all, variant_indices_all, elements, args.block_size
 			)
-			write_signal_files(output_directory, accumulator, population_labels, file_names, row_count, tag)
+			write_signal_files(output_directory, accumulator, population_labels, row_count, tag)
 			write_element_labels(output_directory, elements, tag)
 		else:
 			print(f'{tag}: {positions_all.size} variants')
@@ -472,9 +463,9 @@ def generate(args):
 				bed_file, sample_rows, population_arrays, population_labels,
 				positions_all, variant_indices_all, args.window_size, args.block_size
 			)
-			write_signal_files(output_directory, accumulator, population_labels, file_names, row_count, tag)
+			write_signal_files(output_directory, accumulator, population_labels, row_count, tag)
 
-	summary_path = write_summary(output_directory, [file_names[label] for label in population_labels])
+	summary_path = write_summary(output_directory, population_labels)
 	print(f'wrote signal files to {output_directory}')
 	print(f'wrote reference statistics to {summary_path}')
 
@@ -482,9 +473,8 @@ def generate(args):
 def main():
 	parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
 	parser.add_argument('--bed-prefix', required=True, help='Root of the .bed/.bim/.fam fileset')
-	parser.add_argument('--populations', required=True, help='Populations file selecting which FIDs to generate')
-	parser.add_argument('--population-field', default='aadr_population', help='Populations file field holding the FID in this fileset (default: aadr_population)')
-	parser.add_argument('--output-label', required=True, help='Name of the genotype source, used as the output directory (e.g. gnomad, AADR)')
+	parser.add_argument('--populations', required=True, help='Resolved populations file holding a sample roster per source')
+	parser.add_argument('--output-label', required=True, help='Name of the genotype source, naming both the roster to use and the output directory (e.g. gnomad, AADR)')
 	parser.add_argument('--output-dir', required=True, help='Directory to write the generated tracks to')
 	rows = parser.add_mutually_exclusive_group(required=True)
 	rows.add_argument('--window-size', type=int, help='Fixed window size in bases')
