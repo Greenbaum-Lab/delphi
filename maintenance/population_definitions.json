@@ -1,0 +1,734 @@
+[
+ {
+  "label": "Adygei",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Adygei",
+  "aadr_population": "Adygei.DG"
+ },
+ {
+  "label": "Balochi",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Balochi",
+  "aadr_population": "Balochi.DG"
+ },
+ {
+  "label": "BantuKenya",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "BantuKenya",
+  "aadr_population": "BantuKenya.DG"
+ },
+ {
+  "label": "BantuSouthAfrica",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "BantuSouthAfrica",
+  "aadr_population": "BantuSA.DG"
+ },
+ {
+  "label": "Basque",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Basque",
+  "aadr_population": "Basque.DG"
+ },
+ {
+  "label": "Bedouin",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Bedouin",
+  "aadr_population": "BedouinA.DG"
+ },
+ {
+  "label": "BergamoItalian",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "BergamoItalian",
+  "aadr_population": "Bergamo.DG"
+ },
+ {
+  "label": "Biaka",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Biaka",
+  "aadr_population": "Biaka.DG"
+ },
+ {
+  "label": "Bougainville",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Bougainville",
+  "aadr_population": "Nasioi.DG"
+ },
+ {
+  "label": "Brahui",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Brahui",
+  "aadr_population": "Brahui.DG"
+ },
+ {
+  "label": "Burusho",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Burusho",
+  "aadr_population": "Burusho.DG"
+ },
+ {
+  "label": "Cambodian",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Cambodian",
+  "aadr_population": "Cambodian.DG"
+ },
+ {
+  "label": "Colombian",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Colombian",
+  "aadr_population": "Piapoco.DG"
+ },
+ {
+  "label": "Dai",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Dai",
+  "aadr_population": "Dai.DG"
+ },
+ {
+  "label": "Daur",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Daur",
+  "aadr_population": "Daur.DG"
+ },
+ {
+  "label": "Druze",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Druze",
+  "aadr_population": "Druze.DG"
+ },
+ {
+  "label": "French",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "French",
+  "aadr_population": "French.DG"
+ },
+ {
+  "label": "Han",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Han",
+  "aadr_population": "Han.DG"
+ },
+ {
+  "label": "Hazara",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Hazara",
+  "aadr_population": "Hazara.DG"
+ },
+ {
+  "label": "Hezhen",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Hezhen",
+  "aadr_population": "Hezhen.DG"
+ },
+ {
+  "label": "Japanese",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Japanese",
+  "aadr_population": "Japanese.DG"
+ },
+ {
+  "label": "Kalash",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Kalash",
+  "aadr_population": "Kalash.DG"
+ },
+ {
+  "label": "Karitiana",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Karitiana",
+  "aadr_population": "Karitiana.DG"
+ },
+ {
+  "label": "Lahu",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Lahu",
+  "aadr_population": "China_Lahu.DG"
+ },
+ {
+  "label": "Makrani",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Makrani",
+  "aadr_population": "Makrani.DG"
+ },
+ {
+  "label": "Mandenka",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Mandenka",
+  "aadr_population": "Mandenka.DG"
+ },
+ {
+  "label": "Maya",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Maya",
+  "aadr_population": "Mayan.DG"
+ },
+ {
+  "label": "Mbuti",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Mbuti",
+  "aadr_population": "Mbuti.DG"
+ },
+ {
+  "label": "Miao",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Miao",
+  "aadr_population": "Miao.DG"
+ },
+ {
+  "label": "Mongolian",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Mongolian",
+  "aadr_population": "Mongola.DG"
+ },
+ {
+  "label": "Mozabite",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Mozabite",
+  "aadr_population": "Mozabite.DG"
+ },
+ {
+  "label": "Naxi",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Naxi",
+  "aadr_population": "Naxi.DG"
+ },
+ {
+  "label": "NorthernHan",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "NorthernHan",
+  "aadr_population": "NorthernHan.DG"
+ },
+ {
+  "label": "Orcadian",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Orcadian",
+  "aadr_population": "Orcadian.DG"
+ },
+ {
+  "label": "Oroqen",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Oroqen",
+  "aadr_population": "Oroqen.DG"
+ },
+ {
+  "label": "Palestinian",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Palestinian",
+  "aadr_population": "Palestinian.DG"
+ },
+ {
+  "label": "PapuanHighlands",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "PapuanHighlands",
+  "aadr_population": "PapuanHighlands.DG"
+ },
+ {
+  "label": "PapuanSepik",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "PapuanSepik",
+  "aadr_population": "PapuanSepik.DG"
+ },
+ {
+  "label": "Pathan",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Pathan",
+  "aadr_population": "Pathan.DG"
+ },
+ {
+  "label": "Pima",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Pima",
+  "aadr_population": "Pima.DG"
+ },
+ {
+  "label": "Russian",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Russian",
+  "aadr_population": "Russian.DG"
+ },
+ {
+  "label": "San",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "San",
+  "aadr_population": "Ju_hoan_North.DG"
+ },
+ {
+  "label": "Sardinian",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Sardinian",
+  "aadr_population": "Sardinian.DG"
+ },
+ {
+  "label": "She",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "She",
+  "aadr_population": "She.DG"
+ },
+ {
+  "label": "Sindhi",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Sindhi",
+  "aadr_population": "Sindhi_Pakistan.DG"
+ },
+ {
+  "label": "Surui",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Surui",
+  "aadr_population": "Surui.DG"
+ },
+ {
+  "label": "Tu",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Tu",
+  "aadr_population": "Tu.DG"
+ },
+ {
+  "label": "Tujia",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Tujia",
+  "aadr_population": "Tujia.DG"
+ },
+ {
+  "label": "Tuscan",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Tuscan",
+  "aadr_population": "Italian_North.DG"
+ },
+ {
+  "label": "Uygur",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Uygur",
+  "aadr_population": "Uyghur.DG"
+ },
+ {
+  "label": "Xibo",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Xibo",
+  "aadr_population": "Xibo.DG"
+ },
+ {
+  "label": "Yakut",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Yakut",
+  "aadr_population": "Yakut.DG"
+ },
+ {
+  "label": "Yi",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Yi",
+  "aadr_population": "Yi.DG"
+ },
+ {
+  "label": "Yoruba",
+  "source": "curated",
+  "dataset": "HGDP",
+  "gnomad_population": "Yoruba",
+  "aadr_population": "Yoruba.DG"
+ },
+ {
+  "label": "Dai-1KGP",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "CDX",
+  "aadr_population": "CDX.DG"
+ },
+ {
+  "label": "Beijing Han",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "CHB",
+  "aadr_population": "CHB.DG"
+ },
+ {
+  "label": "Japanese-1KGP",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "JPT",
+  "aadr_population": "JPT.DG"
+ },
+ {
+  "label": "Kinh",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "KHV",
+  "aadr_population": "KHV.DG"
+ },
+ {
+  "label": "Southern Han",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "CHS",
+  "aadr_population": "CHS.DG"
+ },
+ {
+  "label": "Bengali",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "BEB",
+  "aadr_population": "BEB.DG"
+ },
+ {
+  "label": "Gujarati",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "GIH",
+  "aadr_population": "GIH.DG"
+ },
+ {
+  "label": "Telugu",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "ITU",
+  "aadr_population": "ITU.DG"
+ },
+ {
+  "label": "Punjabi",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "PJL",
+  "aadr_population": "PJL.DG"
+ },
+ {
+  "label": "Sri Lankan",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "STU",
+  "aadr_population": "STU.DG"
+ },
+ {
+  "label": "African-American",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "ASW",
+  "aadr_population": "ASW.DG"
+ },
+ {
+  "label": "African-Caribbean",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "ACB",
+  "aadr_population": "ACB.DG"
+ },
+ {
+  "label": "Esan",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "ESN",
+  "aadr_population": "ESN.DG"
+ },
+ {
+  "label": "Gambian",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "GWD",
+  "aadr_population": "GWD.DG"
+ },
+ {
+  "label": "Luhya",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "LWK",
+  "aadr_population": "LWK.DG"
+ },
+ {
+  "label": "Mende",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "MSL",
+  "aadr_population": "MSL.DG"
+ },
+ {
+  "label": "Yoruba-1KGP",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "YRI",
+  "aadr_population": "YRI.DG"
+ },
+ {
+  "label": "British",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "GBR",
+  "aadr_population": "GBR.DG"
+ },
+ {
+  "label": "Finnish",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "FIN",
+  "aadr_population": "FIN.DG"
+ },
+ {
+  "label": "Iberian",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "IBS",
+  "aadr_population": "IBS.DG"
+ },
+ {
+  "label": "Toscani",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "TSI",
+  "aadr_population": "TSI.DG"
+ },
+ {
+  "label": "Utah European",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "CEU",
+  "aadr_population": "CEU.DG"
+ },
+ {
+  "label": "Colombian-1KGP",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "CLM",
+  "aadr_population": "CLM.DG"
+ },
+ {
+  "label": "Mexican",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "MXL",
+  "aadr_population": "MXL.DG"
+ },
+ {
+  "label": "Peruvian",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "PEL",
+  "aadr_population": "PEL.DG"
+ },
+ {
+  "label": "Puerto Rican",
+  "source": "curated",
+  "dataset": "1KGP",
+  "gnomad_population": "PUR",
+  "aadr_population": "PUR.DG"
+ },
+ {
+  "label": "NW Europe",
+  "source": "polygon",
+  "dataset": "AADR",
+  "polygon": [
+   [58.9666, -8.8792],
+   [47.9894, -15.7093],
+   [44.7766, -3.924],
+   [45.0443, 5.7186],
+   [46.383, 12.6827],
+   [54.1474, 16.4326],
+   [61.644, 7.3257]
+  ]
+ },
+ {
+  "label": "Northern Europe",
+  "source": "polygon",
+  "dataset": "AADR",
+  "polygon": [
+   [67.7432, -28.5142],
+   [52.6791, -23.463],
+   [56.9831, 3.6971],
+   [55.4932, 21.169],
+   [62.5287, 30.94],
+   [73.3716, 32.1821]
+  ]
+ },
+ {
+  "label": "Southern Europe",
+  "source": "polygon",
+  "dataset": "AADR",
+  "polygon": [
+   [45.5798, -11.6916],
+   [35.5397, -11.1559],
+   [36.209, -1.6472],
+   [37.6816, 8.665],
+   [35.8074, 15.0934],
+   [35.049, 23.1072],
+   [41.4223, 26.2537],
+   [47.0524, 15.3612]
+  ]
+ },
+ {
+  "label": "Central Europe",
+  "source": "polygon",
+  "dataset": "AADR",
+  "polygon": [
+   [54.5828, 13.6674],
+   [47.3226, 13.3954],
+   [33.565, 22.6215],
+   [44.9793, 31.6206],
+   [46.2644, 36.9142],
+   [61.1558, 32.15]
+  ]
+ },
+ {
+  "label": "Steppe",
+  "source": "polygon",
+  "dataset": "AADR",
+  "polygon": [
+   [57.603, 33.8893],
+   [50.5731, 27.537],
+   [42.9383, 28.0663],
+   [41.9557, 54.1563],
+   [42.636, 88.5649],
+   [54.9573, 89.3211],
+   [60.0976, 62.5505]
+  ]
+ },
+ {
+  "label": "Levant",
+  "source": "polygon",
+  "dataset": "AADR",
+  "polygon": [
+   [43.1651, 29.1251],
+   [39.1588, 24.4364],
+   [33.8674, 26.6295],
+   [30.0878, 28.8982],
+   [24.1161, 36.158],
+   [9.905, 43.7203],
+   [11.0389, 55.8956],
+   [17.5397, 66.7854],
+   [20.4122, 68.3735],
+   [29.9367, 70.1128],
+   [36.2107, 69.5834],
+   [39.7635, 66.0292],
+   [40.712, 53.5744],
+   [41.6533, 49.8458],
+   [42.7116, 40.0904]
+  ]
+ },
+ {
+  "label": "Central Asia",
+  "source": "polygon",
+  "dataset": "AADR",
+  "polygon": [
+   [62.5334, 75.3549],
+   [39.6208, 66.9548],
+   [0.3421, 75.4973],
+   [6.6039, 96.4263],
+   [62.5334, 113.5112]
+  ]
+ },
+ {
+  "label": "East Asia",
+  "source": "polygon",
+  "dataset": "AADR",
+  "polygon": [
+   [59.4088, 116.6446],
+   [50.5338, 102.5551],
+   [32.625, 101.4635],
+   [19.4662, 113.3435],
+   [20.3649, 131.1956],
+   [38.3378, 145.5801],
+   [49.0574, 150.6531],
+   [58.9426, 144.6168],
+   [63.2432, 130.5534]
+  ]
+ },
+ {
+  "label": "South East Asia + Oceania",
+  "source": "polygon",
+  "dataset": "AADR",
+  "polygon": [
+   [28.4738, 109.0791],
+   [20.625, 87.0858],
+   [-3.5, 92.0879],
+   [-33.0363, 104.5544],
+   [-43.6326, 148.6381],
+   [-22.6985, 177.7255],
+   [19.8159, 122.524]
+  ]
+ },
+ {
+  "label": "Africa",
+  "source": "polygon",
+  "dataset": "AADR",
+  "polygon": [
+   [7.9084, -18.9092],
+   [-8.2247, 3.1094],
+   [-41.5591, 14.2256],
+   [-39.4223, 38.8095],
+   [-4.5921, 60.2936],
+   [6.9468, 57.5146],
+   [12.7162, 52.7047],
+   [11.8615, 43.8331],
+   [20.5156, 37.9544],
+   [26.0714, 35.0684],
+   [33.1229, 30.793],
+   [33.7639, 12.8361],
+   [28.6356, -17.7334]
+  ]
+ },
+ {
+  "label": "Americas",
+  "source": "polygon",
+  "dataset": "AADR",
+  "polygon": [
+   [3.4966, -91.9392],
+   [-18.3953, -96.9582],
+   [-59.2905, -84.3346],
+   [-59.5946, -63.6502],
+   [-42.4155, -25.9316],
+   [-8.0574, -25.9316],
+   [12.6182, -37.4905],
+   [56.5541, -50.4183],
+   [77.8378, -99.8479],
+   [80.7264, -122.9658],
+   [82.0946, -170.2044],
+   [32.9899, -126.4639]
+  ]
+ }
+]
