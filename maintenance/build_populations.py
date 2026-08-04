@@ -7,11 +7,12 @@ holds in each genotype source. Nothing downstream derives membership again: the
 browser loads the rosters and the signal generator matches them against a
 fileset by sample ID.
 
-A curated population is defined by its name in each source. Its gnomAD roster
-comes from the FID field of the gnomAD fileset, which is authoritative, and its
-AADR roster from the AADR group name. The two are cross matched with the
-genotyping suffix removed, and the counts in both, gnomAD only and AADR only
-are reported, so a disagreement is a number rather than a silence.
+A curated population is defined by the FID field of the gnomAD fileset, which
+is authoritative. Its AADR roster holds the same individuals, located by ID
+rather than by AADR group name, because AADR groups do not always agree with
+the curation: Italian_North.DG merges the two populations gnomAD separates.
+aadr_population names the AADR group and the output table, but selects nothing,
+and how many of its members gnomAD does not carry is reported.
 
 A polygon population is defined by a ring and resolves to one population per
 time bin, holding the dated AADR samples inside the ring. Rings may overlap and
@@ -23,6 +24,7 @@ Example:
 		--definitions population_definitions.json \
 		--metadata ./build/Poseidon_AADR_v62_metadata.json \
 		--gnomad-fam /data/gnomad/gnomad_v3.fam \
+		--hgdp-metadata hgdp_metadata.txt \
 		--output ./build/populations.json
 '''
 
@@ -33,13 +35,13 @@ import pathlib
 import collections
 
 from polygon import polygon_samples
-from aadr_names import without_method, split_group_name, sample_markers, quality_markers
+from aadr_names import without_method, split_group_name, quality_markers
+from sample_matching import load_crosswalk, build_sample_index, match_individuals
 
 MARKER_FLAGS = {
 	'outlier': 'include_outliers',
 	'low_coverage': 'include_low_coverage',
-	'ignored': 'include_ignored',
-	'other_genotyping': 'include_other_genotyping'
+	'ignored': 'include_ignored'
 }
 
 
@@ -57,35 +59,40 @@ def read_gnomad_families(fam_path):
 	return families
 
 
-def aadr_roster(samples, aadr_population, admitted):
-	'''AADR sample IDs whose group name matches a curated population.'''
-	target_base, target_method, _ = split_group_name(aadr_population)
-	roster = []
+def group_members(samples, aadr_population, admitted):
+	'''
+	AADR sample IDs whose group name matches a curated population.
+
+	Used only to report how many of a group gnomAD does not carry. The genotyping
+	method is not compared, so a group is read as the individuals it names rather
+	than as one sequencing of them.
+	'''
+	target_base, _, _ = split_group_name(aadr_population)
+	members = []
 	for sample in samples:
 		if sample.get('Group_Name') is None:
 			continue
-		base, markers = sample_markers(sample['Group_Name'], target_method)
+		base, _, markers = split_group_name(sample['Group_Name'])
 		if base == target_base and not markers - admitted:
-			roster.append(sample['Poseidon_ID'])
-	return roster
+			members.append(sample['Poseidon_ID'])
+	return members
 
 
-def report_match(label, gnomad_roster, roster):
-	'''Report how the two sources' rosters for one population differ.'''
-	gnomad_keys = {without_method(sample_id) for sample_id in gnomad_roster}
-	aadr_keys = {without_method(sample_id) for sample_id in roster}
-	print(f'  {label}: {len(gnomad_keys & aadr_keys)} in both, {len(gnomad_keys - aadr_keys)} gnomAD only, {len(aadr_keys - gnomad_keys)} AADR only')
+def report_curated(label, gnomad_roster, roster, unmatched, group_only):
+	'''Report what a curated population found in each source.'''
+	print(f'  {label}: {len(gnomad_roster)} gnomAD samples -> {len(roster)} AADR individuals'
+	      f', {len(unmatched)} gnomAD samples with no AADR row, {len(group_only)} in the AADR group but not in gnomAD')
 	if not roster:
 		print(f'WARNING: population "{label}" has no AADR samples')
-	if gnomad_roster and not gnomad_keys & aadr_keys:
-		print(f'WARNING: population "{label}" shares no sample between the two sources')
 
 
-def resolve_curated(entry, samples, gnomad_families, admitted):
-	'''One population holding the roster each source has for it.'''
+def resolve_curated(entry, samples, gnomad_families, sample_index, crosswalk, admitted):
+	'''One population holding the same individuals in each source it reaches.'''
 	gnomad_roster = gnomad_families.get(entry.get('gnomad_population'), [])
-	roster = aadr_roster(samples, entry['aadr_population'], admitted)
-	report_match(entry['label'], gnomad_roster, roster)
+	keep = lambda sample: not quality_markers(sample.get('Group_Name') or '') - admitted
+	roster, unmatched = match_individuals(gnomad_roster, crosswalk, sample_index, keep)
+	group_only = [sample_id for sample_id in group_members(samples, entry['aadr_population'], admitted) if sample_id not in set(roster)]
+	report_curated(entry['label'], gnomad_roster, roster, unmatched, group_only)
 	samples_by_source = {'AADR': roster}
 	if gnomad_roster:
 		samples_by_source['gnomad'] = gnomad_roster
@@ -166,12 +173,14 @@ def build(args):
 	definitions = json.loads(pathlib.Path(args.definitions).read_text(encoding='utf-8'))
 	samples = json.loads(pathlib.Path(args.metadata).read_text(encoding='utf-8'))
 	gnomad_families = read_gnomad_families(args.gnomad_fam) if args.gnomad_fam else {}
+	crosswalk = load_crosswalk(args.hgdp_metadata) if args.hgdp_metadata else {}
+	sample_index = build_sample_index(samples)
 	admitted = admitted_markers(args)
 	print(f'{len(definitions)} definitions, {len(samples)} samples, admitting {sorted(admitted) or "no flagged samples"}')
 
 	print('curated populations')
 	populations = [
-		resolve_curated(entry, samples, gnomad_families, admitted)
+		resolve_curated(entry, samples, gnomad_families, sample_index, crosswalk, admitted)
 		for entry in definitions if entry['source'] == 'curated'
 	]
 	ancient = dated_samples(samples, admitted)
@@ -196,13 +205,13 @@ def main():
 	parser.add_argument('--definitions', required=True, help='Population definitions file')
 	parser.add_argument('--metadata', required=True, help='AADR sample metadata in the app schema')
 	parser.add_argument('--gnomad-fam', help='gnomAD fileset .fam, whose FID field defines the curated populations')
+	parser.add_argument('--hgdp-metadata', help='HGDP metadata table, naming each library "<sample>.<library>" so gnomAD library IDs resolve to samples')
 	parser.add_argument('--output', required=True, help='Path to write the resolved populations to')
 	parser.add_argument('--bin-size', type=int, default=1000, help='Time bin width in years (default: 1000)')
 	parser.add_argument('--min-samples', type=int, default=10, help='Smallest polygon population to keep (default: 10)')
 	parser.add_argument('--include-outliers', action='store_true', help='Admit samples the AADR marks as outliers')
 	parser.add_argument('--include-low-coverage', action='store_true', help='Admit samples the AADR marks as low coverage')
 	parser.add_argument('--include-ignored', action='store_true', help='Admit samples the AADR tags with Ignore_')
-	parser.add_argument('--include-other-genotyping', action='store_true', help='Admit samples genotyped by another method than the curated name')
 	build(parser.parse_args())
 
 

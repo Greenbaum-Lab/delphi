@@ -3,9 +3,10 @@
 Reduce the raw AADR metadata to the fields the app reads.
 
 Writes Poseidon_AADR_v62_metadata.json, the sample table the browser loads to
-derive a population's attributes and the resolver reads for dates and
-coordinates. Nothing here decides which population a sample belongs to: that
-lives in population_definitions.json and is resolved by build_populations.py.
+derive a population's attributes and the resolver reads for dates, coordinates
+and the alternative names a sample answers to. Nothing here decides which
+population a sample belongs to: that lives in population_definitions.json and
+is resolved by build_populations.py.
 
 	python build_metadata.py \\
 		--metadata Poseidon_AADR_v62_metadata_ORIGINAL.json \\
@@ -24,7 +25,7 @@ import json
 from pathlib import Path
 
 FIELDS_TO_KEEP = [
-	'Poseidon_ID', 'Group_Name', 'Country', 'Location', 'date',
+	'Poseidon_ID', 'Alternative_IDs', 'Group_Name', 'Country', 'Location', 'date',
 	'Latitude', 'Longitude', 'Genetic_Sex', 'chelsa_pc1', 'chelsa_pc2',
 	'ag_urbanization', 'ag_foraging', 'ag_extensive_agriculture',
 	'ag_intensive_agriculture', 'ag_pastoralism', 'ukb_pc1', 'ukb_pc2',
