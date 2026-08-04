@@ -40,27 +40,13 @@ def split_group_name(group_name):
 	return base, method, markers
 
 
-def sample_markers(group_name, target_method):
-	'''
-	Base name and the markers that would keep a sample out of a population.
-
-	A sample genotyped by another method than the one the population is named
-	for is marked, so that admitting it stays a deliberate choice. A sample
-	carrying no method at all names no other method: its group name is simply
-	unlabelled, which the metadata build used to repair by rewriting the name.
-	'''
-	base, method, markers = split_group_name(group_name)
-	if method and target_method and method != target_method:
-		markers = markers | {'other_genotyping'}
-	return base, markers
-
-
 def quality_markers(group_name):
 	'''
 	Markers a sample carries regardless of any population it might join.
 
-	The genotyping method is not one of them: it only marks a sample when read
-	against a curated name that names a method, and a polygon names none.
+	The genotyping method is not one of them. A population is a set of
+	individuals, and which sequencing of an individual the AADR happens to hold
+	says nothing about whether that person belongs to it.
 	'''
 	_, _, markers = split_group_name(group_name)
 	return markers
