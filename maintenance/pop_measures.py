@@ -19,6 +19,9 @@ except ImportError:
 	array_module = np
 
 
+MISSING_GENOTYPE = -127
+
+
 def get_array_module():
 	'''Return the array module currently in use, CuPy when available and NumPy otherwise.'''
 	return array_module
@@ -149,12 +152,40 @@ def fu_li_f_star(ac, an, min_sites=3):
 	return numerator / denominator
 
 
-def compute_pop_stats_for_window(genotypes, pop_idx):
+def population_membership(pop_arrays, n_samples):
 	'''
-	Compute population statistics for the variants of a single window or annotation element.
+	One row per population, selecting its samples.
 
-	genotypes: (n_samples, n_variants) int8 array holding this window only
-	pop_idx: array of sample indices for this population
+	Multiplying by this sums over a population's samples, so one operation does
+	what a loop over populations did. Rosters may overlap, since a sample is
+	free to appear in several rows.
+	'''
+	xp = array_module
+	membership = xp.zeros((len(pop_arrays), n_samples), dtype=xp.float64)
+	for row, pop_idx in enumerate(pop_arrays):
+		membership[row, pop_idx] = 1.0
+	return membership
+
+
+def window_allele_counts(window_genotypes, membership):
+	'''
+	Allele count, allele number and heterozygote count per population per variant.
+
+	Counts are small integers, exact in float64, so the products match summing
+	each population on its own, and the dtypes are the ones a per population sum
+	would have produced.
+	'''
+	xp = array_module
+	called = window_genotypes != MISSING_GENOTYPE
+	an = 2.0 * (membership @ called.astype(xp.float64))
+	ac = (membership @ xp.where(called, window_genotypes, 0).astype(xp.float64)).astype(xp.int64)
+	het_obs = (membership @ (window_genotypes == 1).astype(xp.float64)).astype(xp.int64)
+	return ac, an, het_obs
+
+
+def pop_stats_from_counts(ac, an, het_obs):
+	'''
+	Statistics of one population in one window, from its per variant counts.
 
 	Returns tuple: (heterozygosity, tajimasd, fulif, ac_sum, an_sum, het_obs_sum)
 	First 3 as float32 (NaN if not computable), last 3 as float32 sums. The last
@@ -162,12 +193,6 @@ def compute_pop_stats_for_window(genotypes, pop_idx):
 	the browser's FST expects.
 	'''
 	xp = array_module
-	sub = genotypes[pop_idx]
-	called = sub != -127
-	an = 2.0 * called.sum(axis=0)
-	ac = xp.where(called, sub, 0).sum(axis=0)
-	het_obs = (sub == 1).sum(axis=0)
-
 	ac_sum = float(ac.sum())
 	an_sum = float(an.sum())
 	het_obs_sum = float(het_obs.sum())
@@ -190,6 +215,43 @@ def compute_pop_stats_for_window(genotypes, pop_idx):
 	return np.float32(heterozygosity), np.float32(tajimasd), np.float32(fulif), np.float32(ac_sum), np.float32(an_sum), np.float32(het_obs_sum)
 
 
+def compute_pop_stats_for_window(genotypes, pop_idx):
+	'''
+	Compute population statistics for the variants of a single window or annotation element.
+
+	genotypes: (n_samples, n_variants) int8 array holding this window only
+	pop_idx: array of sample indices for this population
+	'''
+	xp = array_module
+	sub = genotypes[pop_idx]
+	called = sub != MISSING_GENOTYPE
+	an = 2.0 * called.sum(axis=0)
+	ac = xp.where(called, sub, 0).sum(axis=0)
+	het_obs = (sub == 1).sum(axis=0)
+	return pop_stats_from_counts(ac, an, het_obs)
+
+
+def occupied_window_spans(positions, window_size, first_window_start):
+	'''
+	The windows a block's variants fall in, as (window index, start, end) spans.
+
+	Positions arrive sorted, so the variants of a window are contiguous and a
+	window needs no mask over the block to find them. Windows holding nothing are
+	left out: the writer seeds their rates with NaN and their sums with zero,
+	which is exactly what computing them produced, and on an ascertained panel
+	most windows of the genome hold nothing.
+	'''
+	window_of_variant = positions // window_size
+	boundaries = np.flatnonzero(np.diff(window_of_variant)) + 1
+	starts = np.concatenate(([0], boundaries))
+	ends = np.concatenate((boundaries, [positions.size]))
+	return [
+		(int(window_of_variant[start]), int(start), int(end))
+		for start, end in zip(starts, ends)
+		if int(window_of_variant[start]) * window_size >= first_window_start
+	]
+
+
 def compute_pop_stats_for_block(genotypes, pop_arrays, pop_labels, positions, window_size, last_window):
 	'''
 	Compute population statistics for all populations for complete windows in a block.
@@ -197,7 +259,7 @@ def compute_pop_stats_for_block(genotypes, pop_arrays, pop_labels, positions, wi
 	genotypes: (n_samples, n_variants) int8 array
 	pop_arrays: list of arrays with sample indices per population
 	pop_labels: list of population label strings
-	positions: NumPy array of variant positions
+	positions: NumPy array of variant positions, sorted
 	window_size: int
 	last_window: int, end position of last processed window (0 on first call)
 
@@ -206,41 +268,24 @@ def compute_pop_stats_for_block(genotypes, pop_arrays, pop_labels, positions, wi
 	         with values (het, tajimasd, fulif, ac_sum, an_sum, het_obs_sum)
 	snp_counts: dict keyed by window_idx with SNP count per window
 	new_last_window: int, start position of next window to process
+
+	Only windows holding a variant appear in either dict. The reference walked
+	every window of the block's span and wrote a row of NaN and zero for the
+	empty ones, which the output seeding already provides.
 	'''
-	xp = array_module
-	first_window_start = last_window
-	last_pos = positions[-1] if len(positions) > 0 else 0
-	last_complete_window_start = (last_pos // window_size) * window_size
-
-	first_pos = positions[0] if len(positions) > 0 else 0
-	first_window_in_block = (first_pos // window_size) * window_size
-
-	if last_complete_window_start < first_window_in_block:
-		return {label: {} for label in pop_labels}, {}, last_window
-
 	results = {label: {} for label in pop_labels}
 	snp_counts = {}
+	if positions.size == 0:
+		return results, snp_counts, last_window
 
-	pos_cp = xp.asarray(positions, dtype=xp.int32)
-	window_indices = pos_cp // window_size
+	last_complete_window_start = (positions[-1] // window_size) * window_size
+	spans = occupied_window_spans(positions, window_size, last_window)
+	membership = population_membership(pop_arrays, genotypes.shape[0])
 
-	window_start = max(first_window_start, first_window_in_block)
-	while window_start <= last_complete_window_start:
-		window_idx = window_start // window_size
-		mask = window_indices == window_idx
-		snp_count = int(xp.count_nonzero(mask))
-		snp_counts[window_idx] = np.int32(snp_count)
+	for window_idx, start, end in spans:
+		snp_counts[window_idx] = np.int32(end - start)
+		ac_all, an_all, het_obs_all = window_allele_counts(genotypes[:, start:end], membership)
+		for pop_id, label in enumerate(pop_labels):
+			results[label][window_idx] = pop_stats_from_counts(ac_all[pop_id], an_all[pop_id], het_obs_all[pop_id])
 
-		if snp_count > 0:
-			window_genotypes = genotypes[:, mask]
-			for pop_id, pop_idx in enumerate(pop_arrays):
-				label = pop_labels[pop_id]
-				results[label][window_idx] = compute_pop_stats_for_window(window_genotypes, pop_idx)
-		else:
-			for label in pop_labels:
-				results[label][window_idx] = (np.float32(np.nan), np.float32(np.nan), np.float32(np.nan), np.float32(0), np.float32(0), np.float32(0))
-
-		window_start += window_size
-
-	new_last_window = last_complete_window_start + window_size
-	return results, snp_counts, new_last_window
+	return results, snp_counts, last_complete_window_start + window_size
