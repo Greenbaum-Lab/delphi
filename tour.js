@@ -3,13 +3,13 @@ import { getOptions } from '/apc/common.js';
 const TOUR_STATE_KEY = 'tour_state';
 
 const STEPS = [
-	{selector: '[data-action="open-populations"]', placement: 'top', text: 'New here? Start by choosing populations'},
+	{selector: '[data-action="open-populations"]', placement: 'top', text: 'New to DELPHI? Start by choosing populations'},
 	{selector: '[data-input="region"]', placement: 'bottom', text: 'Jump anywhere. Type in an interesting gene, like BRCA1'},
 	{selector: '.more-toggle', placement: 'top', text: 'Play with the plots in here'},
-	{selector: '[data-action="autoscale-y"]', placement: 'left', text: 'Autofit the y-axis. That one is a good one'},
+	{selector: '[data-action="autoscale-y"]', placement: 'left', text: 'This one is great'},
 	{selector: '.measure-selector', placement: 'top', text: 'Bored of heterozygosity? Pick another statistic'},
-	{selector: '.sort-selector, .sort-selector-pairwise', placement: 'top', text: 'Sort the tracks by time, place or signal'},
-	{selector: '[data-action="open-annotations"]', placement: 'top', text: 'Last one: lay annotations over the data'}
+	{selector: '.sort-selector, .sort-selector-pairwise', placement: 'top', text: 'Sort the tracks by time, climate, or sociocultural features'},
+	{selector: '[data-action="open-annotations"]', placement: 'top', text: 'Finally, lay annotations over the data'}
 ];
 
 const BUBBLE_MARKUP = '<p class="tour-text"></p><div class="tour-footer"><div class="tour-progress" aria-hidden="true"></div><button type="button" class="tour-skip" data-tour-skip></button></div>';
