@@ -8,7 +8,7 @@
 	border-radius: 10px;
 	box-shadow: 0 10px 24px rgba(27, 36, 48, 0.16);
 	opacity: 0;
-	transition: top .34s cubic-bezier(.34, .9, .28, 1), left .34s cubic-bezier(.34, .9, .28, 1), opacity .22s ease;
+	transition: opacity .22s ease;
 }
 
 .tour-bubble::after {
@@ -116,7 +116,7 @@
 	pointer-events: none;
 	opacity: 0;
 	animation: tour-pulse 2.4s ease-in-out infinite;
-	transition: top .34s cubic-bezier(.34, .9, .28, 1), left .34s cubic-bezier(.34, .9, .28, 1), width .34s ease, height .34s ease, opacity .22s ease;
+	transition: opacity .22s ease;
 }
 
 .tour-visible {
