@@ -56,31 +56,57 @@ const resolvePlacement = (rect, bubble_rect, placement) => {
 		return 'top';
 	if (placement === 'left' && rect.left - bubble_rect.width - BUBBLE_GAP < 8)
 		return 'right';
+	if (placement === 'right' && rect.right + bubble_rect.width + BUBBLE_GAP > window.innerWidth - 8)
+		return 'left';
 	return placement;
 };
 
 const positionBubble = (bubble, rect, placement) => {
+	'Place the bubble against the current target rectangle and aim its arrow at the centre of that rectangle.';
 	const bubble_rect = bubble.getBoundingClientRect();
 	bubble.dataset.placement = resolvePlacement(rect, bubble_rect, placement);
-	const [top, left] = bubbleOffset(rect, bubble_rect, bubble.dataset.placement);
-	bubble.style.top = `${clamp(top, 8, window.innerHeight - bubble_rect.height - 8)}px`;
-	bubble.style.left = `${clamp(left, 8, window.innerWidth - bubble_rect.width - 8)}px`;
-	const placed = bubble.getBoundingClientRect();
-	bubble.style.setProperty('--arrow-x', `${clamp(rect.left + rect.width / 2 - placed.left, 18, placed.width - 18)}px`);
-	bubble.style.setProperty('--arrow-y', `${clamp(rect.top + rect.height / 2 - placed.top, 18, placed.height - 18)}px`);
+	const [offset_top, offset_left] = bubbleOffset(rect, bubble_rect, bubble.dataset.placement);
+	const top = clamp(offset_top, 8, window.innerHeight - bubble_rect.height - 8);
+	const left = clamp(offset_left, 8, window.innerWidth - bubble_rect.width - 8);
+	bubble.style.top = `${top}px`;
+	bubble.style.left = `${left}px`;
+	bubble.style.setProperty('--arrow-x', `${clamp(rect.left + rect.width / 2 - left, 18, bubble_rect.width - 18)}px`);
+	bubble.style.setProperty('--arrow-y', `${clamp(rect.top + rect.height / 2 - top, 18, bubble_rect.height - 18)}px`);
 };
 
 const currentStep = (bubble) => Number(bubble.dataset.step);
 
+const layoutSignature = (bubble, rect) => [bubble.dataset.step, rect.top, rect.left, rect.width, rect.height, window.innerWidth, window.innerHeight].join(',');
+
+const isOnScreen = (rect) => rect.right > 0 && rect.bottom > 0 && rect.left < window.innerWidth && rect.top < window.innerHeight;
+
 const layoutStep = (layer) => {
+	'Redraw the ring and bubble against the target as it stands now, doing nothing while target and viewport are unmoved.';
 	const step = STEPS[currentStep(layer.bubble)];
 	const target = findTarget(step.selector);
-	layer.bubble.classList.toggle('tour-away', !target);
-	layer.ring.classList.toggle('tour-away', !target);
-	if (!target)
+	const rect = target && target.getBoundingClientRect();
+	const showing = Boolean(rect) && isOnScreen(rect);
+	layer.bubble.classList.toggle('tour-away', !showing);
+	layer.ring.classList.toggle('tour-away', !showing);
+	if (!showing)
 		return;
-	positionRing(layer.ring, target.getBoundingClientRect());
-	positionBubble(layer.bubble, target.getBoundingClientRect(), step.placement);
+	const signature = layoutSignature(layer.bubble, rect);
+	if (layer.bubble.dataset.layout === signature)
+		return;
+	layer.bubble.dataset.layout = signature;
+	positionRing(layer.ring, rect);
+	positionBubble(layer.bubble, rect, step.placement);
+};
+
+const trackTarget = (layer) => {
+	'Follow the target on every frame, so scrolling the viewport, opening a menu or loading tracks cannot leave the bubble behind.';
+	const follow = () => {
+		if (!layer.bubble.isConnected)
+			return;
+		layoutStep(layer);
+		requestAnimationFrame(follow);
+	};
+	requestAnimationFrame(follow);
 };
 
 const renderStep = (layer, index) => {
@@ -114,8 +140,8 @@ const onInteraction = (layer, e) => {
 	if (e.target.closest('[data-tour-skip]'))
 		return endTour(layer);
 	const target = findTarget(STEPS[currentStep(layer.bubble)].selector);
-	const reached = target && (target === e.target || target.contains(e.target));
-	requestAnimationFrame(() => reached ? advance(layer) : layoutStep(layer));
+	if (target && (target === e.target || target.contains(e.target)))
+		requestAnimationFrame(() => advance(layer));
 };
 
 const startTour = (container) => {
@@ -127,8 +153,8 @@ const startTour = (container) => {
 	});
 	window.addEventListener('click', e => onInteraction(layer, e), true);
 	window.addEventListener('change', e => onInteraction(layer, e), true);
-	window.addEventListener('resize', () => layer.bubble.isConnected && layoutStep(layer));
 	window.addEventListener('keydown', e => e.key === 'Escape' && layer.bubble.isConnected && endTour(layer));
+	trackTarget(layer);
 };
 
 const noPopulationsListed = () => !document.querySelector('.signal-tracks-container [data-module="track"]');
