@@ -94,18 +94,24 @@ export const removeAnnotationEntry = async (label) => {
 	return await deleteIDBObject(CONFIG.IDB_NAME, CONFIG.IDB_ANNOTATIONS_TABLE, label);
 };
 
-export const loadMeta = async () => {
-	if (metadataCache) return;
-	const metadata_url = `${CONFIG.S3_BASE_URL}/Poseidon_AADR_v62_metadata.json`;
-	const response = await fetch(metadata_url);
-	if (!response.ok) {
-		throw new Error(`Failed to fetch metadata: ${response.status}`);
-	}
-	metadataCache = await response.json();
-};
+export const getMetadata = () => {
+	/*
+	The sample metadata, fetched once however many callers ask for it.
 
-export const getMetadata = async () => {
-	await loadMeta();
+	The promise is cached rather than the parsed metadata, so callers arriving
+	while the first fetch is still in flight wait on it instead of starting one
+	of their own. Populations are materialised in parallel and every one of them
+	reads this file, so caching on resolution would fetch it once per population.
+	*/
+	if (metadataCache)
+		return metadataCache;
+	metadataCache = fetch(`${CONFIG.S3_BASE_URL}/Poseidon_AADR_v62_metadata.json`)
+		.then(response => {
+			if (!response.ok)
+				throw new Error(`Failed to fetch metadata: ${response.status}`);
+			return response.json();
+		});
+	metadataCache.catch(() => metadataCache = null);
 	return metadataCache;
 };
 
