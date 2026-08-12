@@ -37,6 +37,7 @@ const geneNameMaps = new Map();
 const lambdaBatchQueue = [];
 const precomputedMemoryCache = new Map();
 const summaryCaches = new Map();
+const elementCaches = new Map();
 const inflightLambdaFetches = new Map();
 let lambdaBatchTimer = null;
 
@@ -219,20 +220,78 @@ export const getPregeneratedReference = async (population, measure, window_size)
 	return summary && summary[population_data.file_name] && summary[population_data.file_name][measure] || null;
 };
 
+export const isAnnotationResolution = (window_size) => isNaN(+window_size);
+
+const parseElementRows = (text) => {
+	const rows_by_chromosome = {};
+	for (const line of text.split('\n')) {
+		const trimmed = line.trim();
+		if (!trimmed || trimmed.startsWith('#') || trimmed.startsWith('track') || trimmed.startsWith('browser'))
+			continue;
+		const fields = trimmed.split('\t');
+		const key = fields[0].replace(/^chr/i, '');
+		if (!rows_by_chromosome[key])
+			rows_by_chromosome[key] = [];
+		rows_by_chromosome[key].push({ start: +fields[1], end: +fields[2], label: fields[3] });
+	}
+	return rows_by_chromosome;
+};
+
+const getAnnotationElements = (source, annotation) => {
+	/*
+	The rows of an annotation signal table, from the BED file the tables were
+	generated from, served beside them. Row i of a chromosome's table holds the
+	i-th BED line of that chromosome in file order, which is how the generator
+	assigns rows, so the BED carries the coordinates of every row.
+	*/
+	const cache_key = `${source}_${annotation}`;
+	if (elementCaches.has(cache_key))
+		return elementCaches.get(cache_key);
+	const load_promise = fetch(`${CONFIG.S3_BASE_URL}/${source}/${annotation}/elements.bed`)
+		.then(response => {
+			if (!response.ok)
+				throw new Error(`Failed to fetch annotation elements: ${response.status}`);
+			return response.text();
+		})
+		.then(parseElementRows);
+	elementCaches.set(cache_key, load_promise);
+	load_promise.catch(() => elementCaches.delete(cache_key));
+	return load_promise;
+};
+
+const measureData = (rows, measure) => {
+	const measured = value => (value === undefined || isNaN(value)) ? null : value;
+	if (measure === 'raw')
+		return rows.map(row => [measured(row.ac), measured(row.an), measured(row.het_obs)]);
+	return rows.map(row => measured(row[measure]));
+};
+
+const getElementTrack = async ({ source, chr, start, end, population, window_size, measure }) => {
+	const [full_data, rows_by_chromosome] = await Promise.all([
+		getPrecomputedChromosome(source, population, chr, window_size),
+		getAnnotationElements(source, window_size)
+	]);
+	const chromosome_elements = rows_by_chromosome[chr.replace(/^chr/i, '')] || [];
+	const visible = chromosome_elements
+		.map((element, row_index) => ({ ...element, row_index }))
+		.filter(element => element.end > start && element.start < end);
+	return {
+		data: measureData(visible.map(element => full_data[element.row_index]), measure),
+		elements: visible.map(element => ({ start: element.start, end: element.end, label: element.label })),
+		window_size: window_size,
+		start,
+		end
+	};
+};
+
 const getPrecomputedTrack = async ({ source, chr, start, end, population, window_size, measure }) => {
+	if (isAnnotationResolution(window_size))
+		return getElementTrack({ source, chr, start, end, population, window_size, measure });
 	const full_data = await getPrecomputedChromosome(source, population, chr, window_size);
 	const start_index = Math.floor(start / window_size);
 	const end_index = Math.ceil(end / window_size);
-	const sliced_data = full_data.slice(start_index, end_index);
-	const measured = value => (value === undefined || isNaN(value)) ? null : value;
-	let measure_data;
-	if (measure === 'raw') {
-		measure_data = sliced_data.map(row => [measured(row.ac), measured(row.an), measured(row.het_obs)]);
-	} else {
-		measure_data = sliced_data.map(row => measured(row[measure]));
-	}
 	return {
-		data: measure_data,
+		data: measureData(full_data.slice(start_index, end_index), measure),
 		window_size: window_size,
 		start: Math.floor(start / window_size) * window_size,
 		end: Math.ceil(end / window_size) * window_size
@@ -511,7 +570,7 @@ export const getSignalTrack = async ({ chr, start, end, measure, populations, wi
 	const on_the_fly = population_labels.filter(population => population_data[population].Dataset === 'User');
 	const pregenerated = population_labels.filter(population => population_data[population].Dataset !== 'User');
 	const [lambda_tracks, precomputed_tracks] = await Promise.all([
-		on_the_fly.length === 0 ? {} : getLambdaTrack({
+		on_the_fly.length === 0 || isAnnotationResolution(window_size) ? {} : getLambdaTrack({
 			chr, start, end, measure, window_size,
 			populations: Object.fromEntries(on_the_fly.map(population => [population, populations[population]]))
 		}),

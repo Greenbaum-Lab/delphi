@@ -201,7 +201,7 @@ const hooks = [
 		browser.dispatchEvent(new Event('update'));
 	}],
 	['.window-selector', 'change', e => {
-      	getOptions([['window_size', +e.target.value]]);
+      	getOptions([['window_size', isNaN(+e.target.value) ? e.target.value : +e.target.value]]);
 		e.target.closest('[data-module="browser"]').dispatchEvent(new Event('refresh'));
 	}],
 	['[data-action="toggle-sort"]', 'click', e => {

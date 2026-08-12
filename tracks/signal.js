@@ -238,7 +238,7 @@ const hooks = [
 			populations: population_samples,
 			window_size: options.window_size
 		});
-		if (!response) {
+		if (!response || populations.some(population => !response[population])) {
 			track.signal_bins = null;
 			track.signal_reference = null;
 			clearTimeout(loading_timeout);
@@ -246,20 +246,17 @@ const hooks = [
 			track.dispatchEvent(new Event('refreshed'));
 			return;
 		}
-		let values;
-		let track_response;
-		if (is_pairwise) {
-			values = computePairwiseValues(track_measure, response[populations[0]].data, response[populations[1]].data);
-			track_response = response[populations[0]];
-		} else {
-			track_response = response[populations[0]];
-			values = track_response.data;
-		}
-		const bins = [];
-		for (let i = 0; i < values.length; i++) {
-			const bin_start = track_response.start + (i * track_response.window_size);
-			bins.push({ start: bin_start, end: bin_start + track_response.window_size, value: values[i] });
-		}
+		const track_response = response[populations[0]];
+		const values = is_pairwise
+			? computePairwiseValues(track_measure, response[populations[0]].data, response[populations[1]].data)
+			: track_response.data;
+		const bins = track_response.elements
+			? track_response.elements.map((element, index) => ({ start: element.start, end: element.end, value: values[index] }))
+			: values.map((value, index) => ({
+				start: track_response.start + (index * track_response.window_size),
+				end: track_response.start + ((index + 1) * track_response.window_size),
+				value
+			}));
 		track.signal_bins = bins;
 		const reference = await trackReference(populations, track_measure, bins);
 		track.signal_reference = reference;
