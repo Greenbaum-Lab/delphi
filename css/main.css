@@ -1084,10 +1084,13 @@ body.loading .loading-overlay {
 	line-height: 1.6;
 	margin: 0 0 20px;
 }
-.text ul {
+.text ul, .text ol {
 	line-height: 1.6;
 	margin: 0 0 20px;
 	padding-left: 20px;
+}
+.text li {
+	margin: 0 0 10px;
 }
 .text img.screenshot {
 	width: 100%;

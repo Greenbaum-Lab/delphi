@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>DELPHI Credits</title>
+	<link rel="stylesheet" type="text/css" href="/css/main.css">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,initial-scale=1.0">
+</head>
+<body>
+<div class="wrap narrow">
+	<div class="text">
+		<div class="section">
+			<h1>Credits</h1>
+			<p><b>DELPHI</b> is built on datasets and computational tools that are freely available and actively maintained. DELPHI is indebted to these projects, without which the platform would not be possible.</p>
+		</div>
+
+		<div class="section">
+			<h2>Datasets</h2>
+			<ol>
+				<li>The <a href="https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/FFIDCW" target="_blank">Allen Ancient DNA Resource (AADR)</a> is a comprehensive, curated dataset of ancient genomes with associated metadata, genotyped on a panel of 1.23m variants and updated regularly with newly published genomes. The AADR is the primary dataset behind <b>DELPHI</b>, and is what allows ancient and modern populations to be compared at the same sites.</li>
+				<li><a href="https://www.poseidon-adna.org" target="_blank">Poseidon aDNA</a> develops curation standards for ancient DNA and distributes curated genotype and metadata packages. <b>DELPHI</b> reads the AADR through its Poseidon package, which is also the source of the sample metadata shown in the browser.</li>
+				<li><a href="https://gnomad.broadinstitute.org/downloads#v3" target="_blank">gnomAD v3.1.2</a> aggregates and harmonises population-scale genome sequencing data. <b>DELPHI</b> uses its harmonised callset of roughly 66 million sites for the precomputed modern population tracks, which is why modern populations load without any computation at request time.</li>
+				<li>The <a href="https://www.internationalgenome.org/data-portal/data-collection/hgdp" target="_blank">Human Genome Diversity Project (HGDP)</a> and the <a href="https://www.internationalgenome.org" target="_blank">1000 Genomes Project</a> are the population panels underlying the gnomAD callset. The HGDP sample table is also what lets <b>DELPHI</b> recognise the same individual across gnomAD and the AADR, which name their samples differently, so that a population means the same set of people in both.</li>
+				<li><a href="https://www.gencodegenes.org/human/release_19.html" target="_blank">GENCODE v19</a> provides the gene models <b>DELPHI</b> uses for its gene annotation track and for resolving gene names typed into the search box.</li>
+				<li><a href="https://chelsa-climate.org/chelsa-trace21k/" target="_blank">CHELSA-TraCE21k</a> provides climate data at 1km and 100-year resolution since the last glacial maximum. <b>DELPHI</b> summarises it into per-sample temperature and precipitation indices, which can be used to sort tracks or to define populations.</li>
+				<li>The <a href="https://dataverse.harvard.edu/dataverse/ArchaeoGLOBE" target="_blank">ArchaeoGLOBE</a> project compiles archaeological assessments of regional land use through the Holocene. <b>DELPHI</b> draws its sociocultural variables from it, including the onset of foraging, agriculture, pastoralism and urbanization.</li>
+				<li>The <a href="https://www.ukbiobank.ac.uk" target="_blank">UK Biobank</a> is the basis of the genetic distance metadata, derived from a principal-component analysis and used to place populations relative to one another.</li>
+			</ol>
+		</div>
+
+		<div class="section">
+			<h2>Computational tools</h2>
+			<ol>
+				<li><a href="https://fastlmm.github.io/bed-reader/" target="_blank">bed_reader</a> is a Python reader for PLINK filesets with support for cloud-based resources. <b>DELPHI</b> uses it both to pregenerate the modern population tracks and to run a serverless analysis pipeline that reads PLINK files directly from S3, retrieving only the sites a query needs.</li>
+				<li><a href="https://numpy.org" target="_blank">NumPy</a> and <a href="https://cupy.dev" target="_blank">CuPy</a> carry the numerical work. Population statistics are expressed once as array operations and run unchanged on CPU or GPU, which is what makes it practical to pregenerate whole-genome tracks for every population.</li>
+				<li><a href="https://www.ag-grid.com" target="_blank">AG Grid</a> renders the sample and population tables. It is what allows the thousands of samples in the browser to be filtered and sorted on any metadata column when assembling a custom population.</li>
+			</ol>
+		</div>
+
+		<div class="section">
+			<h2>The name</h2>
+			<p><b>DELPHI</b> stands for DNA Explorer for Locus-based Population History Insights, but the name came first. It belongs to Delphi, the dog who inspired it.</p>
+			<img src="/delphi_wide.png" alt="Delphi, the dog the browser is named after" class="screenshot">
+		</div>
+	</div>
+</div>
+</body>
+</html>
