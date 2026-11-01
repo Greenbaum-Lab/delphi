@@ -14,24 +14,25 @@ const ensureGeneBand = (plot_area) => {
 	return gene_band;
 };
 
-const bandBounds = (plot_area_width, region, gene) => {
-	const pixels_per_base = plot_area_width / (region.end - region.start);
-	const left = (gene.start - region.start) * pixels_per_base;
-	const right = (gene.end - region.start) * pixels_per_base;
-	if (right <= 0 || left >= plot_area_width)
+const bandBounds = (region, gene) => {
+	'Return the visible gene extent as percentages of the region width, or null when out of view.';
+	const region_span = region.end - region.start;
+	const left = (gene.start - region.start) / region_span;
+	const right = (gene.end - region.start) / region_span;
+	if (right <= 0 || left >= 1)
 		return null;
 	const visible_left = Math.max(left, 0);
-	return {left: visible_left, width: Math.min(right, plot_area_width) - visible_left};
+	return {left: visible_left * 100, width: (Math.min(right, 1) - visible_left) * 100};
 };
 
 const positionGeneBand = (plot_area, region) => {
 	const gene_band = ensureGeneBand(plot_area);
-	const bounds = bandBounds(plot_area.offsetWidth, region, banded_gene);
+	const bounds = bandBounds(region, banded_gene);
 	gene_band.classList.toggle('show', bounds !== null);
 	if (!bounds)
 		return;
-	gene_band.style.left = bounds.left + 'px';
-	gene_band.style.width = bounds.width + 'px';
+	gene_band.style.left = bounds.left + '%';
+	gene_band.style.width = bounds.width + '%';
 };
 
 const hideGeneBand = () => {

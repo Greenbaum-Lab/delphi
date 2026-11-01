@@ -13,7 +13,7 @@ const getVar = (name) => cssVars.getPropertyValue(name).trim();
 
 const GENE_COLOR = hexToRgb(getVar('--data-1'));
 const INTRON_COLOR = [120, 120, 120];
-const HIGHLIGHT_COLOR = hexToRgb(getVar('--accent2'));
+const HIGHLIGHT_COLOR = hexToRgb(getVar('--accent'));
 const FOCAL_WINDOW_COLOR = hexToRgb(getVar('--data-1'));
 const FOCAL_WINDOW_OPACITY = 0.5;
 
