@@ -635,6 +635,12 @@ input, select, textarea {
 	display: block;
 }
 
+@media print {
+	[data-module="track"] .track-plot-area svg {
+		height: auto;
+	}
+}
+
 [data-module="track"] .track-plot-area .hit-nav a {
 	position: absolute;
 	top: 50%;
