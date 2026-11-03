@@ -4,7 +4,7 @@ import { createSVG } from '/apc/plot/static.js';
 import { getTracks, loadGeneMap, getAnnotationEntry } from '/assets.js';
 import { CHR_LENGTHS, GENE_ANNOTATION, hexToRgb } from '/common.js';
 import { formatRegionString } from '/browser/region.js';
-import { updateRegionInput, generateCoordinateTicks, drawGuides, showHoverLine, hideHoverLine } from '/browser/helpers.js';
+import { updateRegionInput, generateCoordinateTicks, drawGuides, showHoverLine, hideHoverLine, fitSVG } from '/browser/helpers.js';
 import { navigateToHit } from '/browser/annotation_nav.js';
 import { toggleGeneBand } from '/browser/gene_band.js';
 
@@ -159,6 +159,13 @@ const drawAnnotation = (svg, annotation_data, track_id) => {
 	});
 };
 
+const drawTrack = (track) => {
+	'Draw the annotation the track holds at the size its plot area is rendered.';
+	const svg = track.querySelector('.track-plot-area > svg');
+	fitSVG(svg);
+	drawAnnotation(svg, track.annotation_data, track.dataset.source);
+};
+
 let tooltip_timeout = null;
 let current_tooltip_gene = null;
 
@@ -228,9 +235,11 @@ const hooks = [
 		const options = getOptions();
       	const track_id = e.target.dataset.source;
 		const annotation_data = await getTracks({chr: options.chr, start: options.start, end: options.end, track_ids: [track_id]});
+		e.target.annotation_data = annotation_data[0];
       	e.target.dispatchEvent(new Event('refreshed'));
-		drawAnnotation(e.target.querySelector('.track-plot-area > svg'), annotation_data[0], track_id);
+		drawTrack(e.target);
 	}],
+	['[data-module="track"]', 'redraw', e => drawTrack(e.target)],
 	['svg [data-gene]', 'mouseenter', showTooltip],
 	['svg [data-gene]', 'mouseleave', hideTooltip],
 	['svg [data-gene]', 'mousedown', e => toggleGeneBand(e.target.dataset.gene, +e.target.dataset.geneStart, +e.target.dataset.geneEnd)],

@@ -108,6 +108,14 @@ const ensureHoverLine = (plot_area) => {
 	return hover_line;
 };
 
+export const fitSVG = (svg) => {
+	'Match the SVG coordinate system to its rendered size, so one drawing unit is one rendered pixel.';
+	const { width, height } = svg.getBoundingClientRect();
+	svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+	svg.dataset.width = width;
+	svg.dataset.height = height;
+};
+
 export const showHoverLine = (client_x) => {
 	document.querySelectorAll('[data-module="browser"] [data-module="track"]:not([data-type="viewfinder"]) .track-plot-area')
 		.forEach(plot_area => {
