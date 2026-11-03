@@ -1,18 +1,19 @@
 import { getOptions } from '/apc/common.js';
+import { clippingRect } from '/common.js';
 
 const TOUR_STATE_KEY = 'tour_state';
 
 const STEPS = [
 	{selector: '[data-action="open-populations"]', placement: 'top', text: 'New to DELPHI? Start by choosing populations'},
-	{selector: '.ag-header-cell[col-id="label"]', placement: 'top', text: 'Search here with the filter icon. Tick French and Han'},
-	{selector: '[data-subfunction="update-populations"]', placement: 'top', text: 'Ticked French and Han? Press Update'},
-	{selector: '[data-input="region"]', placement: 'bottom', text: 'Type the skin color gene SLC24A5'},
-	{selector: '.top-bar [data-action="search-annotation"]', placement: 'bottom', text: 'Then hit search'},
-	{selector: '.more-toggle', placement: 'top', text: 'French diversity dips here: selection for lighter skin. Plot options are in here'},
-	{selector: '[data-action="autoscale-y"]', placement: 'left', text: 'Autofit the y-axis to see the dip'},
-	{selector: '.measure-selector', placement: 'top', text: 'Pick FST: French and Han split right at the gene'},
+	{selector: '.ag-header-cell[col-id="label"]', placement: 'top', text: 'Search populations here. Try Finnish and San'},
+	{selector: '[data-subfunction="update-populations"]', placement: 'top', text: 'Press Update to show populations'},
+	{selector: '[data-input="region"]', placement: 'bottom', event: 'change', text: 'Find the eye color gene HERC2 and press Enter'},
+	{selector: '.more-toggle', placement: 'top', text: 'Play with the plot here'},
+	{selector: '[data-action="autoscale-y"]', placement: 'left', text: 'This is a good one!'},
+	{selector: '.measure-selector', placement: 'top', text: 'Tired of heterozygosity? Pick another signal'},
 	{selector: '.sort-selector, .sort-selector-pairwise', placement: 'top', text: 'Sort tracks by time, climate or culture'},
-	{selector: '[data-action="open-annotations"]', placement: 'top', text: 'Finally, add annotations or upload your own'}
+	{selector: '[data-action="open-annotations"]', placement: 'top', text: 'Finally, add annotations or upload your own'},
+	{selector: '.ag-row', contains: 'accelerated', placement: 'top', text: 'Try ticking this one to add regions with accelerated evolution'}
 ];
 
 const BUBBLE_MARKUP = '<p class="tour-text"></p><div class="tour-footer"><div class="tour-progress" aria-hidden="true"></div><button type="button" class="tour-skip" data-tour-skip></button></div>';
@@ -25,7 +26,9 @@ const POP_KEYFRAMES = [{transform: 'scale(0.8)'}, {transform: 'scale(1.06)', off
 
 const clamp = (value, lowest, highest) => Math.max(lowest, Math.min(value, highest));
 
-const findTarget = (selector) => Array.from(document.querySelectorAll(selector)).find(elem => elem.offsetWidth > 0 && elem.offsetHeight > 0);
+const matchesStep = (step, element) => Boolean(element) && element.textContent.toLowerCase().includes(step.contains || '');
+
+const findTarget = (step) => Array.from(document.querySelectorAll(step.selector)).find(elem => elem.offsetWidth > 0 && elem.offsetHeight > 0 && matchesStep(step, elem));
 
 const buildLayer = (container) => {
 	const ring = container.appendChild(document.createElement('div'));
@@ -70,7 +73,7 @@ const resolvePlacement = (rect, bubble_rect, placement) => {
 
 const positionBubble = (bubble, rect, placement) => {
 	'Place the bubble against the current target rectangle and aim its arrow at the centre of that rectangle.';
-	const bubble_rect = bubble.getBoundingClientRect();
+	const bubble_rect = {width: bubble.offsetWidth, height: bubble.offsetHeight};
 	bubble.dataset.placement = resolvePlacement(rect, bubble_rect, placement);
 	const [offset_top, offset_left] = bubbleOffset(rect, bubble_rect, bubble.dataset.placement);
 	const top = clamp(offset_top, 8, window.innerHeight - bubble_rect.height - 8);
@@ -93,13 +96,24 @@ const currentStep = (bubble) => Number(bubble.dataset.step);
 
 const layoutSignature = (bubble, rect) => [bubble.dataset.step, rect.top, rect.left, rect.width, rect.height, window.innerWidth, window.innerHeight].join(',');
 
-const isOnScreen = (rect) => rect.right > 0 && rect.bottom > 0 && rect.left < window.innerWidth && rect.top < window.innerHeight;
+const visibleRect = (target) => {
+	'Return the part of target its nearest clipping ancestor lets through, so the ring never spills out of a scrolled table.';
+	const rect = target.getBoundingClientRect();
+	const bounds = clippingRect(target.parentElement);
+	const left = Math.max(rect.left, bounds.left);
+	const top = Math.max(rect.top, bounds.top);
+	const right = Math.min(rect.right, bounds.right);
+	const bottom = Math.min(rect.bottom, bounds.bottom);
+	return {left, top, right, bottom, width: right - left, height: bottom - top};
+};
+
+const isOnScreen = (rect) => rect.width > 0 && rect.height > 0 && rect.right > 0 && rect.bottom > 0 && rect.left < window.innerWidth && rect.top < window.innerHeight;
 
 const layoutStep = (layer) => {
 	'Redraw the ring and bubble against the target as it stands now, doing nothing while target and viewport are unmoved.';
 	const step = STEPS[currentStep(layer.bubble)];
-	const target = findTarget(step.selector);
-	const rect = target && target.getBoundingClientRect();
+	const target = findTarget(step);
+	const rect = target && visibleRect(target);
 	const showing = Boolean(rect) && isOnScreen(rect);
 	layer.bubble.classList.toggle('tour-away', !showing);
 	layer.ring.classList.toggle('tour-away', !showing);
@@ -149,9 +163,9 @@ const advance = (layer, next_index) => {
 	renderStep(layer, next_index);
 };
 
-const matchedStep = (element, current_index) => {
-	'Return the step whose control element belongs to, accepting the next step too, so a user who skips an optional step is not left behind.';
-	return [current_index, current_index + 1].find(index => index < STEPS.length && element.closest(STEPS[index].selector));
+const matchedStep = (e, current_index) => {
+	'Return the step whose control the event happened on, accepting the next step too, so a user who skips an optional step is not left behind.';
+	return [current_index, current_index + 1].find(index => index < STEPS.length && (STEPS[index].event || 'click') === e.type && matchesStep(STEPS[index], e.target.closest(STEPS[index].selector)));
 };
 
 const onInteraction = (layer, e) => {
@@ -159,7 +173,7 @@ const onInteraction = (layer, e) => {
 		return;
 	if (e.target.closest('[data-tour-skip]'))
 		return endTour(layer);
-	const matched_index = matchedStep(e.target, currentStep(layer.bubble));
+	const matched_index = matchedStep(e, currentStep(layer.bubble));
 	if (matched_index !== undefined)
 		requestAnimationFrame(() => advance(layer, matched_index + 1));
 };
@@ -193,15 +207,6 @@ const whenPageReady = (run) => {
 	observer.observe(document.body, {attributes: true, attributeFilter: ['class']});
 };
 
-const watchReset = () => {
-	'Bring the tour back for a browser that was reset to its defaults.';
-	window.addEventListener('click', e => {
-		if (e.target.closest('[data-action="reset-defaults"]'))
-			getOptions([['completed', false]], {}, TOUR_STATE_KEY);
-	}, true);
-};
-
 export const init = (container) => {
-	watchReset();
 	whenPageReady(() => isFirstVisit() && startTour(container));
 };

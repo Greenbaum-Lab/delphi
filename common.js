@@ -86,5 +86,12 @@ export const generateZoomLevels = () => {
 
 export const ZOOM_LEVELS = generateZoomLevels();
 
+export const clippingRect = (elem) => {
+	'Return the box that clips elem: the nearest ancestor that hides its overflow, or the window.';
+	if (!elem)
+		return {left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight};
+	return getComputedStyle(elem).overflow === 'visible' ? clippingRect(elem.parentElement) : elem.getBoundingClientRect();
+};
+
 export const COLUMN_DESCRIPTIONS = fetch('/data/column_descriptions.json').then(response => response.json());
 

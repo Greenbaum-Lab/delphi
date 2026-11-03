@@ -1,13 +1,8 @@
+import { clippingRect } from '/common.js';
+
 const EDGE_MARGIN = 8;
 
 const TOOLTIP_GAP = 7;
-
-const clippingRect = (elem) => {
-	'Return the box that clips elem: the nearest ancestor that hides its overflow, or the window.';
-	if (!elem)
-		return {left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight};
-	return getComputedStyle(elem).overflow === 'visible' ? clippingRect(elem.parentElement) : elem.getBoundingClientRect();
-};
 
 const tooltipSize = (anchor) => {
 	const tooltip_style = getComputedStyle(anchor, '::after');
