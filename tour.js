@@ -143,11 +143,15 @@ const endTour = (layer) => {
 	layer.bubble.remove();
 };
 
-const advance = (layer) => {
-	const next_index = currentStep(layer.bubble) + 1;
+const advance = (layer, next_index) => {
 	if (next_index === STEPS.length)
 		return endTour(layer);
 	renderStep(layer, next_index);
+};
+
+const matchedStep = (element, current_index) => {
+	'Return the step whose control element belongs to, accepting the next step too, so a user who skips an optional step is not left behind.';
+	return [current_index, current_index + 1].find(index => index < STEPS.length && element.closest(STEPS[index].selector));
 };
 
 const onInteraction = (layer, e) => {
@@ -155,8 +159,9 @@ const onInteraction = (layer, e) => {
 		return;
 	if (e.target.closest('[data-tour-skip]'))
 		return endTour(layer);
-	if (e.target.closest(STEPS[currentStep(layer.bubble)].selector))
-		requestAnimationFrame(() => advance(layer));
+	const matched_index = matchedStep(e.target, currentStep(layer.bubble));
+	if (matched_index !== undefined)
+		requestAnimationFrame(() => advance(layer, matched_index + 1));
 };
 
 const startTour = (container) => {
