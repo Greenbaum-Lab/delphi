@@ -5,7 +5,7 @@ import { getAxisLabel, hexToRgb, calculateBounds } from '/common.js';
 import { getPopulationSamples, getSignalTrack, getPregeneratedReference } from '/assets.js';
 import { referenceKey, updateReference } from '/browser/reference.js';
 import { getPopData, pairwiseSort, pairKey } from '/browser/pops.js';
-import { generateCoordinateTicks, drawGuides } from '/browser/helpers.js';
+import { generateCoordinateTicks, drawGuides, fitSVG } from '/browser/helpers.js';
 
 const cssVars = getComputedStyle(document.documentElement);
 const getVar = (name) => cssVars.getPropertyValue(name).trim();
@@ -117,9 +117,19 @@ const drawReference = (drawer, reference, min_value, max_value) => {
 	});
 };
 
+const drawTrack = (track) => {
+	'Draw the signal the track holds at the size its plot area is rendered.';
+	const options = getOptions();
+	const svg = track.querySelector('svg');
+	const plot_style = track.dataset.style || 'binned';
+	const bounds = track.dataset.bounds ? track.dataset.bounds.split(',').map(v => +v) : null;
+	fitSVG(svg);
+	drawSignal(svg, track.signal_bins, plot_style, bounds, options.show_percentiles ? track.signal_reference : null);
+};
+
 const binOpacity = (value, reference) => reference && value >= reference.lower && value <= reference.upper ? 0.7 : 1;
 
-const drawSignal = (svg, data, data_start, data_end, plot_style, bounds, reference) => {
+const drawSignal = (svg, data, plot_style, bounds, reference) => {
 	const options = getOptions();
 	let min_value, max_value, zero_baseline;
 	if (bounds) {
@@ -260,10 +270,7 @@ const hooks = [
 		track.signal_bins = bins;
 		const reference = await trackReference(populations, track_measure, bins);
 		track.signal_reference = reference;
-		const svg = track.querySelector('svg');
-		const plot_style = track.dataset.style || 'binned';
-		const bounds = track.dataset.bounds ? track.dataset.bounds.split(',').map(v => +v) : null;
-		drawSignal(svg, bins, track_response.start, track_response.end, plot_style, bounds, options.show_percentiles ? reference : null);
+		drawTrack(track);
 		showReferenceNote(track, options.show_percentiles ? reference : null);
 		const measured_values = values.filter(value => value !== null);
 		const mean_signal = measured_values.length > 0 ? mean(measured_values) : 0;
@@ -272,6 +279,10 @@ const hooks = [
 		clearTimeout(loading_timeout);
 		track.classList.remove('loading');
 		track.dispatchEvent(new CustomEvent('refreshed', {detail: {signal: mean_signal}}));
+	}],
+	['[data-module="track"]', 'redraw', e => {
+		if (e.target.signal_bins)
+			drawTrack(e.target);
 	}],
 	['[data-action="pin"]', 'click', e => {
 		const track = e.target.closest('[data-module="track"]');

@@ -101,6 +101,8 @@ const displayedTracksBounds = (measure) => {
 	return min_value < max_value ? [min_value, max_value] : null;
 };
 
+const redrawTracks = (browser) => browser.querySelectorAll('[data-module="track"]').forEach(track => track.dispatchEvent(new Event('redraw')));
+
 const hooks = [
   	['[data-module="browser"]', 'refresh', async e => {
 		const options = getOptions();
@@ -390,5 +392,6 @@ export const init = async (container) => {
 	
 	updateRegionInput(options.chr, options.start, options.end);
 	addHooks(window, hooks);
+	matchMedia('print').addEventListener('change', () => redrawTracks(container));
 	container.dispatchEvent(new Event('update'));
 };
