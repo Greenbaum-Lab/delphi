@@ -636,6 +636,12 @@ input, select, textarea {
 }
 
 @media print {
+	[data-module="track"]:not(.view-finder) {
+		height: auto;
+	}
+	[data-module="track"] .track-plot-area {
+		min-height: 0;
+	}
 	[data-module="track"] .track-plot-area svg {
 		height: auto;
 	}
