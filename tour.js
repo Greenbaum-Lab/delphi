@@ -4,14 +4,15 @@ const TOUR_STATE_KEY = 'tour_state';
 
 const STEPS = [
 	{selector: '[data-action="open-populations"]', placement: 'top', text: 'New to DELPHI? Start by choosing populations'},
-	{selector: '[data-subfunction="update-populations"]', placement: 'top', text: 'Try French, Yoruba and Han. Tick them, then press Update'},
-	{selector: '[data-input="region"]', placement: 'bottom', text: 'Now jump to a gene. Type SLC24A5, a famous skin color gene'},
+	{selector: '.ag-header-cell[col-id="label"]', placement: 'top', text: 'Search here with the filter icon. Tick French and Han'},
+	{selector: '[data-subfunction="update-populations"]', placement: 'top', text: 'Ticked French and Han? Press Update'},
+	{selector: '[data-input="region"]', placement: 'bottom', text: 'Type the skin color gene SLC24A5'},
 	{selector: '.top-bar [data-action="search-annotation"]', placement: 'bottom', text: 'Then hit search'},
-	{selector: '.more-toggle', placement: 'top', text: 'See French diversity dip at the gene? That is the mark of selection for lighter skin. Tune the plots in here'},
-	{selector: '[data-action="autoscale-y"]', placement: 'left', text: 'Autofit the y-axis to make the dip stand out'},
-	{selector: '.measure-selector', placement: 'top', text: 'Now pick FST. French split from Yoruba and Han right at the gene'},
-	{selector: '.sort-selector, .sort-selector-pairwise', placement: 'top', text: 'Sort tracks by time, climate or culture. Try Signal to put the strongest first'},
-	{selector: '[data-action="open-annotations"]', placement: 'top', text: 'Finally, lay annotations over the data, or upload your own'}
+	{selector: '.more-toggle', placement: 'top', text: 'French diversity dips here: selection for lighter skin. Plot options are in here'},
+	{selector: '[data-action="autoscale-y"]', placement: 'left', text: 'Autofit the y-axis to see the dip'},
+	{selector: '.measure-selector', placement: 'top', text: 'Pick FST: French and Han split right at the gene'},
+	{selector: '.sort-selector, .sort-selector-pairwise', placement: 'top', text: 'Sort tracks by time, climate or culture'},
+	{selector: '[data-action="open-annotations"]', placement: 'top', text: 'Finally, add annotations or upload your own'}
 ];
 
 const BUBBLE_MARKUP = '<p class="tour-text"></p><div class="tour-footer"><div class="tour-progress" aria-hidden="true"></div><button type="button" class="tour-skip" data-tour-skip></button></div>';
@@ -154,8 +155,7 @@ const onInteraction = (layer, e) => {
 		return;
 	if (e.target.closest('[data-tour-skip]'))
 		return endTour(layer);
-	const target = findTarget(STEPS[currentStep(layer.bubble)].selector);
-	if (target && (target === e.target || target.contains(e.target)))
+	if (e.target.closest(STEPS[currentStep(layer.bubble)].selector))
 		requestAnimationFrame(() => advance(layer));
 };
 
