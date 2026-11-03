@@ -201,7 +201,7 @@ const hideTooltip = (e) => {
 
 const handleSearch = async (e) => {
 	const search_query = e.detail?.query;
-	if (!search_query) return;
+	if (!search_query) return false;
 	
 	const track = e.target;
 	const browser = track.closest('[data-module="browser"]');
@@ -211,7 +211,7 @@ const handleSearch = async (e) => {
 	const normalized_query = search_query.toLowerCase();
 	const match = [...gene_map.entries()].find(([name]) => name.toLowerCase() === normalized_query);
 	
-	if (!match) return;
+	if (!match) return false;
 	
 	const options = getOptions();
 	const [gene_name, coords] = match;
@@ -228,6 +228,7 @@ const handleSearch = async (e) => {
 		highlighted_gene = null;
 		browser.dispatchEvent(new Event('refresh'));
 	}, 4000);
+	return true;
 };
 
 const hooks = [
@@ -245,7 +246,7 @@ const hooks = [
 	['svg [data-gene]', 'mousedown', e => toggleGeneBand(e.target.dataset.gene, +e.target.dataset.geneStart, +e.target.dataset.geneEnd)],
 	['svg, svg *', 'mousemove', e => showHoverLine(e.clientX)],
 	['[data-module="track"]', 'mouseleave', hideHoverLine],
-	['[data-module="track"]', 'search', handleSearch],
+	['[data-module="track"]', 'search', e => e.detail.searches.push(handleSearch(e))],
 	['[data-action="previous-hit"]', 'click', e => {
 		navigateToHit(e.target.closest('[data-module="track"]'), -1);
 	}],
