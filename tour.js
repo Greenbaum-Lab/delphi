@@ -1,30 +1,16 @@
 import { getOptions } from '/apc/common.js';
-import { clippingRect } from '/common.js';
+import { STEPS } from '/tour_steps.js';
+import { positionRing, positionBubble, visibleRect, isOnScreen } from '/tour_layout.js';
 
 const TOUR_STATE_KEY = 'tour_state';
 
-const STEPS = [
-	{selector: '[data-action="open-populations"]', placement: 'top', text: 'New to DELPHI? Start by choosing populations'},
-	{selector: '.ag-header-cell[col-id="label"]', placement: 'top', text: 'Search populations here. Try Finnish and San'},
-	{selector: '[data-subfunction="update-populations"]', placement: 'top', text: 'Press Update to show populations'},
-	{selector: '[data-input="region"]', placement: 'bottom', event: 'change', text: 'Find the eye color gene HERC2 and press Enter'},
-	{selector: '.more-toggle', placement: 'top', text: 'Play with the plot here'},
-	{selector: '[data-action="autoscale-y"]', placement: 'left', text: 'This is a good one!'},
-	{selector: '.measure-selector', placement: 'top', text: 'Tired of heterozygosity? Pick another signal'},
-	{selector: '.sort-selector, .sort-selector-pairwise', placement: 'top', text: 'Sort tracks by time, climate or culture'},
-	{selector: '[data-action="open-annotations"]', placement: 'top', text: 'Finally, add annotations or upload your own'},
-	{selector: '.ag-row', contains: 'accelerated', placement: 'top', text: 'Try ticking this one to add regions with accelerated evolution'}
-];
-
 const BUBBLE_MARKUP = '<p class="tour-text"></p><div class="tour-footer"><div class="tour-progress" aria-hidden="true"></div><button type="button" class="tour-skip" data-tour-skip></button></div>';
-
-const BUBBLE_GAP = 14;
 
 const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
 
 const POP_KEYFRAMES = [{transform: 'scale(0.8)'}, {transform: 'scale(1.06)', offset: 0.6}, {transform: 'scale(1)'}];
 
-const clamp = (value, lowest, highest) => Math.max(lowest, Math.min(value, highest));
+const stepEvent = (step) => step.event || 'click';
 
 const matchesStep = (step, element) => Boolean(element) && element.textContent.toLowerCase().includes(step.contains || '');
 
@@ -41,49 +27,6 @@ const buildLayer = (container) => {
 	return {ring, bubble};
 };
 
-const positionRing = (ring, rect) => {
-	ring.style.left = `${rect.left - 4}px`;
-	ring.style.top = `${rect.top - 4}px`;
-	ring.style.width = `${rect.width + 8}px`;
-	ring.style.height = `${rect.height + 8}px`;
-};
-
-const bubbleOffset = (rect, bubble_rect, placement) => {
-	if (placement === 'top')
-		return [rect.top - bubble_rect.height - BUBBLE_GAP, rect.left + rect.width / 2 - bubble_rect.width / 2];
-	if (placement === 'bottom')
-		return [rect.bottom + BUBBLE_GAP, rect.left + rect.width / 2 - bubble_rect.width / 2];
-	if (placement === 'right')
-		return [rect.top + rect.height / 2 - bubble_rect.height / 2, rect.right + BUBBLE_GAP];
-	return [rect.top + rect.height / 2 - bubble_rect.height / 2, rect.left - bubble_rect.width - BUBBLE_GAP];
-};
-
-const resolvePlacement = (rect, bubble_rect, placement) => {
-	'Flip the bubble to the opposite side of the control when the asked side has no room, so it never covers what it points at.';
-	if (placement === 'top' && rect.top - bubble_rect.height - BUBBLE_GAP < 8)
-		return 'bottom';
-	if (placement === 'bottom' && rect.bottom + bubble_rect.height + BUBBLE_GAP > window.innerHeight - 8)
-		return 'top';
-	if (placement === 'left' && rect.left - bubble_rect.width - BUBBLE_GAP < 8)
-		return 'right';
-	if (placement === 'right' && rect.right + bubble_rect.width + BUBBLE_GAP > window.innerWidth - 8)
-		return 'left';
-	return placement;
-};
-
-const positionBubble = (bubble, rect, placement) => {
-	'Place the bubble against the current target rectangle and aim its arrow at the centre of that rectangle.';
-	const bubble_rect = {width: bubble.offsetWidth, height: bubble.offsetHeight};
-	bubble.dataset.placement = resolvePlacement(rect, bubble_rect, placement);
-	const [offset_top, offset_left] = bubbleOffset(rect, bubble_rect, bubble.dataset.placement);
-	const top = clamp(offset_top, 8, window.innerHeight - bubble_rect.height - 8);
-	const left = clamp(offset_left, 8, window.innerWidth - bubble_rect.width - 8);
-	bubble.style.top = `${top}px`;
-	bubble.style.left = `${left}px`;
-	bubble.style.setProperty('--arrow-x', `${clamp(rect.left + rect.width / 2 - left, 18, bubble_rect.width - 18)}px`);
-	bubble.style.setProperty('--arrow-y', `${clamp(rect.top + rect.height / 2 - top, 18, bubble_rect.height - 18)}px`);
-};
-
 const popOnce = (bubble) => {
 	'Bounce the bubble the first time it shows for a step, so the eye catches where it moved.';
 	if (bubble.dataset.popped === bubble.dataset.step || REDUCED_MOTION.matches)
@@ -92,27 +35,24 @@ const popOnce = (bubble) => {
 	bubble.animate(POP_KEYFRAMES, {duration: 420, easing: 'ease-out'});
 };
 
+const revealOnce = (bubble, target) => {
+	'Scroll the target into view the first time it is found for a step, so a row further down a table is still pointed at.';
+	if (bubble.dataset.revealed === bubble.dataset.step)
+		return;
+	bubble.dataset.revealed = bubble.dataset.step;
+	target.scrollIntoView({block: 'nearest'});
+};
+
 const currentStep = (bubble) => Number(bubble.dataset.step);
 
 const layoutSignature = (bubble, rect) => [bubble.dataset.step, rect.top, rect.left, rect.width, rect.height, window.innerWidth, window.innerHeight].join(',');
 
-const visibleRect = (target) => {
-	'Return the part of target its nearest clipping ancestor lets through, so the ring never spills out of a scrolled table.';
-	const rect = target.getBoundingClientRect();
-	const bounds = clippingRect(target.parentElement);
-	const left = Math.max(rect.left, bounds.left);
-	const top = Math.max(rect.top, bounds.top);
-	const right = Math.min(rect.right, bounds.right);
-	const bottom = Math.min(rect.bottom, bounds.bottom);
-	return {left, top, right, bottom, width: right - left, height: bottom - top};
-};
-
-const isOnScreen = (rect) => rect.width > 0 && rect.height > 0 && rect.right > 0 && rect.bottom > 0 && rect.left < window.innerWidth && rect.top < window.innerHeight;
-
 const layoutStep = (layer) => {
 	'Redraw the ring and bubble against the target as it stands now, doing nothing while target and viewport are unmoved.';
 	const step = STEPS[currentStep(layer.bubble)];
-	const target = findTarget(step);
+	const target = layer.bubble.dataset.waiting ? null : findTarget(step);
+	if (target)
+		revealOnce(layer.bubble, target);
 	const rect = target && visibleRect(target);
 	const showing = Boolean(rect) && isOnScreen(rect);
 	layer.bubble.classList.toggle('tour-away', !showing);
@@ -165,7 +105,7 @@ const advance = (layer, next_index) => {
 
 const matchedStep = (e, current_index) => {
 	'Return the step whose control the event happened on, accepting the next step too, so a user who skips an optional step is not left behind.';
-	return [current_index, current_index + 1].find(index => index < STEPS.length && (STEPS[index].event || 'click') === e.type && matchesStep(STEPS[index], e.target.closest(STEPS[index].selector)));
+	return [current_index, current_index + 1].find(index => index < STEPS.length && stepEvent(STEPS[index]) === e.type && matchesStep(STEPS[index], e.target.closest(STEPS[index].selector)));
 };
 
 const onInteraction = (layer, e) => {
@@ -174,8 +114,11 @@ const onInteraction = (layer, e) => {
 	if (e.target.closest('[data-tour-skip]'))
 		return endTour(layer);
 	const matched_index = matchedStep(e, currentStep(layer.bubble));
-	if (matched_index !== undefined)
-		requestAnimationFrame(() => advance(layer, matched_index + 1));
+	if (matched_index === undefined)
+		return;
+	if (STEPS[matched_index].wait)
+		layer.bubble.dataset.waiting = 'true';
+	requestAnimationFrame(() => advance(layer, matched_index + 1));
 };
 
 const startTour = (container) => {
@@ -185,8 +128,8 @@ const startTour = (container) => {
 		layer.ring.classList.add('tour-visible');
 		layer.bubble.classList.add('tour-visible');
 	});
-	window.addEventListener('click', e => onInteraction(layer, e), true);
-	window.addEventListener('change', e => onInteraction(layer, e), true);
+	new Set(STEPS.map(stepEvent)).forEach(type => window.addEventListener(type, e => onInteraction(layer, e), true));
+	window.addEventListener('tracks-refreshed', () => delete layer.bubble.dataset.waiting, true);
 	window.addEventListener('keydown', e => e.key === 'Escape' && layer.bubble.isConnected && endTour(layer));
 	trackTarget(layer);
 };

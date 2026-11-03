@@ -125,6 +125,8 @@ const hooks = [
 				tracks_container.appendChild(track_data[0]);
 			}
 		}
+		await Promise.all(responses);
+		e.target.dispatchEvent(new Event('tracks-refreshed'));
     }],
 	['[data-module="browser"]', 'refresh', e => renderGeneBand()],
 	['[data-module="browser"]', 'update', async e => {
