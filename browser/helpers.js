@@ -1,4 +1,4 @@
-import { getOptions, shortNotation } from '/apc/common.js';
+import { errorBox, getOptions, shortNotation } from '/apc/common.js';
 import { CHR_LENGTHS } from '/common.js';
 import { computeZoomedBounds, findZoomLevelForSpan } from '/browser/zoom.js';
 import { computeViewfinderBounds, formatRegionString, parseRegion, clampSpanToMinimum } from '/browser/region.js';
@@ -40,17 +40,23 @@ export const zoomToLevel = (level) => {
 	dispatchBrowserRefresh();
 };
 
+const searchGene = async (query) => {
+	'Ask every annotation track to jump to the gene named query, and pop an error when none of them has it.';
+	const searches = [];
+	document.querySelectorAll('[data-module="track"][data-type="annotation"]')
+		.forEach(track => track.dispatchEvent(new CustomEvent('search', {detail: {query, searches}})));
+	if (!(await Promise.all(searches)).includes(true))
+		errorBox('Not found', 'No gene or region matches your search. Try a gene like HERC2, or a region like chr15:28000000-28500000.', document.querySelector('[data-module="browser"]'));
+};
+
 export const updateRegionFromInput = () => {
 	const input = document.querySelector('.region-query');
 	if (!input) {
 		return;
 	}
 	const parsed = parseRegion(input.value);
-	if (!parsed) {
-		document.querySelectorAll('[data-module="track"][data-type="annotation"]')
-			.forEach(track => track.dispatchEvent(new CustomEvent('search', {detail: {query: input.value}})));
-		return;
-	}
+	if (!parsed)
+		return searchGene(input.value);
 	const options = getOptions();
 	const assembly = options.assembly || 'hg38';
 	const chr_length = CHR_LENGTHS[assembly]?.[parsed.chr] || Infinity;

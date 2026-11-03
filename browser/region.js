@@ -54,7 +54,7 @@ export const parseRegion = (region_string) => {
 	const chr = match[1].startsWith('chr') ? match[1] : `chr${match[1]}`;
 	const start = parseInt(match[2], 10);
 	const end = match[3] === undefined ? start : parseInt(match[3], 10);
-	if (isNaN(start) || isNaN(end) || start > end) {
+	if (isNaN(start) || isNaN(end) || start > end || !CHR_LENGTHS[chr] || start >= CHR_LENGTHS[chr]) {
 		return null;
 	}
 	return { chr, start, end };
