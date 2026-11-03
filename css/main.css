@@ -195,7 +195,13 @@ input, select, textarea {
 }
 
 .logo {
-	color: var(--tex);
+	color: var(--text);
+	text-decoration: none;
+	transition: color .15s ease;
+}
+.logo:hover,
+.logo:focus-visible {
+	color: var(--accent);
 }
 .logo::before {
 	font-size: 24px;
@@ -390,7 +396,7 @@ input, select, textarea {
 	position: absolute;
 	bottom: calc(100% + 7px);
 	left: 50%;
-	transform: translateX(-50%) translateY(2px);
+	transform: translateX(calc(-50% + var(--tooltip-shift, 0px))) translateY(2px);
 	background: var(--text);
 	color: var(--bg-panel);
 	font-size: 12.5px;
@@ -405,10 +411,15 @@ input, select, textarea {
 	z-index: 60;
 }
 
+[data-tooltip][data-tooltip-placement="below"]::after {
+	bottom: auto;
+	top: calc(100% + 7px);
+}
+
 [data-tooltip]:hover::after,
 [data-tooltip]:focus-visible::after {
 	opacity: 1;
-	transform: translateX(-50%) translateY(0);
+	transform: translateX(calc(-50% + var(--tooltip-shift, 0px))) translateY(0);
 }
 
 .more-menu,
@@ -667,23 +678,6 @@ input, select, textarea {
 	color: var(--text);
 	border-color: var(--text-faint);
 	box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
-}
-
-[data-module="track"] .track-plot-area .hit-nav a::after {
-	transform: translateX(0) translateY(2px);
-}
-
-[data-module="track"] .track-plot-area .hit-nav a:hover::after {
-	transform: translateX(0) translateY(0);
-}
-
-[data-module="track"] .track-plot-area .hit-nav [data-action="previous-hit"]::after {
-	left: 0;
-}
-
-[data-module="track"] .track-plot-area .hit-nav [data-action="next-hit"]::after {
-	left: auto;
-	right: 0;
 }
 
 [data-module="track"] .track-plot-area .hit-nav svg {

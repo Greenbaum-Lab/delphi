@@ -4,17 +4,23 @@ const TOUR_STATE_KEY = 'tour_state';
 
 const STEPS = [
 	{selector: '[data-action="open-populations"]', placement: 'top', text: 'New to DELPHI? Start by choosing populations'},
-	{selector: '[data-input="region"]', placement: 'bottom', text: 'Jump anywhere. Type in an interesting gene, like BRCA1'},
-	{selector: '.more-toggle', placement: 'top', text: 'Play with the plots in here'},
-	{selector: '[data-action="autoscale-y"]', placement: 'left', text: 'This one is great'},
-	{selector: '.measure-selector', placement: 'top', text: 'Bored of heterozygosity? Pick another statistic'},
-	{selector: '.sort-selector, .sort-selector-pairwise', placement: 'top', text: 'Sort the tracks by time, climate, or sociocultural features'},
-	{selector: '[data-action="open-annotations"]', placement: 'top', text: 'Finally, lay annotations over the data'}
+	{selector: '[data-subfunction="update-populations"]', placement: 'top', text: 'Try French, Yoruba and Han. Tick them, then press Update'},
+	{selector: '[data-input="region"]', placement: 'bottom', text: 'Now jump to a gene. Type SLC24A5, a famous skin color gene'},
+	{selector: '.top-bar [data-action="search-annotation"]', placement: 'bottom', text: 'Then hit search'},
+	{selector: '.more-toggle', placement: 'top', text: 'See French diversity dip at the gene? That is the mark of selection for lighter skin. Tune the plots in here'},
+	{selector: '[data-action="autoscale-y"]', placement: 'left', text: 'Autofit the y-axis to make the dip stand out'},
+	{selector: '.measure-selector', placement: 'top', text: 'Now pick FST. French split from Yoruba and Han right at the gene'},
+	{selector: '.sort-selector, .sort-selector-pairwise', placement: 'top', text: 'Sort tracks by time, climate or culture. Try Signal to put the strongest first'},
+	{selector: '[data-action="open-annotations"]', placement: 'top', text: 'Finally, lay annotations over the data, or upload your own'}
 ];
 
 const BUBBLE_MARKUP = '<p class="tour-text"></p><div class="tour-footer"><div class="tour-progress" aria-hidden="true"></div><button type="button" class="tour-skip" data-tour-skip></button></div>';
 
 const BUBBLE_GAP = 14;
+
+const REDUCED_MOTION = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+const POP_KEYFRAMES = [{transform: 'scale(0.8)'}, {transform: 'scale(1.06)', offset: 0.6}, {transform: 'scale(1)'}];
 
 const clamp = (value, lowest, highest) => Math.max(lowest, Math.min(value, highest));
 
@@ -74,6 +80,14 @@ const positionBubble = (bubble, rect, placement) => {
 	bubble.style.setProperty('--arrow-y', `${clamp(rect.top + rect.height / 2 - top, 18, bubble_rect.height - 18)}px`);
 };
 
+const popOnce = (bubble) => {
+	'Bounce the bubble the first time it shows for a step, so the eye catches where it moved.';
+	if (bubble.dataset.popped === bubble.dataset.step || REDUCED_MOTION.matches)
+		return;
+	bubble.dataset.popped = bubble.dataset.step;
+	bubble.animate(POP_KEYFRAMES, {duration: 420, easing: 'ease-out'});
+};
+
 const currentStep = (bubble) => Number(bubble.dataset.step);
 
 const layoutSignature = (bubble, rect) => [bubble.dataset.step, rect.top, rect.left, rect.width, rect.height, window.innerWidth, window.innerHeight].join(',');
@@ -96,6 +110,7 @@ const layoutStep = (layer) => {
 	layer.bubble.dataset.layout = signature;
 	positionRing(layer.ring, rect);
 	positionBubble(layer.bubble, rect, step.placement);
+	popOnce(layer.bubble);
 };
 
 const trackTarget = (layer) => {

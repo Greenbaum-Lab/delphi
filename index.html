@@ -24,7 +24,7 @@
 <div class="wrap genome-browser" data-module="browser">
 	<header class="top-bar">
 		<div class="top-bar-left">
-			<div class="logo" data-icon="0">DELPHI</div><div class="mode"></div>
+			<a class="logo" href="/" data-icon="0" data-action="reset-defaults" aria-label="DELPHI home, start over">DELPHI</a><div class="mode"></div>
 			<input type="text" class="region-query" data-input="region" placeholder="chr1:1000000-2000000" value="chr1:1000000-2000000">
 			<a data-icon="S" data-action="search-annotation" data-tooltip="Go to region or search gene" aria-label="Go to region or search gene"></a>
 		</div>
@@ -195,6 +195,7 @@
 	</footer>
 </div>
 <div data-module="tour"></div>
+<div data-module="tooltip"></div>
 <div class="loading-overlay">Loading...</div>
 <script type="module" src="/init.js"></script>
 </body>
